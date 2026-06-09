@@ -128,7 +128,9 @@
       <div><label>Piezas saladas / pax</label><input id="saladasPP" type="number" step="0.5" value="3"></div>
       <div><label>Piezas dulces / pax</label><input id="dulcesPP" type="number" step="0.5" value="2"></div>
     </div>
-    <p style="font-size:12px;color:#777;margin:10px 0 0">SPORT: el frío va en <b>bandejas de 24</b>. Tablas/redondas son de elegante.</p>
+    <label>Surtido (curados/quesos/dulces) / pax</label>
+    <input id="surtidoPP" type="number" step="0.5" value="0">
+    <p style="font-size:12px;color:#777;margin:10px 0 0">Bandejas: normales <b>20/ud</b>; curados, quesos y surtido de dulces <b>10/ud</b> (doblan).</p>
   </div>
 
   <div class="card config">
@@ -138,6 +140,9 @@
       <div><label>Tipos de frito</label><input id="fritoTipos" type="number" value="0" min="0"></div>
       <div><label>Nº de hamburguesas</label><input id="hamburguesas" type="number" value="0" min="0"></div>
     </div>
+    <label>Calientes preparados (risotto, milhojas…)</label>
+    <input id="calientesPrep" type="number" value="0" min="0">
+    <div class="chk"><input id="tortChaf" type="checkbox"><label for="tortChaf" style="margin:0">Mini tortilla al chafing (cap 30) · si no, va en bandeja (20)</label></div>
     <div class="chk"><input id="tenedorCroq" type="checkbox" checked><label for="tenedorCroq" style="margin:0">Los fritos necesitan tenedor</label></div>
   </div>
 
@@ -172,6 +177,9 @@
     <button class="btnPrint" onclick="window.print()">🖨️ Imprimir / PDF</button>
     <button class="btnReset" id="reiniciar">↻ Reiniciar marcas</button>
   </div>
+  <div class="acciones" style="margin-top:-6px">
+    <button id="irPlano" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">🗺️ Abrir plano 2D con estos recursos</button>
+  </div>
   <footer>Doña Col · checklist de montaje v2 (sport)</footer>
 </main>
 
@@ -179,27 +187,53 @@
 let servicio='coffee';
 const intol=[];
 
-// ---- Menús predefinidos (recopilados de donacol.es) ----
-// sPP/dPP = piezas saladas/dulces por persona (frías → bandeja) · fritoT = nº tipos de frito (croqueta/langostino/cremosa, 1 de cada por persona) · ham = lleva mini hamburguesa (1/pax)
-// rev = piezas estimadas (la web no las indica) · inc = composición resumida
-const MENUS={
-  bienvenida:{nom:'Coffee Break Bienvenida',serv:'coffee',vino:false,sPP:0,dPP:1,fritoT:0,ham:false,rev:true,inc:'Café, leche, infusiones, agua + pastas de té.'},
-  cb1:{nom:'Coffee Break 1',serv:'coffee',vino:false,sPP:1,dPP:1,fritoT:0,ham:false,inc:'Bocatín jamón, bocatín tortilla · cakes limón/choco. (1 salada + 1 dulce)'},
-  cb2:{nom:'Coffee Break 2',serv:'coffee',vino:false,sPP:2,dPP:2,fritoT:0,ham:false,inc:'+ brocheta de fruta. (2 saladas + 2 dulces)'},
-  cb3:{nom:'Coffee Break 3',serv:'coffee',vino:false,sPP:3,dPP:2,fritoT:0,ham:false,inc:'Jamón, tortilla, brioche atún, empanada bonito, empanada queso · tartaletas. (3 saladas + 2 dulces)'},
-  cb4:{nom:'Coffee Break 4',serv:'coffee',vino:true,sPP:5,dPP:2,fritoT:2,ham:false,rev:true,inc:'Jamón cuchillo, quesos, tortilla, brioche, empanadas, ensaladilla + croqueta jamón + cremosa boletus. Con vino.'},
-  healthy:{nom:'Coffee Break Healthy',serv:'coffee',vino:false,sPP:4,dPP:3,fritoT:0,ham:false,rev:true,inc:'Jamón, pavo, salmón, fruta, grissinis · queso/miel, yogur, croissant.'},
-  c1:{nom:'Cóctel 1',serv:'coctel',vino:true,sPP:1,dPP:2,fritoT:0,ham:false,rev:true,inc:'Petits fours, fruta, montadito/quesos. Copa cava o vino.'},
-  c2:{nom:'Cóctel 2',serv:'coctel',vino:true,sPP:3,dPP:1,fritoT:3,ham:false,rev:true,inc:'Quesos, ibéricos, montadito + croqueta jamón, langostino, cremosa boletus.'},
-  c3:{nom:'Cóctel 3',serv:'coctel',vino:true,sPP:5,dPP:1,fritoT:3,ham:false,rev:true,inc:'5 canapés fríos + croqueta jamón, cremosa gulas, cremosa boletus.'},
-  c4:{nom:'Cóctel 4',serv:'coctel',vino:true,sPP:4,dPP:1,fritoT:4,ham:true,rev:true,inc:'Jamón, ibéricos, sobrasada, empanada + envoltini, langostino, croqueta, cremosa + mini HAMBURGUESA.'},
-  c5:{nom:'Cóctel 5',serv:'coctel',vino:true,sPP:6,dPP:1,fritoT:4,ham:false,rev:true,inc:'Jamón cuchillo, ibéricos, quesos, canapés + envoltini, langostino, croqueta cocido, cremosa.'},
-  c6:{nom:'Cóctel 6',serv:'coctel',vino:true,sPP:7,dPP:1,fritoT:4,ham:false,rev:true,inc:'Como C5 + Bloody Mary/crema calabacín.'},
-  c7:{nom:'Cóctel 7',serv:'coctel',vino:true,sPP:8,dPP:1,fritoT:6,ham:false,rev:true,inc:'El más completo: + risotto setas + milhojas cabrito.'},
-  arag1:{nom:'Menú Aragonés 1',serv:'coctel',vino:true,sPP:5,dPP:1,fritoT:2,ham:false,rev:true,inc:'Jamón Teruel, canapés + croqueta jamón, bolita ajoarriero.'},
-  arag2:{nom:'Menú Aragonés 2',serv:'coctel',vino:true,sPP:6,dPP:1,fritoT:2,ham:false,rev:true,inc:'+ milhojas ternasco D.O.P., quesos aragoneses.'},
+// ---- CATÁLOGO DE PRODUCTOS (transcrito de donacol.es) ----
+// Cada plato → categoría. Capacidad de bandeja por categoría:
+const CAT={
+  sal :{t:'Salado',        b:'bandeja 20'},
+  tor :{t:'Tortilla',      b:'bandeja 20 (o chafing)'},
+  dul :{t:'Dulce',         b:'bandeja 20'},
+  cur :{t:'Curado',        b:'surtido 10'},
+  que :{t:'Queso',         b:'surtido 10'},
+  surd:{t:'Surtido dulce', b:'surtido 10'},
+  fri :{t:'Frito',         b:'chafing'},
+  cal :{t:'Caliente preparado',b:'chafing (regla/pax pendiente)'},
+  ham :{t:'Hamburguesa',   b:'chafing'},
 };
-let menuSel='';
+// saladaPP/dulcePP = total por persona SI el menú lo especifica; si no, se cuenta 1 de cada plato normal.
+const CATALOGO={
+  bienvenida:{nombre:'Coffee Break Bienvenida',serv:'coffee',vino:false,items:[['Pastas de té','dul']]},
+  cb1:{nombre:'Coffee Break 1',serv:'coffee',vino:false,saladaPP:1,dulcePP:1,items:[['Bocatín de jamón ibérico','sal'],['Bocatín de tortilla','tor'],['Cake de limón','dul'],['Cake de chocolate','dul']]},
+  cb2:{nombre:'Coffee Break 2',serv:'coffee',vino:false,saladaPP:2,dulcePP:2,items:[['Bocatín de jamón ibérico','sal'],['Bocatín de tortilla','tor'],['Brocheta de fruta','dul'],['Cake de limón','dul'],['Cake de chocolate','dul']]},
+  cb3:{nombre:'Coffee Break 3',serv:'coffee',vino:false,saladaPP:3,dulcePP:2,items:[['Bocatín de jamón ibérico','sal'],['Bocatín de tortilla','tor'],['Brioche de atún','sal'],['Empanada de bonito','sal'],['Empanada de queso','sal'],['Cake de limón','dul'],['Cake de chocolate','dul'],['Mini tartaletas','dul']]},
+  cb4:{nombre:'Coffee Break 4',serv:'coffee',vino:true,items:[['Jamón ibérico a cuchillo','cur'],['Surtido de quesos','que'],['Bocatín de tortilla','tor'],['Brioche de atún','sal'],['Empanada de bonito','sal'],['Empanada de queso','sal'],['Tapita de ensaladilla','sal'],['Croqueta de jamón','fri'],['Cremosa de boletus','fri'],['Cake de limón','dul'],['Cake de chocolate','dul'],['Mini tartaletas','dul']]},
+  healthy:{nombre:'Coffee Break Healthy',serv:'coffee',vino:false,items:[['Jamón ibérico a cuchillo','cur'],['Bocatín de pavo','sal'],['Brioche de salmón','sal'],['Grissinis de semillas','sal'],['Brocheta de fruta','dul'],['Queso con miel y nueces','dul'],['Yogur griego con mango','dul'],['Mini croissant','dul']]},
+  c1:{nombre:'Cóctel 1',serv:'coctel',vino:true,items:[['Petits fours','surd'],['Brocheta de fruta','dul'],['Montadito de jamón / quesos','sal']]},
+  c2:{nombre:'Cóctel 2',serv:'coctel',vino:true,items:[['Surtido de quesos','que'],['Surtido de ibéricos','cur'],['Montadito de jamón','sal'],['Langostino crujiente','fri'],['Croqueta de jamón','fri'],['Cremosa de boletus','fri'],['Surtido de dulces','surd']]},
+  c3:{nombre:'Cóctel 3',serv:'coctel',vino:true,items:[['Jamón a cuchillo','cur'],['Canapé de queso Agour','sal'],['Canapé de burrata','sal'],['Canapé de tartar de salchichón','sal'],['Canapé de sobrasada','sal'],['Croqueta de jamón','fri'],['Cremosa de gulas y gambas','fri'],['Cremosa de boletus','fri'],['Petits fours','surd']]},
+  c4:{nombre:'Cóctel 4',serv:'coctel',vino:true,items:[['Montadito de jamón','sal'],['Surtido de ibéricos','cur'],['Envoltini de papada','sal'],['Empanada de bonito','sal'],['Mini hamburguesa','ham'],['Bocatín de sobrasada','sal'],['Langostino crujiente','fri'],['Croqueta de gulas y gambas','fri'],['Cremosa de boletus','fri'],['Surtido de dulces','surd']]},
+  c5:{nombre:'Cóctel 5',serv:'coctel',vino:true,items:[['Jamón a cuchillo','cur'],['Surtido de ibéricos','cur'],['Surtido de quesos','que'],['Envoltini de papada','sal'],['Lingote de sobrasada','sal'],['Canapé de queso Agour','sal'],['Canapé de burrata','sal'],['Langostino crujiente','fri'],['Croqueta de cocido','fri'],['Cremosa de boletus','fri'],['Surtido de dulces','surd']]},
+  c6:{nombre:'Cóctel 6',serv:'coctel',vino:true,items:[['Bloody Mary / crema de calabacín','sal'],['Jamón a cuchillo','cur'],['Surtido de ibéricos','cur'],['Surtido de quesos','que'],['Envoltini de papada','sal'],['Lingote de sobrasada','sal'],['Canapé de queso Agour','sal'],['Canapé de burrata','sal'],['Langostino crujiente','fri'],['Croqueta de cocido','fri'],['Cremosa de boletus','fri'],['Surtido de dulces','surd']]},
+  c7:{nombre:'Cóctel 7',serv:'coctel',vino:true,items:[['Bloody Mary','sal'],['Vasito de crema de calabacín','sal'],['Jamón a cuchillo','cur'],['Surtido de ibéricos','cur'],['Surtido de quesos','que'],['Envoltini de papada','sal'],['Bocatín de sobrasada','sal'],['Empanada de bonito','sal'],['Canapé de queso Agour','sal'],['Canapé de burrata','sal'],['Langostino crujiente','fri'],['Croqueta de cocido','fri'],['Cremosa de boletus','fri'],['Risotto de setas','cal'],['Milhojas de cabrito','cal'],['Surtido de dulces','surd']]},
+  arag1:{nombre:'Menú Aragonés 1',serv:'coctel',vino:true,items:[['Chupito de sopa de borraja','sal'],['Jamón de Teruel','cur'],['Canapé de queso Pirineo','sal'],['Canapé de tartar de fuet','sal'],['Lingote de sobrasada de Graus','sal'],['Croqueta de jamón','fri'],['Bolita de ajoarriero','fri'],['Mousse de melocotón','dul']]},
+  arag2:{nombre:'Menú Aragonés 2',serv:'coctel',vino:true,items:[['Vasito Bloody Mary tomate rosa','sal'],['Chupito de sopa de borraja','sal'],['Jamón de Teruel','cur'],['Surtido de quesos aragoneses','que'],['Milhojas de Ternasco','cal'],['Canapé de queso Pirineo','sal'],['Canapé de tartar de fuet','sal'],['Lingote de sobrasada','sal'],['Croqueta de jamón','fri'],['Mousse de melocotón','dul']]},
+};
+// Deriva las variables de bandeja desde los platos del menú
+function derivar(m){
+  const c={sal:0,tor:0,dul:0,cur:0,que:0,surd:0,fri:0,cal:0,ham:0};
+  m.items.forEach(([n,cat])=>c[cat]=(c[cat]||0)+1);
+  const varSal=c.sal+c.tor;
+  return {
+    sPP: m.saladaPP!=null?m.saladaPP:(c.sal+c.tor),   // salados normales incl. tortilla (si va en bandeja)
+    torPP: m.saladaPP!=null?(varSal?m.saladaPP*c.tor/varSal:0):c.tor,  // ración de tortilla por pax (por si va al chafing)
+    dPP: m.dulcePP!=null?m.dulcePP:c.dul,
+    surtido: (c.cur+c.que+c.surd)>0?1:0,              // 1 ración/pax si hay surtido (→ 2 bandejas cada 20)
+    fritoT: c.fri,
+    calientes: c.cal,                                  // platos calientes preparados (risotto, milhojas…) → 1 chafing c/u (provisional)
+    ham: c.ham>0
+  };
+}
+let menuSel='', menuTortPP=0, INV_ACTUAL=null;
 const $=id=>document.getElementById(id);
 const num=id=>parseFloat($(id).value)||0;
 const ceil=Math.ceil, rnd=Math.round;
@@ -218,23 +252,34 @@ document.querySelectorAll('#servicio button').forEach(b=>b.onclick=()=>{
 });
 $('addIntol').onclick=()=>{intol.push({nombre:'',pax:0});render();};
 $('reiniciar').onclick=()=>{estados={};guardar();calcular();};
+$('irPlano').onclick=()=>{try{localStorage.setItem('montaje_inv',JSON.stringify(INV_ACTUAL||{}));}catch(e){}window.location.href='montaje2d.html';};
 
 function setServicio(v){
   document.querySelectorAll('#servicio button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
   servicio=v;
 }
 function aplicarMenu(){
-  const m=MENUS[menuSel];
+  const m=CATALOGO[menuSel];
   const info=$('menuInfo');
-  if(!m){info.textContent='';return;}
-  const pax=num('pax');
+  if(!m){info.textContent='';menuTortPP=0;return;}
+  const pax=num('pax'), d=derivar(m);
+  const tortChaf=$('tortChaf').checked;
+  menuTortPP=d.torPP;
   setServicio(m.serv);
-  $('vino').checked=m.vino;
-  $('saladasPP').value=m.sPP;
-  $('dulcesPP').value=m.dPP;
-  $('fritoTipos').value=m.fritoT||0;
-  $('hamburguesas').value=m.ham? pax : 0; // 1 hamburguesa por persona
-  info.innerHTML=(m.rev?'⚠️ <b>piezas estimadas</b> (la web no las indica, ajústalas)<br>':'')+m.inc;
+  $('vino').checked=!!m.vino;
+  $('saladasPP').value=+(d.sPP-(tortChaf?d.torPP:0)).toFixed(2);  // si la tortilla va al chafing, sale de los salados
+  $('dulcesPP').value=d.dPP;
+  $('surtidoPP').value=d.surtido;
+  $('fritoTipos').value=d.fritoT;
+  $('calientesPrep').value=d.calientes;
+  $('hamburguesas').value=d.ham? pax : 0; // 1 hamburguesa por persona
+  // Mostrar la clasificación de los platos
+  const g={};
+  m.items.forEach(([n,c])=>{(g[c]=g[c]||[]).push(n);});
+  info.innerHTML='<b>'+m.nombre+'</b> · '+m.items.length+' platos'
+    + ((m.saladaPP!=null)?` · ${m.saladaPP} salada + ${m.dulcePP} dulce/pax (según ficha)`:' · 1 de cada/pax')
+    + '<br>' + Object.keys(CAT).filter(c=>g[c]).map(c=>
+        `<span style="color:#b06d24;font-weight:600">${CAT[c].t}</span> <span style="color:#999">(${CAT[c].b})</span>: ${g[c].join(', ')}`).join('<br>');
 }
 $('menu').addEventListener('change',e=>{menuSel=e.target.value;aplicarMenu();calcular();});
 
@@ -256,10 +301,10 @@ function calcular(){
   const intolPax=intol.reduce((s,i)=>s+(i.pax||0),0);
   const stdPax=Math.max(0,pax-intolPax);
   const llevaVino=$('vino').checked;
-  const CAP=24;
+  const CAP=20, CAP_SURT=10;  // bandeja normal 20; curados/quesos/surtido dulces 10
 
-  const saladas=stdPax*num('saladasPP'), dulces=stdPax*num('dulcesPP');
-  const bandSalado=ceil(saladas/CAP), bandDulce=ceil(dulces/CAP);
+  const saladas=stdPax*num('saladasPP'), dulces=stdPax*num('dulcesPP'), surtido=stdPax*num('surtidoPP');
+  const bandSalado=ceil(saladas/CAP), bandDulce=ceil(dulces/CAP), bandSurtido=ceil(surtido/CAP_SURT);
   const intolItems=intol.filter(i=>i.pax>0);
   const bandIntol=intolItems.length;
 
@@ -270,17 +315,22 @@ function calcular(){
   const chafFritos=fritoTipos>0?ceil(fritosTot/capFrito):0;
   const hamb=num('hamburguesas');
   const chafHamb=hamb>0?ceil(hamb/30):0;
-  const chafing=chafFritos+chafHamb, fuegos=chafing;
-  const bandejasTot=bandSalado+bandDulce+bandIntol;
+  const calPrep=num('calientesPrep');         // risotto/milhojas: 1 chafing por plato (provisional, regla/pax pendiente)
+  const tortChaf=$('tortChaf').checked;
+  const tortUds=tortChaf?Math.round(menuTortPP*stdPax):0;   // mini tortilla al chafing (cap 30)
+  const chafTort=tortUds>0?ceil(tortUds/30):0;
+  const chafing=chafFritos+chafHamb+calPrep+chafTort, fuegos=chafing;
+  const bandejasTot=bandSalado+bandDulce+bandSurtido+bandIntol;
 
   let mesas=num('mesas'),mesasEstim=false;
   if(mesas===0){mesas=Math.max(2,ceil((bandejasTot+chafing)/4.5)+(pax<=80?1:2));mesasEstim=true;}
-  const manteles=ceil(mesas*1.2),florales=ceil(mesas/2);
+  const manteles=ceil(mesas*1.2);
   // mesas altas de cóctel (aparte)
   const paxAlta=num('paxAlta')||10;
   let mesasAltas=num('mesasAltas'),altasEstim=false;
   if(mesasAltas===0){mesasAltas=ceil(pax/paxAlta);altasEstim=true;}
   const mantelesAltas=ceil(mesasAltas*1.2);
+  const florales=mesas+mesasAltas;   // 1 arreglo por mesa (bajas + altas)
 
   const platos=ceil(pax*1.5),servilletas=ceil(pax*1.5),vasos=pax*2;
   const copas=llevaVino?ceil(pax*1.25):0;
@@ -312,11 +362,12 @@ function calcular(){
   const it=(nm,qt,nt)=>({nm,qt:String(qt),nt:nt||''});
 
   const bandItems=[
-    it('Bandejas de salados',bandSalado,`${saladas} uds · 24/bandeja`),
-    it('Bandejas de dulces',bandDulce,`${dulces} uds · 24/bandeja`),
-    ...intolItems.map(i=>it(`Bandeja · ${i.nombre||'dieta'}`,1,`${i.pax} pax · aparte`)),
+    it('Bandejas de salados',bandSalado,`${saladas} uds · 20/bandeja`),
+    it('Bandejas de dulces',bandDulce,`${dulces} uds · 20/bandeja`),
   ];
-  if(chafing>0){bandItems.push(it('Chafing dish',chafing,(fritosTot>0?`${fritosTot} fritos (cap ${capFrito})`:'')+(hamb>0?` · ${hamb} hamburg. (cap 30)`:'')));
+  if(surtido>0)bandItems.push(it('Bandejas de surtido (curados/quesos/dulces)',bandSurtido,`${surtido} uds · 10/bandeja`));
+  intolItems.forEach(i=>bandItems.push(it(`Bandeja · ${i.nombre||'dieta'}`,1,`${i.pax} pax · aparte`)));
+  if(chafing>0){bandItems.push(it('Chafing dish',chafing,(fritosTot>0?`${fritosTot} fritos (cap ${capFrito})`:'')+(hamb>0?` · ${hamb} hamburg. (cap 30)`:'')+(calPrep>0?` · ${calPrep} caliente prep.`:'')+(chafTort>0?` · ${tortUds} mini tortilla (cap 30)`:'')));
     bandItems.push(it('Fuegos de etileno',fuegos,'1 por chafing'));}
   sec('🍽️','Bandejas y caliente',bandItems);
 
@@ -370,7 +421,7 @@ function calcular(){
     it('Manteles (mesas bajas)',manteles,'+20%'),
     it('Mesas altas de cóctel'+(altasEstim?' (auto)':''),mesasAltas,`1 cada ${paxAlta} pax`),
     it('Manteles (mesas altas)',mantelesAltas,'+20%'),
-    it('Arreglos florales',florales,'1 cada 2 mesas'),
+    it('Arreglos florales',florales,'1 por mesa (altas+bajas)'),
   ]);
 
   sec('🧤','Limpieza y útiles',[
@@ -380,6 +431,18 @@ function calcular(){
     it('Bolsas de basura','✓',''),
     it('Mini basurero para mesas','✓',''),
   ]);
+
+  // Inventario para el plano 2D (recursos limitados según checklist)
+  INV_ACTUAL={
+    inv:{
+      buffet:mesas, alta:mesasAltas,
+      bandeja:bandSalado+bandDulce+bandSurtido+bandIntol,
+      chafing:chafing, champ:champaneras, fuente:dispensadores,
+      cajaCafe:servicio==='coffee'?(cafeBricks+lecheBricks+zumoBricks):0,
+      floral:florales, papelera:cubos
+    },
+    meta:{cliente:$('cliente').value, pax:pax, menu:(menuSel&&CATALOGO[menuSel])?CATALOGO[menuSel].nombre:(servicio==='coffee'?'Coffee break':'Cóctel')}
+  };
 
   pintar(S,{pax,servicio,llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
 }
@@ -446,9 +509,9 @@ $('hoja').addEventListener('click',e=>{
   actualizarContador();
 });
 
-['pax','cliente','vino','saladasPP','dulcesPP','fritoTipos','hamburguesas','tenedorCroq','mesas','lineas','mesasAltas','paxAlta']
+['pax','cliente','vino','saladasPP','dulcesPP','surtidoPP','fritoTipos','calientesPrep','hamburguesas','tortChaf','tenedorCroq','mesas','lineas','mesasAltas','paxAlta']
   .forEach(id=>$(id).addEventListener('input',()=>{
-    if(id==='pax'&&menuSel)aplicarMenu(); // reescalar calientes al nuevo nº de pax
+    if((id==='pax'||id==='tortChaf')&&menuSel)aplicarMenu(); // reescalar / recolocar tortilla
     calcular();
   }));
 
