@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3F2920">
+<title>Checklist de Montaje · Doña Col</title>
+<style>
+  :root{
+    --beige:#F5EAD8; --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --oro-d:#b06d24;
+    --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#3a2c22; --gris:#8c7a68;
+    --ok:#4e7d3a; --okbg:#eef4e6; --falta:#cf8a2e; --faltabg:#fbf1e0; --no:#b23b3b; --nobg:#fbeeee;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--beige);color:var(--tinta);font-size:16px;line-height:1.4}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  header{background:var(--marron);color:#f7ecdc;padding:14px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px rgba(63,41,32,.25);border-bottom:3px solid var(--oro)}
+  .brand{display:flex;align-items:center;gap:12px;max-width:620px;margin:0 auto}
+  .brand .logo{width:54px;height:54px;flex:none;border-radius:50%;background:#fbf4e7;padding:4px;object-fit:contain;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  header h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px;font-family:Georgia,'Times New Roman',serif}
+  header p{margin:2px 0 0;font-size:11px;color:var(--oro);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+  main{padding:14px;max-width:620px;margin:0 auto}
+  .card{background:var(--crema);border:1px solid var(--linea);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(90,59,39,.06)}
+  label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px;color:var(--marron2)}
+  input,select{width:100%;padding:11px;font-size:16px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta)}
+  input:focus,select:focus{outline:none;border-color:var(--oro);box-shadow:0 0 0 3px rgba(208,132,52,.15)}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .seg{display:flex;gap:6px;margin-top:4px}
+  .seg button{flex:1;padding:10px;border:1px solid var(--linea);background:#fff;border-radius:10px;font-size:13px;font-weight:600;color:var(--marron2)}
+  .seg button.on{background:var(--marron2);color:#f7ecdc;border-color:var(--marron2)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--oro-d);margin:0 0 8px;font-weight:700}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--marron2);margin-top:10px}
+  .chk input{width:auto;accent-color:var(--oro)}
+  .intol{display:flex;gap:8px;margin-top:8px;align-items:center}
+  .intol input[type=text]{flex:2}.intol input[type=number]{flex:1}
+  .intol button{background:#ecdcc4;border:none;border-radius:8px;padding:0 12px;font-size:18px;color:var(--marron2);cursor:pointer}
+  .addBtn{margin-top:8px;background:#f6ecdb;border:1px dashed var(--oro);color:var(--oro-d);border-radius:10px;padding:9px;width:100%;font-weight:700;font-size:13px}
+
+  /* Destacado */
+  .destacado{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:8px}
+  .tile{background:linear-gradient(160deg,var(--marron2),var(--marron));color:#f7ecdc;border-radius:12px;padding:10px 6px;text-align:center;border:1px solid rgba(208,132,52,.35)}
+  .tile b{display:block;font-size:22px;line-height:1.05;color:#fff;font-family:Georgia,serif}
+  .tile span{font-size:9px;opacity:.9;letter-spacing:.5px;color:var(--oro);font-weight:700;text-transform:uppercase}
+
+  /* Contador */
+  .contador{display:flex;gap:6px;margin:10px 0 4px;font-size:12px;font-weight:700;flex-wrap:wrap}
+  .contador span{padding:4px 9px;border-radius:20px}
+  .c-ok{background:var(--okbg);color:var(--ok)} .c-falta{background:var(--faltabg);color:var(--falta)}
+  .c-no{background:var(--nobg);color:var(--no)} .c-pend{background:#efe5d4;color:var(--gris)}
+  .barra{height:8px;background:#e7d8c1;border-radius:6px;overflow:hidden;margin-bottom:8px}
+  .barra>i{display:block;height:100%;background:linear-gradient(90deg,var(--oro),var(--ok));transition:width .3s}
+
+  /* Checklist */
+  .seccion h3{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:#f7ecdc;background:var(--marron2);border-radius:9px;padding:7px 11px;margin:16px 0 4px;border-left:4px solid var(--oro)}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #efe3d0;cursor:pointer;user-select:none}
+  .item .st{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid #d6c4a8;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#c3ad8e;background:#fff}
+  .item .nm{flex:1;font-size:15px;color:var(--tinta)}
+  .item .nt{font-size:11px;color:var(--gris);display:block}
+  .item .qt{font-weight:800;color:var(--oro-d);white-space:nowrap;font-size:17px;font-family:Georgia,serif}
+  .item.ok{background:var(--okbg)} .item.ok .st{border-color:var(--ok);color:var(--ok)}
+  .item.falta{background:var(--faltabg)} .item.falta .st{border-color:var(--falta);color:var(--falta)}
+  .item.no{background:var(--nobg)} .item.no .st{border-color:var(--no);color:var(--no)} .item.no .nm{text-decoration:line-through;color:#a99}
+
+  .acciones{display:flex;gap:10px;margin:14px 0}
+  .acciones button{flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
+  .btnPrint{background:var(--oro);color:#fff;box-shadow:0 2px 6px rgba(208,132,52,.35)}.btnReset{background:#ecdcc4;color:var(--marron2)}
+  .leyenda{font-size:11px;color:var(--gris);text-align:center;margin-top:-4px}
+  footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
+  footer b{color:var(--marron2)}
+  @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
+    .card{box-shadow:none;border:none;padding:0}.item{cursor:auto}.tile{background:#efe3d0;color:#3F2920}.tile b{color:#3F2920}.seccion h3{background:#efe3d0;color:#3F2920}}
+  #printHead{display:none}
+  @media print{#printHead{display:block;margin-bottom:8px}#printHead h1{margin:0;font-size:18px}#printHead p{margin:2px 0;font-size:12px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="logo.png" class="logo" alt="Doña Col Catering">
+    <div>
+      <h1>Checklist de Montaje</h1>
+      <p>Doña Col · Catering &amp; Eventos</p>
+    </div>
+  </div>
+</header>
+<main>
+
+  <div class="card config">
+    <h2>Menú</h2>
+    <select id="menu">
+      <option value="">— Manual (sin menú) —</option>
+      <optgroup label="Coffee break">
+        <option value="bienvenida">Coffee Break Bienvenida</option>
+        <option value="cb1">Coffee Break 1</option>
+        <option value="cb2">Coffee Break 2</option>
+        <option value="cb3">Coffee Break 3</option>
+        <option value="cb4">Coffee Break 4</option>
+        <option value="healthy">Coffee Break Healthy</option>
+      </optgroup>
+      <optgroup label="Cóctel">
+        <option value="c1">Cóctel 1</option>
+        <option value="c2">Cóctel 2</option>
+        <option value="c3">Cóctel 3</option>
+        <option value="c4">Cóctel 4</option>
+        <option value="c5">Cóctel 5</option>
+        <option value="c6">Cóctel 6</option>
+        <option value="c7">Cóctel 7</option>
+        <option value="arag1">Menú Aragonés 1</option>
+        <option value="arag2">Menú Aragonés 2</option>
+      </optgroup>
+    </select>
+    <p id="menuInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
+  </div>
+
+  <div class="card config">
+    <h2>Datos del evento</h2>
+    <div class="row">
+      <div><label>Nº de personas</label><input id="pax" type="number" inputmode="numeric" value="120" min="1"></div>
+      <div><label>Cliente</label><input id="cliente" type="text" placeholder="Fundación ONCE"></div>
+    </div>
+    <label>Tipo de servicio</label>
+    <div class="seg" id="servicio">
+      <button data-v="coffee" class="on">Coffee break</button>
+      <button data-v="coctel">Cóctel</button>
+    </div>
+    <div class="chk"><input id="vino" type="checkbox"><label for="vino" style="margin:0">Con alcohol — vino/cerveza (→ copas)</label></div>
+    <div class="row">
+      <div><label>Piezas saladas / pax</label><input id="saladasPP" type="number" step="0.5" value="3"></div>
+      <div><label>Piezas dulces / pax</label><input id="dulcesPP" type="number" step="0.5" value="2"></div>
+    </div>
+    <p style="font-size:12px;color:#777;margin:10px 0 0">SPORT: el frío va en <b>bandejas de 24</b>. Tablas/redondas son de elegante.</p>
+  </div>
+
+  <div class="card config">
+    <h2>Caliente (chafing)</h2>
+    <p style="font-size:12px;color:#777;margin:0 0 4px">Fritos (croquetas, langostino panko, cremosas): 1 de cada tipo por persona · cap 150 (≤2 tipos) / 120 (3+). Hamburguesas: cap 30.</p>
+    <div class="row">
+      <div><label>Tipos de frito</label><input id="fritoTipos" type="number" value="0" min="0"></div>
+      <div><label>Nº de hamburguesas</label><input id="hamburguesas" type="number" value="0" min="0"></div>
+    </div>
+    <div class="chk"><input id="tenedorCroq" type="checkbox" checked><label for="tenedorCroq" style="margin:0">Los fritos necesitan tenedor</label></div>
+  </div>
+
+  <div class="card config">
+    <h2>Intolerancias / dietas (bandeja aparte)</h2>
+    <div id="intolList"></div>
+    <button class="addBtn" id="addIntol">+ Añadir intolerancia</button>
+  </div>
+
+  <div class="card config">
+    <h2>Mesas (ajustable)</h2>
+    <div class="row">
+      <div><label>Mesas bajas (0=auto)</label><input id="mesas" type="number" value="0" min="0"></div>
+      <div><label>Nº de líneas</label><input id="lineas" type="number" value="1" min="1"></div>
+    </div>
+    <div class="row">
+      <div><label>Mesas altas (0=auto)</label><input id="mesasAltas" type="number" value="0" min="0"></div>
+      <div><label>Pax por mesa alta</label><input id="paxAlta" type="number" value="15" min="1"></div>
+    </div>
+    <p style="font-size:12px;color:#777;margin:6px 0 0">Bajas: mínimo 4–5 bandejas/mesa + bebidas. Altas de cóctel: 1 cada ~10 pax (ajústalo).</p>
+  </div>
+
+  <div class="card">
+    <div id="destacado" class="destacado"></div>
+    <div id="contador"></div>
+    <div class="barra"><i id="barraFill" style="width:0%"></i></div>
+    <div id="hoja"></div>
+  </div>
+  <p class="leyenda">Toca cada línea: ○ pendiente → ✓ cargado → ! falta → ✕ no tengo</p>
+
+  <div class="acciones">
+    <button class="btnPrint" onclick="window.print()">🖨️ Imprimir / PDF</button>
+    <button class="btnReset" id="reiniciar">↻ Reiniciar marcas</button>
+  </div>
+  <footer>Doña Col · checklist de montaje v2 (sport)</footer>
+</main>
+
+<script>
+let servicio='coffee';
+const intol=[];
+
+// ---- Menús predefinidos (recopilados de donacol.es) ----
+// sPP/dPP = piezas saladas/dulces por persona (frías → bandeja) · fritoT = nº tipos de frito (croqueta/langostino/cremosa, 1 de cada por persona) · ham = lleva mini hamburguesa (1/pax)
+// rev = piezas estimadas (la web no las indica) · inc = composición resumida
+const MENUS={
+  bienvenida:{nom:'Coffee Break Bienvenida',serv:'coffee',vino:false,sPP:0,dPP:1,fritoT:0,ham:false,rev:true,inc:'Café, leche, infusiones, agua + pastas de té.'},
+  cb1:{nom:'Coffee Break 1',serv:'coffee',vino:false,sPP:1,dPP:1,fritoT:0,ham:false,inc:'Bocatín jamón, bocatín tortilla · cakes limón/choco. (1 salada + 1 dulce)'},
+  cb2:{nom:'Coffee Break 2',serv:'coffee',vino:false,sPP:2,dPP:2,fritoT:0,ham:false,inc:'+ brocheta de fruta. (2 saladas + 2 dulces)'},
+  cb3:{nom:'Coffee Break 3',serv:'coffee',vino:false,sPP:3,dPP:2,fritoT:0,ham:false,inc:'Jamón, tortilla, brioche atún, empanada bonito, empanada queso · tartaletas. (3 saladas + 2 dulces)'},
+  cb4:{nom:'Coffee Break 4',serv:'coffee',vino:true,sPP:5,dPP:2,fritoT:2,ham:false,rev:true,inc:'Jamón cuchillo, quesos, tortilla, brioche, empanadas, ensaladilla + croqueta jamón + cremosa boletus. Con vino.'},
+  healthy:{nom:'Coffee Break Healthy',serv:'coffee',vino:false,sPP:4,dPP:3,fritoT:0,ham:false,rev:true,inc:'Jamón, pavo, salmón, fruta, grissinis · queso/miel, yogur, croissant.'},
+  c1:{nom:'Cóctel 1',serv:'coctel',vino:true,sPP:1,dPP:2,fritoT:0,ham:false,rev:true,inc:'Petits fours, fruta, montadito/quesos. Copa cava o vino.'},
+  c2:{nom:'Cóctel 2',serv:'coctel',vino:true,sPP:3,dPP:1,fritoT:3,ham:false,rev:true,inc:'Quesos, ibéricos, montadito + croqueta jamón, langostino, cremosa boletus.'},
+  c3:{nom:'Cóctel 3',serv:'coctel',vino:true,sPP:5,dPP:1,fritoT:3,ham:false,rev:true,inc:'5 canapés fríos + croqueta jamón, cremosa gulas, cremosa boletus.'},
+  c4:{nom:'Cóctel 4',serv:'coctel',vino:true,sPP:4,dPP:1,fritoT:4,ham:true,rev:true,inc:'Jamón, ibéricos, sobrasada, empanada + envoltini, langostino, croqueta, cremosa + mini HAMBURGUESA.'},
+  c5:{nom:'Cóctel 5',serv:'coctel',vino:true,sPP:6,dPP:1,fritoT:4,ham:false,rev:true,inc:'Jamón cuchillo, ibéricos, quesos, canapés + envoltini, langostino, croqueta cocido, cremosa.'},
+  c6:{nom:'Cóctel 6',serv:'coctel',vino:true,sPP:7,dPP:1,fritoT:4,ham:false,rev:true,inc:'Como C5 + Bloody Mary/crema calabacín.'},
+  c7:{nom:'Cóctel 7',serv:'coctel',vino:true,sPP:8,dPP:1,fritoT:6,ham:false,rev:true,inc:'El más completo: + risotto setas + milhojas cabrito.'},
+  arag1:{nom:'Menú Aragonés 1',serv:'coctel',vino:true,sPP:5,dPP:1,fritoT:2,ham:false,rev:true,inc:'Jamón Teruel, canapés + croqueta jamón, bolita ajoarriero.'},
+  arag2:{nom:'Menú Aragonés 2',serv:'coctel',vino:true,sPP:6,dPP:1,fritoT:2,ham:false,rev:true,inc:'+ milhojas ternasco D.O.P., quesos aragoneses.'},
+};
+let menuSel='';
+const $=id=>document.getElementById(id);
+const num=id=>parseFloat($(id).value)||0;
+const ceil=Math.ceil, rnd=Math.round;
+const fmtL=x=>x.toFixed(1).replace('.',',')+' L';
+
+// estados de la checklist {nombreItem: 'ok'|'falta'|'no'}
+let estados={};
+try{estados=JSON.parse(localStorage.getItem('nec_estados')||'{}');}catch(e){estados={};}
+const ESTADOS=['','ok','falta','no'];
+const ICONO={'':'○','ok':'✓','falta':'!','no':'✕'};
+function guardar(){try{localStorage.setItem('nec_estados',JSON.stringify(estados));}catch(e){}}
+
+document.querySelectorAll('#servicio button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#servicio button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');servicio=b.dataset.v;calcular();
+});
+$('addIntol').onclick=()=>{intol.push({nombre:'',pax:0});render();};
+$('reiniciar').onclick=()=>{estados={};guardar();calcular();};
+
+function setServicio(v){
+  document.querySelectorAll('#servicio button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  servicio=v;
+}
+function aplicarMenu(){
+  const m=MENUS[menuSel];
+  const info=$('menuInfo');
+  if(!m){info.textContent='';return;}
+  const pax=num('pax');
+  setServicio(m.serv);
+  $('vino').checked=m.vino;
+  $('saladasPP').value=m.sPP;
+  $('dulcesPP').value=m.dPP;
+  $('fritoTipos').value=m.fritoT||0;
+  $('hamburguesas').value=m.ham? pax : 0; // 1 hamburguesa por persona
+  info.innerHTML=(m.rev?'⚠️ <b>piezas estimadas</b> (la web no las indica, ajústalas)<br>':'')+m.inc;
+}
+$('menu').addEventListener('change',e=>{menuSel=e.target.value;aplicarMenu();calcular();});
+
+function render(){
+  $('intolList').innerHTML='';
+  intol.forEach((it,i)=>{
+    const d=document.createElement('div');d.className='intol';
+    d.innerHTML=`<input type="text" placeholder="Sin gluten / Vegana…" value="${it.nombre}">
+      <input type="number" min="0" placeholder="pax" value="${it.pax||''}"><button>×</button>`;
+    d.children[0].oninput=e=>{it.nombre=e.target.value;calcular();};
+    d.children[1].oninput=e=>{it.pax=parseInt(e.target.value)||0;calcular();};
+    d.children[2].onclick=()=>{intol.splice(i,1);render();calcular();};
+    $('intolList').appendChild(d);
+  });
+}
+
+function calcular(){
+  const pax=num('pax');
+  const intolPax=intol.reduce((s,i)=>s+(i.pax||0),0);
+  const stdPax=Math.max(0,pax-intolPax);
+  const llevaVino=$('vino').checked;
+  const CAP=24;
+
+  const saladas=stdPax*num('saladasPP'), dulces=stdPax*num('dulcesPP');
+  const bandSalado=ceil(saladas/CAP), bandDulce=ceil(dulces/CAP);
+  const intolItems=intol.filter(i=>i.pax>0);
+  const bandIntol=intolItems.length;
+
+  // Chafing: fritos (1 de cada tipo por pax; cap 150 si ≤2 tipos, 120 si 3+) + hamburguesas (cap 30)
+  const fritoTipos=num('fritoTipos');
+  const fritosTot=fritoTipos*pax;
+  const capFrito=fritoTipos>=3?120:150;
+  const chafFritos=fritoTipos>0?ceil(fritosTot/capFrito):0;
+  const hamb=num('hamburguesas');
+  const chafHamb=hamb>0?ceil(hamb/30):0;
+  const chafing=chafFritos+chafHamb, fuegos=chafing;
+  const bandejasTot=bandSalado+bandDulce+bandIntol;
+
+  let mesas=num('mesas'),mesasEstim=false;
+  if(mesas===0){mesas=Math.max(2,ceil((bandejasTot+chafing)/4.5)+(pax<=80?1:2));mesasEstim=true;}
+  const manteles=ceil(mesas*1.2),florales=ceil(mesas/2);
+  // mesas altas de cóctel (aparte)
+  const paxAlta=num('paxAlta')||10;
+  let mesasAltas=num('mesasAltas'),altasEstim=false;
+  if(mesasAltas===0){mesasAltas=ceil(pax/paxAlta);altasEstim=true;}
+  const mantelesAltas=ceil(mesasAltas*1.2);
+
+  const platos=ceil(pax*1.5),servilletas=ceil(pax*1.5),vasos=pax*2;
+  const copas=llevaVino?ceil(pax*1.25):0;
+  const tenedores=$('tenedorCroq').checked?ceil(fritosTot*0.75):0;
+
+  // bebidas en BRICKS de 2 L (sport)
+  const cafeBricks=ceil((pax/20*1.5)/2),lecheBricks=ceil((pax/20*1.5)/2),zumoBricks=ceil((pax/20*2)/2);
+  const deCada=pax<=80?1:pax<=200?2:2+ceil((pax-200)/100);
+  const dispensadores=deCada*2;
+  const azucar=ceil(pax*1.25),sacarina=ceil(pax*0.10),desca=ceil(pax*0.10),te=ceil(pax*0.10);
+  const cubos=ceil(pax/100);
+
+  // Bebidas de cóctel (Excel) + champaneras + hielo
+  const conAlc=llevaVino, totalBeb=pax*2.1, refrescos=totalBeb*(conAlc?0.3:0.6);
+  let bvTinto=0,bvBlanco=0,bvAmbar=0,bvAmbar00=0,bvCZero=0,bvCoca=0,bvAqua=0,bvFanta=0;
+  if(servicio==='coctel'){
+    if(conAlc){const vinoBot=totalBeb*0.4/6; bvTinto=rnd(vinoBot*0.6); bvBlanco=rnd(vinoBot*0.4); bvAmbar=rnd(totalBeb*0.3);}
+    bvAmbar00=rnd(totalBeb*(conAlc?0.1:0.4));
+    bvCZero=rnd(refrescos*0.5); bvCoca=rnd(refrescos*0.3); bvAqua=rnd(refrescos*0.1); bvFanta=rnd(refrescos*0.1);
+  }
+  const latas=bvAmbar+bvAmbar00+bvCZero+bvCoca+bvAqua+bvFanta;
+  const champLatas=ceil(latas/25), champVino=ceil(bvBlanco/5);
+  const champaneras=champLatas+champVino;
+  const hielo=ceil((champaneras+dispensadores)*1.33);
+
+  // ---- estructura de secciones ----
+  const S=[];
+  const sec=(icono,titulo,items)=>S.push({icono,titulo,items:items.filter(Boolean)});
+  const it=(nm,qt,nt)=>({nm,qt:String(qt),nt:nt||''});
+
+  const bandItems=[
+    it('Bandejas de salados',bandSalado,`${saladas} uds · 24/bandeja`),
+    it('Bandejas de dulces',bandDulce,`${dulces} uds · 24/bandeja`),
+    ...intolItems.map(i=>it(`Bandeja · ${i.nombre||'dieta'}`,1,`${i.pax} pax · aparte`)),
+  ];
+  if(chafing>0){bandItems.push(it('Chafing dish',chafing,(fritosTot>0?`${fritosTot} fritos (cap ${capFrito})`:'')+(hamb>0?` · ${hamb} hamburg. (cap 30)`:'')));
+    bandItems.push(it('Fuegos de etileno',fuegos,'1 por chafing'));}
+  sec('🍽️','Bandejas y caliente',bandItems);
+
+  sec('🥢','Menaje (desechable)',[
+    it('Platos',platos,'1,5/pax'),
+    it('Servilletas',servilletas,'1,5/pax'),
+    it('Vasos',vasos,'2/pax'),
+    copas>0&&it('Copas de vino (cristal)',copas,'1,25/pax'),
+    tenedores>0&&it('Tenedores pequeños',tenedores,'0,75/pieza'),
+  ]);
+
+  if(servicio==='coffee'){
+    sec('☕','Bebidas (bricks de 2 L con grifo)',[
+      it('Bricks de café',cafeBricks,'2 L · brick con grifo'),
+      it('Bricks de leche — normal/sin lactosa/vegetal',lecheBricks,'2 L · 1 brick por tipo mín.'),
+      it('Bricks de zumo',zumoBricks,'2 L · brick con grifo'),
+      it('Dispensadores de agua (5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`),
+    ]);
+    sec('🧂','Café · minibox',[
+      it('Azucarillos',azucar,'+25%'),
+      it('Sacarina',sacarina,'10%'),
+      it('Descafeinado (sobre)',desca,'10%'),
+      it('Té / infusiones (sobre)',te,'10%'),
+      it('Paletinas',azucar,''),
+    ]);
+  } else {
+    // Bebidas de cóctel — cantidades ya calculadas (Excel BEBIDA OK.xlsx)
+    let bebItems=[];
+    if(conAlc){
+      bebItems.push(it('Vino tinto',bvTinto,'vinos · botellas'));
+      bebItems.push(it('Vino blanco',bvBlanco,'vinos · botellas'));
+      bebItems.push(it('Cerveza Ambar',bvAmbar,'cerveza'));
+    }
+    bebItems.push(it('Cerveza Ambar 0,0',bvAmbar00,'cerveza'));
+    bebItems.push(it('Coca-Cola Zero',bvCZero,'refrescos'));
+    bebItems.push(it('Coca-Cola normal',bvCoca,'refrescos'));
+    bebItems.push(it('Aquarius',bvAqua,'refrescos'));
+    bebItems.push(it('Fanta',bvFanta,'refrescos'));
+    bebItems.push(it('Dispensadores de agua (fuentes 5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`));
+    sec('🍷','Bebidas'+(conAlc?'':' (sin alcohol)'),bebItems);
+  }
+
+  // Champaneras y hielo (después de bebidas). En coffee no hay champaneras: solo hielo para las fuentes de agua.
+  const champItems=[];
+  if(champaneras>0)champItems.push(it('Champaneras',champaneras,`${champLatas} de latas (${latas}) + ${champVino} de vino blanco`));
+  champItems.push(it('Bolsas de hielo',hielo,champaneras>0?`(${champaneras} champ. + ${dispensadores} agua) +33%`:`para ${dispensadores} fuentes de agua +33%`));
+  sec('🧊',champaneras>0?'Champaneras y hielo':'Hielo (fuentes de agua)',champItems);
+
+  sec('🪑','Mesas y decoración',[
+    it('Mesas bajas'+(mesasEstim?' (mínimo)':''),mesas,(num('lineas')>1?num('lineas')+' líneas · ':'')+(mesasEstim?'ajusta al espacio':'')),
+    it('Manteles (mesas bajas)',manteles,'+20%'),
+    it('Mesas altas de cóctel'+(altasEstim?' (auto)':''),mesasAltas,`1 cada ${paxAlta} pax`),
+    it('Manteles (mesas altas)',mantelesAltas,'+20%'),
+    it('Arreglos florales',florales,'1 cada 2 mesas'),
+  ]);
+
+  sec('🧤','Limpieza y útiles',[
+    it('Cubos de basura',cubos,'1/100 pax'),
+    it('Guantes de nitrilo','✓','llevar caja'),
+    it('Trapos de limpieza','✓',''),
+    it('Bolsas de basura','✓',''),
+    it('Mini basurero para mesas','✓',''),
+  ]);
+
+  pintar(S,{pax,servicio,llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
+}
+
+function pintar(S,m){
+  // Destacado según servicio
+  const tiles=[];
+  tiles.push(`<div class="tile"><b>${m.bandejasTot}</b><span>BANDEJAS</span></div>`);
+  tiles.push(`<div class="tile"><b>${m.chafing}</b><span>CHAFING</span></div>`);
+  if(m.servicio==='coffee'){
+    tiles.push(`<div class="tile"><b>${m.cafeBricks}</b><span>BRICKS CAFÉ</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.zumoBricks}</b><span>BRICKS ZUMO</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>AGUA 5L</span></div>`);
+  }else{
+    if(m.copas>0)tiles.push(`<div class="tile"><b>${m.copas}</b><span>COPAS VINO</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.mesasAltas}</b><span>MESAS ALTAS</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>AGUA fuentes</span></div>`);
+  }
+  $('destacado').innerHTML=tiles.join('');
+
+  // Checklist
+  let html='';
+  html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?m.cliente+' · ':''}${m.pax} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · SPORT</p></div>`;
+  S.forEach(s=>{
+    html+=`<div class="seccion"><h3>${s.icono} ${s.titulo}</h3>`;
+    s.items.forEach(i=>{
+      const st=estados[i.nm]||'';
+      const cls=st?(' '+st):'';
+      html+=`<div class="item${cls}" data-key="${i.nm.replace(/"/g,'&quot;')}">
+        <div class="st">${ICONO[st]}</div>
+        <div class="nm">${i.nm}${i.nt?`<span class="nt">${i.nt}</span>`:''}</div>
+        <div class="qt">${i.qt}</div></div>`;
+    });
+    html+='</div>';
+  });
+  $('hoja').innerHTML=html;
+  actualizarContador();
+}
+
+function actualizarContador(){
+  const rows=document.querySelectorAll('#hoja .item');
+  let total=rows.length,nOk=0,nFalta=0,nNo=0;
+  rows.forEach(r=>{const st=estados[r.getAttribute('data-key')]||'';
+    if(st==='ok')nOk++;else if(st==='falta')nFalta++;else if(st==='no')nNo++;});
+  const nPend=total-nOk-nFalta-nNo;
+  $('contador').innerHTML=`<div class="contador">
+    <span class="c-ok">✓ ${nOk} cargado</span>
+    <span class="c-falta">! ${nFalta} falta</span>
+    <span class="c-no">✕ ${nNo} no tengo</span>
+    <span class="c-pend">○ ${nPend} pendiente</span></div>`;
+  $('barraFill').style.width=total?Math.round(nOk/total*100)+'%':'0%';
+}
+
+// Delegación: tocar una línea cicla su estado
+$('hoja').addEventListener('click',e=>{
+  const row=e.target.closest('.item');if(!row)return;
+  const k=row.getAttribute('data-key');
+  const cur=estados[k]||'';
+  const next=ESTADOS[(ESTADOS.indexOf(cur)+1)%ESTADOS.length];
+  if(next)estados[k]=next;else delete estados[k];
+  guardar();
+  row.className='item'+(next?' '+next:'');
+  row.querySelector('.st').textContent=ICONO[next];
+  actualizarContador();
+});
+
+['pax','cliente','vino','saladasPP','dulcesPP','fritoTipos','hamburguesas','tenedorCroq','mesas','lineas','mesasAltas','paxAlta']
+  .forEach(id=>$(id).addEventListener('input',()=>{
+    if(id==='pax'&&menuSel)aplicarMenu(); // reescalar calientes al nuevo nº de pax
+    calcular();
+  }));
+
+render();calcular();
+</script>
+</body>
+</html>

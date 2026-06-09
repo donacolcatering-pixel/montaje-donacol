@@ -1,0 +1,13 @@
+{
+  "name": "Montaje de Buffet · Doña Col",
+  "short_name": "Montaje",
+  "description": "Guía de distribución de buffet para montadores de catering",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f3ec",
+  "theme_color": "#2e5d3b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

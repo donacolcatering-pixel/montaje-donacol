@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#3F2920"/>
+  <circle cx="256" cy="256" r="200" fill="#F5EAD8"/>
+  <!-- gorro de chef -->
+  <path d="M168 250 q-58 0-58-58 q0-44 44-52 q8-46 58-46 q34 0 52 28 q18-28 52-28 q50 0 58 46 q44 8 44 52 q0 58-58 58 z"
+        fill="#5A3B27"/>
+  <rect x="168" y="250" width="176" height="70" rx="10" fill="#3F2920"/>
+  <!-- banda dorada -->
+  <rect x="168" y="300" width="176" height="14" fill="#D08434"/>
+  <!-- texto -->
+  <text x="256" y="392" font-family="Georgia, serif" font-size="58" font-style="italic" font-weight="700" text-anchor="middle" fill="#3F2920">Doña Col</text>
+</svg>
