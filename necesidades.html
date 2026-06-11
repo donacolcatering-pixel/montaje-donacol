@@ -560,7 +560,32 @@ $('hoja').addEventListener('click',e=>{
   }));
 
 // ---- Eventos cargados desde la app de pedidos (eventos.js, generado al aceptar) ----
-const EVS=Array.isArray(window.EVENTOS_MONTAJE)?window.EVENTOS_MONTAJE:[];
+// Los datos llegan CIFRADOS (el repo de GitHub es público): la clave viaja en el
+// enlace (#k=...) y se recuerda en el móvil. Mismo algoritmo que checklist_export.py.
+let EVS=[];
+async function descifrarEventos(){
+  const c=window.EVENTOS_MONTAJE_CIFRADO;
+  if(!c)return Array.isArray(window.EVENTOS_MONTAJE)?window.EVENTOS_MONTAJE:[];
+  let k=null;
+  const m=location.hash.match(/[#&]k=([0-9a-fA-F]{32})/);
+  if(m){k=m[1];try{localStorage.setItem('eventos_clave',k);}catch(e){}}
+  else{try{k=localStorage.getItem('eventos_clave');}catch(e){}}
+  if(!k)return null;                       // cifrado pero sin clave
+  try{
+    const key=Uint8Array.from(k.match(/../g).map(h=>parseInt(h,16)));
+    const nonce=Uint8Array.from(atob(c.n),ch=>ch.charCodeAt(0));
+    const data=Uint8Array.from(atob(c.d),ch=>ch.charCodeAt(0));
+    const out=new Uint8Array(data.length);
+    for(let off=0,i=0;off<data.length;off+=32,i++){
+      const buf=new Uint8Array(key.length+nonce.length+4);
+      buf.set(key);buf.set(nonce,key.length);
+      new DataView(buf.buffer).setUint32(key.length+nonce.length,i);
+      const blk=new Uint8Array(await crypto.subtle.digest('SHA-256',buf));
+      for(let j=0;j<32&&off+j<data.length;j++)out[off+j]=data[off+j]^blk[j];
+    }
+    return JSON.parse(new TextDecoder().decode(out));
+  }catch(e){return null;}
+}
 const hoyISO=(()=>{const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -637,7 +662,18 @@ $('registro').addEventListener('click',e=>{
   if(row)seleccionarEvento(row.getAttribute('data-enc'));
 });
 
-render();calcular();pintarEventos();pintarRegistro();
+render();calcular();
+(async()=>{
+  const r=await descifrarEventos();
+  if(r===null){
+    // hay eventos publicados pero este móvil no tiene la clave
+    $('cardEventos').style.display='';
+    $('evInfo').innerHTML='🔒 Eventos bloqueados: abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.';
+    return;
+  }
+  EVS=r||[];
+  pintarEventos();pintarRegistro();
+})();
 </script>
 </body>
 </html>

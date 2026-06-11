@@ -1,36 +1,3 @@
 // Generado automáticamente por la app de pedidos Doña Col — NO editar a mano.
-window.EVENTOS_MONTAJE = [
- {
-  "enc": "M-1,5M",
-  "fecha": "2026-06-30",
-  "ciudad": "Madrid",
-  "empresa": "Doñacol Catering",
-  "pax": 10,
-  "menu": "CATERING COFFEE BREAK CON MONTAJE 1",
-  "montaje": "NO",
-  "hora": "11:00",
-  "direccion": "Paseo de la Castellana, 40"
- },
- {
-  "enc": "M-1,7M",
-  "fecha": "2026-06-30",
-  "ciudad": "Madrid",
-  "empresa": "Doñacol Catering",
-  "pax": 10,
-  "menu": "CATERING BOX® SIN GLUTEN",
-  "montaje": "NO",
-  "hora": "11:00",
-  "direccion": "Paseo de la Castellana, 40"
- },
- {
-  "enc": "M-1M",
-  "fecha": "2026-06-30",
-  "ciudad": "Madrid",
-  "empresa": "Doñacol Catering",
-  "pax": 10,
-  "menu": "CATERING CÓCTEL CON MONTAJE 5",
-  "montaje": "ELEGANTE",
-  "hora": "13:00",
-  "direccion": "Paseo de la Castellana, 40"
- }
-];
+// Datos CIFRADOS: la clave va en el enlace de la app (#k=...).
+window.EVENTOS_MONTAJE_CIFRADO = {"n": "8jm8i898zFzfCqNF", "d": "CQt+1qwPwGeSx2o2LxTDNQsLUGt42F60AL6mvmboPi8Fu2bFHyhRQcutva+dYFewCgD3B1HcvUE+4aKB9wLrYS2NOTRwHsw9+cqwUjz/P4PwxeW6cTa4COI1WNaFTPCRAQnLFcDONlfPpVgdbvVI1nq/VB1jfPtSG6N+LwFrSQoHiy/aVHN2XF/cxDhxtw7n82W82W1QufieEVQ17A+TzW678eX7Rv2bTY8HjVumOW4LlUgRcQWfAr2/GMxzobpBArxoxXVnmp5btt43/5CeUvJCz++n9QsVUZo7IMx83uhVzf4vmDRN9aQb5N/zttg+RlGQouzRNhNOkGMxGGBo4C4CHETnYWgq8240gK0uTehqq9GIMu05rubO3/5NLz0qquYoUNVgO3BFcnUUSFm9PFWpPAHMGA2RH78vYGy7JUemYAvF4iZVPPXtVsTruuSqqdKreD5w+GQHANUWOZz7l4yVDbvHtSpL1/S/JZCMnz1wyfoz9TxbxLcm/9dTslDAhP0A4jH+GNosYIPLSdqe8iib53clnLJHSZxVIx7H6u4QRlrBPC4qhvBzKdBD+f3+hpr3CaUCiYfdJSgIC63fpWXDaMKbjDmbjbBCCBd561fCG9wBkxfkRN9KZ7HKAHrEvFEs74JWJWWCGqZ+sMpaNg8zkXIw9TavefXXk2nKNdM0eYzhUi22h1dxc5zhnBSP38qPIB7VJG6Ko5B39DaSI+Sw7ZQ4Y7Z2rIiJBnCbjWojANC8NljZpZ0c4A5ZUAbKKluN09RDDeIb7fJYJGdJ7fSoKamavtLXz/rOQ2znEDrkw8pzikGTrwOUttOeWmsvWXLLGhVp+/o2rJMN5+9hpC6rjqSI5yFlTy+iM+Htw8Skx4XiowMpLmEiTswdrX7pi5Sbcg=="};
