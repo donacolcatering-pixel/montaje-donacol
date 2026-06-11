@@ -1,6 +1,7 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v1';
-const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE = 'montaje-v2';
+const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html',
+                './manifest.json', './icon.svg', './logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -14,6 +15,18 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (url.pathname.endsWith('/eventos.js')) {
+    // Datos de eventos: cambian cada día → red primero, copia en cache de respaldo
+    e.respondWith(
+      fetch(e.request).then(r => {
+        const copia = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copia));
+        return r;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
   );

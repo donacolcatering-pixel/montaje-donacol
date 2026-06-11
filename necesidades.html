@@ -65,6 +65,18 @@
   .acciones button{flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
   .btnPrint{background:var(--oro);color:#fff;box-shadow:0 2px 6px rgba(208,132,52,.35)}.btnReset{background:#ecdcc4;color:var(--marron2)}
   .leyenda{font-size:11px;color:var(--gris);text-align:center;margin-top:-4px}
+
+  /* Eventos cargados desde la app de pedidos + registro de pasados */
+  .regrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;
+    border-bottom:1px solid #efe3d0;cursor:pointer;font-size:14px}
+  .regrow:last-child{border-bottom:none}
+  .regrow .nt{display:block;font-size:11px;color:var(--gris)}
+  .badge{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+  @media(min-width:1100px){
+    #cardEventos{position:fixed;right:18px;top:96px;width:320px;z-index:4;
+      max-height:78vh;overflow:auto;box-shadow:0 8px 22px rgba(63,41,32,.18)}
+  }
+
   footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
   footer b{color:var(--marron2)}
   @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
@@ -84,6 +96,12 @@
   </div>
 </header>
 <main>
+
+  <div class="card config" id="cardEventos" style="display:none">
+    <h2>📅 Eventos cargados</h2>
+    <select id="selEvento"><option value="">— Manual / elegir evento —</option></select>
+    <p id="evInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
+  </div>
 
   <div class="card config">
     <h2>Menú</h2>
@@ -180,9 +198,17 @@
   <div class="acciones" style="margin-top:-6px">
     <button id="irPlano" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">🗺️ Abrir plano 2D con estos recursos</button>
   </div>
+
+  <div class="card" id="cardRegistro" style="display:none">
+    <h2>🗂️ Registro de eventos pasados</h2>
+    <div id="registro"></div>
+    <p style="font-size:11px;color:var(--gris);margin:8px 0 0">Toca un evento para revisar cómo quedó su checklist.</p>
+  </div>
+
   <footer>Doña Col · checklist de montaje v2 (sport)</footer>
 </main>
 
+<script src="eventos.js"></script>
 <script>
 let servicio='coffee';
 const intol=[];
@@ -239,12 +265,30 @@ const num=id=>parseFloat($(id).value)||0;
 const ceil=Math.ceil, rnd=Math.round;
 const fmtL=x=>x.toFixed(1).replace('.',',')+' L';
 
-// estados de la checklist {nombreItem: 'ok'|'falta'|'no'}
+// estados de la checklist {nombreItem: 'ok'|'falta'|'no'} — guardados POR EVENTO
+// si hay uno elegido en el desplegable (clave nec_estados@J-2M); si no, modo manual.
+let eventoActual=null;   // cod ENC del evento seleccionado, o null = manual
+function claveEstados(){return eventoActual?('nec_estados@'+eventoActual):'nec_estados';}
 let estados={};
-try{estados=JSON.parse(localStorage.getItem('nec_estados')||'{}');}catch(e){estados={};}
+function cargarEstados(){try{estados=JSON.parse(localStorage.getItem(claveEstados())||'{}');}catch(e){estados={};}}
+cargarEstados();
 const ESTADOS=['','ok','falta','no'];
 const ICONO={'':'○','ok':'✓','falta':'!','no':'✕'};
-function guardar(){try{localStorage.setItem('nec_estados',JSON.stringify(estados));}catch(e){}}
+function guardar(){
+  try{
+    localStorage.setItem(claveEstados(),JSON.stringify(estados));
+    if(eventoActual){
+      // resumen para el registro de eventos pasados: cómo quedó el checklist
+      const rows=document.querySelectorAll('#hoja .item');
+      let ok=0,falta=0,no=0;
+      rows.forEach(r=>{const st=estados[r.getAttribute('data-key')]||'';
+        if(st==='ok')ok++;else if(st==='falta')falta++;else if(st==='no')no++;});
+      localStorage.setItem('nec_resumen@'+eventoActual,
+        JSON.stringify({ok,falta,no,total:rows.length,ts:Date.now()}));
+      pintarRegistro();
+    }
+  }catch(e){}
+}
 
 document.querySelectorAll('#servicio button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#servicio button').forEach(x=>x.classList.remove('on'));
@@ -515,7 +559,85 @@ $('hoja').addEventListener('click',e=>{
     calcular();
   }));
 
-render();calcular();
+// ---- Eventos cargados desde la app de pedidos (eventos.js, generado al aceptar) ----
+const EVS=Array.isArray(window.EVENTOS_MONTAJE)?window.EVENTOS_MONTAJE:[];
+const hoyISO=(()=>{const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function fmtFecha(iso){const d=new Date(iso+'T00:00:00');
+  return DIAS_SEM[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);}
+
+// Traduce el nombre real del catálogo ("CATERING COFFEE BREAK CON MONTAJE 3")
+// a la ficha equivalente de esta app, si existe.
+function matchMenu(nombre){
+  const n=(nombre||'').toUpperCase();let m;
+  if(n.includes('BIENVENIDA'))return 'bienvenida';
+  if(n.includes('HEALTHY')&&n.includes('COFFEE'))return 'healthy';
+  if(n.includes('ARAGON')){m=n.match(/(\d+)/);return (m&&CATALOGO['arag'+m[1]])?'arag'+m[1]:'';}
+  if(n.includes('COFFEE')){m=n.match(/(\d+)/);return (m&&CATALOGO['cb'+m[1]])?'cb'+m[1]:'';}
+  if(n.includes('CÓCTEL')||n.includes('COCTEL')){m=n.match(/(\d+)/);return (m&&CATALOGO['c'+m[1]])?'c'+m[1]:'';}
+  return '';
+}
+
+function seleccionarEvento(enc){
+  const ev=EVS.find(e=>e.enc===enc)||null;
+  eventoActual=ev?ev.enc:null;
+  cargarEstados();
+  const info=$('evInfo');
+  if(!ev){info.textContent='';calcular();return;}
+  if($('selEvento').value!==enc)$('selEvento').value=enc; // puede venir del registro
+  if(ev.pax)$('pax').value=ev.pax;
+  $('cliente').value=ev.empresa||'';
+  const clave=matchMenu(ev.menu);
+  $('menu').value=clave;menuSel=clave;aplicarMenu();
+  if(!clave)setServicio(/COFFEE/i.test(ev.menu||'')?'coffee':'coctel');
+  info.innerHTML=`<b>${ev.enc}</b> · ${ev.menu||''}<br>${fmtFecha(ev.fecha)} · ${ev.ciudad||''}`+
+    ` · montaje <b>${ev.montaje||'NO'}</b>`+(ev.hora?` · ${ev.hora}`:'')+
+    (ev.direccion?`<br>📍 ${ev.direccion}`:'')+
+    (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
+  calcular();
+}
+
+function pintarEventos(){
+  if(!EVS.length)return;
+  $('cardEventos').style.display='';
+  const prox=EVS.filter(e=>e.fecha>=hoyISO)
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.enc.localeCompare(b.enc));
+  let html='<option value="">— Manual / elegir evento —</option>',fechaPrev='';
+  prox.forEach(e=>{
+    if(e.fecha!==fechaPrev){if(fechaPrev)html+='</optgroup>';
+      html+=`<optgroup label="${fmtFecha(e.fecha).toUpperCase()}">`;fechaPrev=e.fecha;}
+    html+=`<option value="${e.enc}">${e.enc} · ${e.empresa} · ${e.pax} pax</option>`;
+  });
+  if(fechaPrev)html+='</optgroup>';
+  const sel=$('selEvento');
+  sel.innerHTML=html;
+  sel.onchange=e=>seleccionarEvento(e.target.value);
+}
+
+function pintarRegistro(){
+  const past=EVS.filter(e=>e.fecha<hoyISO)
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,40);
+  if(!past.length)return;
+  $('cardRegistro').style.display='';
+  $('registro').innerHTML=past.map(e=>{
+    let r=null;try{r=JSON.parse(localStorage.getItem('nec_resumen@'+e.enc)||'null');}catch(_){}
+    let badge;
+    if(!r||!r.total||(!r.ok&&!r.falta&&!r.no))badge='<span class="badge c-pend">○ sin checklist</span>';
+    else if(r.no>0)badge=`<span class="badge c-no">✕ ${r.no} no había</span>`;
+    else if(r.falta>0)badge=`<span class="badge c-falta">! ${r.falta} faltaron</span>`;
+    else if(r.ok>=r.total)badge='<span class="badge c-ok">✓ completo</span>';
+    else badge=`<span class="badge c-ok">✓ ${r.ok}/${r.total}</span>`;
+    return `<div class="regrow" data-enc="${e.enc}">
+      <div><b>${e.enc}</b> · ${e.empresa}<span class="nt">${fmtFecha(e.fecha)} · ${e.pax} pax · ${e.menu||''}</span></div>${badge}</div>`;
+  }).join('');
+}
+$('registro').addEventListener('click',e=>{
+  const row=e.target.closest('.regrow');
+  if(row)seleccionarEvento(row.getAttribute('data-enc'));
+});
+
+render();calcular();pintarEventos();pintarRegistro();
 </script>
 </body>
 </html>
