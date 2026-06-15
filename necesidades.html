@@ -77,6 +77,11 @@
       max-height:78vh;overflow:auto;box-shadow:0 8px 22px rgba(63,41,32,.18)}
   }
 
+  .nubeBtn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
+  .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px;margin-top:10px}
+  .galeria a{display:block;position:relative}
+  .galeria img{width:100%;height:95px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}
+  .galeria .dl{position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;font-size:14px;padding:1px 6px;text-decoration:none}
   footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
   footer b{color:var(--marron2)}
   @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
@@ -199,6 +204,21 @@
     <button id="irPlano" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">🗺️ Abrir plano 2D con estos recursos</button>
   </div>
 
+  <!-- Guardar en la nube + fotos (solo con un evento elegido) -->
+  <div class="card" id="cardNube" style="display:none">
+    <h2>☁️ Guardar evento</h2>
+    <button id="btnGuardarNube" class="nubeBtn" style="background:var(--ok);color:#fff">💾 Guardar checklist</button>
+    <p id="nubeEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+
+    <h2 style="margin-top:16px">📷 Fotos del evento (para la oficina)</h2>
+    <p style="font-size:12px;color:#777;margin:0 0 8px">Haz fotos de cómo ha quedado el montaje. La oficina las descarga para redes.</p>
+    <input id="fotoInput" type="file" accept="image/*" multiple capture="environment"
+           style="font-size:13px">
+    <button id="btnSubirFotos" class="nubeBtn" style="background:var(--oro);color:#fff;margin-top:8px">⬆️ Subir fotos</button>
+    <p id="fotoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+    <div id="galeria" class="galeria"></div>
+  </div>
+
   <div class="card" id="cardRegistro" style="display:none">
     <h2>🗂️ Registro de eventos pasados</h2>
     <div id="registro"></div>
@@ -208,6 +228,27 @@
   <footer>Doña Col · checklist de montaje v2 (sport)</footer>
 </main>
 
+<!-- Firebase (guardar checklist en la nube + fotos del evento) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+// Config del proyecto donacol-montaje. Solo identifica el proyecto (no es secreto).
+const firebaseConfig = {
+  apiKey: "AIzaSyBmjX5990wIsxgg2jOr5nYFgXt58ey3Zh8",
+  authDomain: "donacol-montaje.firebaseapp.com",
+  projectId: "donacol-montaje",
+  storageBucket: "donacol-montaje.firebasestorage.app",
+  messagingSenderId: "724081710964",
+  appId: "1:724081710964:web:06f0246011d42fbd387e21"
+};
+let DB=null, ST=null;
+try{
+  firebase.initializeApp(firebaseConfig);
+  DB=firebase.firestore();
+  ST=firebase.storage();
+}catch(e){ console.warn('Firebase no disponible:', e); }
+</script>
 <script src="eventos.js"></script>
 <script>
 let servicio='coffee';
@@ -621,7 +662,83 @@ function seleccionarEvento(enc){
     (ev.direccion?`<br>📍 ${ev.direccion}`:'')+
     (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
   calcular();
+  prepararNube(ev);   // muestra Guardar + fotos y carga lo que haya en la nube
 }
+
+// ============ NUBE: guardar checklist + fotos (Firebase) ============
+let EV_NUBE=null;  // datos del evento seleccionado (para guardar meta)
+function prepararNube(ev){
+  EV_NUBE=ev;
+  $('cardNube').style.display = ev ? '' : 'none';
+  if(!ev) return;
+  $('nubeEstado').textContent='';
+  $('fotoEstado').textContent='';
+  $('galeria').innerHTML='';
+  // Si este móvil no tiene marcas locales del evento, traer las de la nube (lo que
+  // guardó el montador) — así la OFICINA ve el checklist hecho.
+  if(DB && Object.keys(estados).length===0){
+    DB.collection('checklists').doc(ev.enc).get().then(d=>{
+      if(d.exists && eventoActual===ev.enc){
+        const data=d.data();
+        if(data && data.estados){ estados=data.estados; guardarLocal(); calcular(); }
+        if(data && (data.ok||data.falta||data.no)) actualizarContador();
+      }
+    }).catch(()=>{});
+  }
+  cargarFotos(ev.enc);
+}
+function guardarLocal(){try{localStorage.setItem(claveEstados(),JSON.stringify(estados));}catch(e){}}
+
+function guardarEnNube(){
+  if(!EV_NUBE) return;
+  if(!DB){ $('nubeEstado').textContent='⚠️ Sin conexión: el checklist se guardó en este móvil, pero no en la nube. Reintenta con datos/WiFi.'; return; }
+  const rows=document.querySelectorAll('#hoja .item');
+  let ok=0,falta=0,no=0;
+  rows.forEach(r=>{const s=estados[r.getAttribute('data-key')]||''; if(s==='ok')ok++;else if(s==='falta')falta++;else if(s==='no')no++;});
+  $('nubeEstado').textContent='Guardando…';
+  DB.collection('checklists').doc(EV_NUBE.enc).set({
+    enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
+    pax:EV_NUBE.pax||0, menu:EV_NUBE.menu||'',
+    estados:estados, ok, falta, no, total:rows.length,
+    guardado_en:new Date().toISOString()
+  }).then(()=>{
+    $('nubeEstado').innerHTML=`✅ Guardado · ✓ ${ok} cargado · ! ${falta} falta · ✕ ${no} no había`;
+  }).catch(e=>{ $('nubeEstado').textContent='⚠️ No se pudo guardar: '+e.message; });
+}
+
+function subirFotos(){
+  if(!EV_NUBE) return;
+  const files=$('fotoInput').files;
+  if(!files||!files.length){ $('fotoEstado').textContent='Elige al menos una foto.'; return; }
+  if(!ST){ $('fotoEstado').textContent='⚠️ Sin conexión: reintenta con datos/WiFi.'; return; }
+  let hechas=0; const total=files.length;
+  $('fotoEstado').textContent=`Subiendo 0/${total}…`;
+  Array.from(files).forEach((f,i)=>{
+    const nombre=`${Date.now()}_${i}_${(f.name||'foto').replace(/[^A-Za-z0-9._-]/g,'_')}`;
+    const ref=ST.ref(`eventos/${EV_NUBE.enc}/${nombre}`);
+    ref.put(f).then(()=>{ hechas++; $('fotoEstado').textContent=`Subiendo ${hechas}/${total}…`;
+      if(hechas===total){ $('fotoEstado').textContent=`✅ ${total} foto(s) subidas.`; $('fotoInput').value=''; cargarFotos(EV_NUBE.enc); }
+    }).catch(e=>{ $('fotoEstado').textContent='⚠️ Error subiendo: '+e.message; });
+  });
+}
+
+function cargarFotos(enc){
+  const g=$('galeria'); g.innerHTML='';
+  if(!ST) return;
+  ST.ref(`eventos/${enc}`).listAll().then(res=>{
+    if(!res.items.length){ g.innerHTML='<p style="font-size:12px;color:#999;grid-column:1/-1">Aún no hay fotos de este evento.</p>'; return; }
+    res.items.forEach(item=>{
+      item.getDownloadURL().then(url=>{
+        const a=document.createElement('a'); a.href=url; a.target='_blank';
+        a.innerHTML=`<img src="${url}" loading="lazy"><span class="dl" title="Descargar">⬇️</span>`;
+        a.querySelector('.dl').onclick=ev=>{ev.preventDefault();const x=document.createElement('a');x.href=url;x.download=item.name;document.body.appendChild(x);x.click();x.remove();};
+        g.appendChild(a);
+      }).catch(()=>{});
+    });
+  }).catch(e=>{ g.innerHTML=`<p style="font-size:12px;color:#999;grid-column:1/-1">No se pudieron cargar las fotos (${e.code||e.message}).</p>`; });
+}
+$('btnGuardarNube').onclick=guardarEnNube;
+$('btnSubirFotos').onclick=subirFotos;
 
 function pintarEventos(){
   if(!EVS.length)return;
@@ -645,17 +762,28 @@ function pintarRegistro(){
     .sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,40);
   if(!past.length)return;
   $('cardRegistro').style.display='';
+  const badgeDe=r=>{
+    if(!r||!r.total||(!r.ok&&!r.falta&&!r.no))return '<span class="badge c-pend">○ sin checklist</span>';
+    if(r.no>0)return `<span class="badge c-no">✕ ${r.no} no había</span>`;
+    if(r.falta>0)return `<span class="badge c-falta">! ${r.falta} faltaron</span>`;
+    if(r.ok>=r.total)return '<span class="badge c-ok">✓ completo</span>';
+    return `<span class="badge c-ok">✓ ${r.ok}/${r.total}</span>`;
+  };
   $('registro').innerHTML=past.map(e=>{
     let r=null;try{r=JSON.parse(localStorage.getItem('nec_resumen@'+e.enc)||'null');}catch(_){}
-    let badge;
-    if(!r||!r.total||(!r.ok&&!r.falta&&!r.no))badge='<span class="badge c-pend">○ sin checklist</span>';
-    else if(r.no>0)badge=`<span class="badge c-no">✕ ${r.no} no había</span>`;
-    else if(r.falta>0)badge=`<span class="badge c-falta">! ${r.falta} faltaron</span>`;
-    else if(r.ok>=r.total)badge='<span class="badge c-ok">✓ completo</span>';
-    else badge=`<span class="badge c-ok">✓ ${r.ok}/${r.total}</span>`;
     return `<div class="regrow" data-enc="${e.enc}">
-      <div><b>${e.enc}</b> · ${e.empresa}<span class="nt">${fmtFecha(e.fecha)} · ${e.pax} pax · ${e.menu||''}</span></div>${badge}</div>`;
+      <div><b>${e.enc}</b> · ${e.empresa}<span class="nt">${fmtFecha(e.fecha)} · ${e.pax} pax · ${e.menu||''}</span></div>
+      <span data-badge="${e.enc}">${badgeDe(r)}</span></div>`;
   }).join('');
+  // Actualizar los badges con lo guardado en la NUBE (lo que ve la oficina desde otro móvil).
+  if(DB){
+    DB.collection('checklists').get().then(snap=>{
+      snap.forEach(d=>{
+        const el=document.querySelector(`[data-badge="${d.id}"]`);
+        if(el) el.innerHTML=badgeDe(d.data());
+      });
+    }).catch(()=>{});
+  }
 }
 $('registro').addEventListener('click',e=>{
   const row=e.target.closest('.regrow');
