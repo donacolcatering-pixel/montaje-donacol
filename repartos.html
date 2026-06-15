@@ -269,7 +269,7 @@ function abrir(enc){
   const ev=buscarEvento(enc); if(!ev)return;
   pedidoActual=ev;
   $('lista').style.display='none';
-  $('detalle').style.display='';
+  $('detalle').style.display='block';   // 'block' explícito: el CSS tiene #detalle{display:none}
   window.scrollTo(0,0);
   const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.direccion||ev.empresa||'');
   $('resumen').innerHTML=`
@@ -312,7 +312,8 @@ function mostrarEntregado(ent){
 
 $('btnVolver').onclick=()=>{
   $('detalle').style.display='none';
-  $('lista').style.display='';
+  $('lista').style.display='block';
+  window.scrollTo(0,0);
   pedidoActual=null;
 };
 
