@@ -121,6 +121,9 @@
         <div class="firmaHint" id="firmaHint">Firme con el dedo aquí ☝️</div>
       </div>
 
+      <label style="margin-top:14px">Observaciones (opcional)</label>
+      <input id="obs" type="text" placeholder="Ej.: entregado en recepción · faltaba 1 caja" autocomplete="off">
+
       <label style="margin-top:14px">Foto del pedido entregado (opcional)</label>
       <input id="fotoInput" type="file" accept="image/*" capture="environment" style="font-size:13px">
 
@@ -286,6 +289,7 @@ function mostrarFormulario(){
   $('formEntrega').style.display='';
   $('cardEntregado').style.display='none';
   $('receptor').value='';
+  $('obs').value='';
   $('fotoInput').value='';
   $('estadoMsg').textContent='';
   $('btnConfirmar').disabled=false;
@@ -298,7 +302,8 @@ function mostrarEntregado(ent){
   $('cardEntregado').style.display='';
   $('datosEntrega').innerHTML=`
     <p style="margin:0 0 6px"><b>${ent.receptor||'—'}</b> recibió el pedido</p>
-    <p style="margin:0;color:var(--gris)">🕒 ${ent.fecha?fmtFecha(ent.fecha)+' · ':''}${ent.hora_entrega||''}</p>`;
+    <p style="margin:0;color:var(--gris)">🕒 ${ent.fecha?fmtFecha(ent.fecha)+' · ':''}${ent.hora_entrega||''}</p>`
+    +(ent.observaciones?`<p style="margin:8px 0 0;padding:8px 10px;background:var(--pendbg);border-radius:8px;font-size:13px">📝 ${ent.observaciones}</p>`:'');
   let pr='';
   if(ent.firma_url)pr+=`<a href="${ent.firma_url}" target="_blank" rel="noopener"><img src="${ent.firma_url}"><span>✍️ Ver firma</span></a>`;
   if(ent.foto_url)pr+=`<a href="${ent.foto_url}" target="_blank" rel="noopener"><img src="${ent.foto_url}"><span>📷 Ver foto</span></a>`;
@@ -380,6 +385,7 @@ $('btnConfirmar').onclick=async ()=>{
   if(!DB){$('estadoMsg').textContent='⚠️ Sin conexión: no se puede registrar la entrega. Reintenta con datos/WiFi.';return;}
 
   const ev=pedidoActual, enc=ev.enc;
+  const obs=$('obs').value.trim();
   $('btnConfirmar').disabled=true;
   $('btnConfirmar').textContent='Guardando…';
   $('estadoMsg').textContent='Subiendo firma…';
@@ -393,7 +399,7 @@ $('btnConfirmar').onclick=async ()=>{
     const reg={
       enc, empresa:ev.empresa||'', fecha:ev.fecha||'', direccion:ev.direccion||'',
       hora_prevista:ev.hora||'', pax:ev.pax||0, menu:ev.menu||'',
-      receptor, firma_url, foto_url,
+      receptor, observaciones:obs, firma_url, foto_url,
       hora_entrega:ahoraTexto(), entregado_en:new Date().toISOString(),
       geo: geo||null
     };
