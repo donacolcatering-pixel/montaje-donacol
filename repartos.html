@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3F2920">
+<title>Reparto de Pedidos · Doña Col</title>
+<link rel="manifest" href="repartos-manifest.json">
+<style>
+  :root{
+    --beige:#F5EAD8; --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --oro-d:#b06d24;
+    --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#3a2c22; --gris:#8c7a68;
+    --ok:#4e7d3a; --okbg:#eef4e6; --pend:#cf8a2e; --pendbg:#fbf1e0; --no:#b23b3b; --nobg:#fbeeee;
+    --azul:#2f6f8f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--beige);color:var(--tinta);font-size:16px;line-height:1.4}
+  header{background:var(--marron);color:#f7ecdc;padding:14px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px rgba(63,41,32,.25);border-bottom:3px solid var(--oro)}
+  .brand{display:flex;align-items:center;gap:12px;max-width:620px;margin:0 auto}
+  .brand .logo{width:54px;height:54px;flex:none;border-radius:50%;background:#fbf4e7;padding:4px;object-fit:contain;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  header h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px;font-family:Georgia,'Times New Roman',serif}
+  header p{margin:2px 0 0;font-size:11px;color:var(--oro);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+  main{padding:14px;max-width:620px;margin:0 auto}
+  .card{background:var(--crema);border:1px solid var(--linea);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(90,59,39,.06)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--oro-d);margin:0 0 10px;font-weight:700}
+  label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px;color:var(--marron2)}
+  input[type=text],input[type=date]{width:100%;padding:11px;font-size:16px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta)}
+  input:focus{outline:none;border-color:var(--oro);box-shadow:0 0 0 3px rgba(208,132,52,.15)}
+  button{font-family:inherit}
+
+  /* Lista de pedidos a repartir */
+  .diaSep{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#f7ecdc;background:var(--marron2);border-radius:9px;padding:7px 11px;margin:14px 0 6px;border-left:4px solid var(--oro)}
+  .ped{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;box-shadow:0 1px 3px rgba(90,59,39,.05)}
+  .ped:active{transform:scale(.99)}
+  .ped .hora{flex:none;width:58px;text-align:center;font-family:Georgia,serif;font-weight:800;font-size:18px;color:var(--marron);line-height:1.1}
+  .ped .hora small{display:block;font-size:9px;color:var(--gris);font-weight:700;letter-spacing:.5px}
+  .ped .info{flex:1;min-width:0}
+  .ped .emp{font-weight:700;font-size:15px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ped .dir{font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ped .meta{font-size:11px;color:var(--oro-d);font-weight:700;margin-top:2px}
+  .ped .badge{flex:none}
+  .badge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
+  .b-pend{background:var(--pendbg);color:var(--pend)} .b-ok{background:var(--okbg);color:var(--ok)}
+  .vacio{font-size:13px;color:var(--gris);text-align:center;padding:18px 8px}
+
+  /* Detalle / entrega */
+  #detalle{display:none}
+  .volver{background:#ecdcc4;color:var(--marron2);border:none;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}
+  .resumen{background:linear-gradient(160deg,var(--marron2),var(--marron));color:#f7ecdc;border-radius:14px;padding:14px;margin-bottom:14px}
+  .resumen .enc{font-size:11px;letter-spacing:1px;color:var(--oro);font-weight:800;text-transform:uppercase}
+  .resumen h3{margin:2px 0 8px;font-size:20px;font-family:Georgia,serif;color:#fff}
+  .resumen .linea{display:flex;gap:8px;font-size:14px;margin:5px 0;align-items:flex-start}
+  .resumen .linea .ic{flex:none;width:20px;text-align:center}
+  .mapsBtn{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:800;font-size:14px;margin-top:10px}
+
+  .firmaWrap{border:2px dashed var(--oro);border-radius:12px;background:#fff;position:relative;overflow:hidden}
+  #firma{width:100%;height:200px;display:block;touch-action:none;cursor:crosshair}
+  .firmaHint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:#cbb9a0;pointer-events:none}
+  .firmaBorrar{position:absolute;right:8px;top:8px;background:rgba(178,59,59,.9);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;padding:5px 10px;cursor:pointer}
+
+  .btnGrande{width:100%;padding:15px;border:none;border-radius:13px;font-size:16px;font-weight:800;cursor:pointer}
+  .btnConfirmar{background:var(--ok);color:#fff;box-shadow:0 3px 10px rgba(78,125,58,.35)}
+  .btnConfirmar:disabled{background:#c8bda8;box-shadow:none;cursor:not-allowed}
+  .estadoMsg{font-size:13px;text-align:center;color:var(--gris);margin:10px 0 0}
+
+  .pruebas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .pruebas a{display:block;border:1px solid var(--linea);border-radius:10px;overflow:hidden;text-decoration:none;background:#fff}
+  .pruebas a img{width:100%;height:120px;object-fit:contain;background:#fff;display:block}
+  .pruebas a span{display:block;font-size:11px;text-align:center;color:var(--oro-d);font-weight:700;padding:5px}
+
+  /* Registro de entregas confirmadas (oficina) */
+  .regrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #efe3d0;cursor:pointer;font-size:14px}
+  .regrow:last-child{border-bottom:none}
+  .regrow .nt{display:block;font-size:11px;color:var(--gris)}
+
+  footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
+  footer b{color:var(--marron2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="logo.png" class="logo" alt="Doña Col Catering">
+    <div>
+      <h1>🚚 Reparto de Pedidos</h1>
+      <p>Doña Col · Catering &amp; Eventos</p>
+    </div>
+  </div>
+</header>
+<main>
+
+  <!-- LISTA de pedidos a repartir -->
+  <div id="lista">
+    <div class="card">
+      <h2>📦 Pedidos a repartir</h2>
+      <div id="pedidos"><p class="vacio">Cargando pedidos…</p></div>
+    </div>
+
+    <div class="card" id="cardRegistro" style="display:none">
+      <h2>🗂️ Entregas confirmadas</h2>
+      <div id="registro"></div>
+      <p style="font-size:11px;color:var(--gris);margin:8px 0 0">Toca una entrega para ver la firma y la foto.</p>
+    </div>
+  </div>
+
+  <!-- DETALLE / pantalla de entrega -->
+  <div id="detalle">
+    <button class="volver" id="btnVolver">← Volver a la lista</button>
+    <div class="resumen" id="resumen"></div>
+
+    <!-- Formulario de entrega (pedido pendiente) -->
+    <div class="card" id="formEntrega">
+      <h2>✍️ Confirmar entrega</h2>
+      <label for="receptor">Recibido por (nombre de quien firma)</label>
+      <input id="receptor" type="text" placeholder="Nombre y apellido" autocomplete="off">
+
+      <label style="margin-top:14px">Firma del cliente</label>
+      <div class="firmaWrap">
+        <canvas id="firma"></canvas>
+        <button class="firmaBorrar" id="btnBorrarFirma">↻ Borrar</button>
+        <div class="firmaHint" id="firmaHint">Firme con el dedo aquí ☝️</div>
+      </div>
+
+      <label style="margin-top:14px">Foto del pedido entregado (opcional)</label>
+      <input id="fotoInput" type="file" accept="image/*" capture="environment" style="font-size:13px">
+
+      <button class="btnGrande btnConfirmar" id="btnConfirmar" style="margin-top:16px">✅ Confirmar entrega</button>
+      <p class="estadoMsg" id="estadoMsg"></p>
+    </div>
+
+    <!-- Prueba de entrega (pedido ya entregado) -->
+    <div class="card" id="cardEntregado" style="display:none">
+      <h2>✅ Entregado</h2>
+      <div id="datosEntrega" style="font-size:14px"></div>
+      <div class="pruebas" id="pruebas"></div>
+    </div>
+  </div>
+
+  <footer>Doña Col · reparto de pedidos <b>v1</b></footer>
+</main>
+
+<!-- Firebase (guarda la entrega: firma, hora, receptor, foto) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// Mismo proyecto que el checklist de montaje (donacol-montaje). No es secreto.
+const firebaseConfig = {
+  apiKey: "AIzaSyBmjX5990wIsxgg2jOr5nYFgXt58ey3Zh8",
+  authDomain: "donacol-montaje.firebaseapp.com",
+  projectId: "donacol-montaje",
+  storageBucket: "donacol-montaje.firebasestorage.app",
+  messagingSenderId: "724081710964",
+  appId: "1:724081710964:web:06f0246011d42fbd387e21"
+};
+let DB=null;
+try{ firebase.initializeApp(firebaseConfig); DB=firebase.firestore(); }
+catch(e){ console.warn('Firebase no disponible:', e); }
+</script>
+<script src="eventos.js"></script>
+<script>
+// Fotos y firmas → Cloudinary (gratis, sin tarjeta); el enlace se guarda en Firestore.
+const CLOUDINARY={cloud:'drfjs9u7p', preset:'drfjs9u7p'};
+const $=id=>document.getElementById(id);
+
+// ---------- Descifrado de eventos (idéntico a necesidades.html) ----------
+// eventos.js viaja CIFRADO (el repo es público). La clave llega en el enlace (#k=...)
+// y se recuerda en este móvil. Mismo algoritmo que checklist_export.py.
+async function descifrarEventos(){
+  const c=window.EVENTOS_MONTAJE_CIFRADO;
+  if(!c)return Array.isArray(window.EVENTOS_MONTAJE)?window.EVENTOS_MONTAJE:[];
+  let k=null;
+  const m=location.hash.match(/[#&]k=([0-9a-fA-F]{32})/);
+  if(m){k=m[1];try{localStorage.setItem('eventos_clave',k);}catch(e){}}
+  else{try{k=localStorage.getItem('eventos_clave');}catch(e){}}
+  if(!k)return null;
+  try{
+    const key=Uint8Array.from(k.match(/../g).map(h=>parseInt(h,16)));
+    const nonce=Uint8Array.from(atob(c.n),ch=>ch.charCodeAt(0));
+    const data=Uint8Array.from(atob(c.d),ch=>ch.charCodeAt(0));
+    const out=new Uint8Array(data.length);
+    for(let off=0,i=0;off<data.length;off+=32,i++){
+      const buf=new Uint8Array(key.length+nonce.length+4);
+      buf.set(key);buf.set(nonce,key.length);
+      new DataView(buf.buffer).setUint32(key.length+nonce.length,i);
+      const blk=new Uint8Array(await crypto.subtle.digest('SHA-256',buf));
+      for(let j=0;j<32&&off+j<data.length;j++)out[off+j]=data[off+j]^blk[j];
+    }
+    return JSON.parse(new TextDecoder().decode(out));
+  }catch(e){return null;}
+}
+
+// ---------- Fechas ----------
+const hoyISO=(()=>{const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fmtFecha(iso){const d=new Date(iso+'T00:00:00');
+  return DIAS_SEM[d.getDay()]+' '+d.getDate()+' '+MESES[d.getMonth()];}
+function etiquetaDia(iso){
+  if(iso===hoyISO)return 'HOY · '+fmtFecha(iso);
+  const man=new Date(hoyISO+'T00:00:00');man.setDate(man.getDate()+1);
+  const manISO=man.getFullYear()+'-'+String(man.getMonth()+1).padStart(2,'0')+'-'+String(man.getDate()).padStart(2,'0');
+  if(iso===manISO)return 'MAÑANA · '+fmtFecha(iso);
+  return fmtFecha(iso);
+}
+function ahoraTexto(){const d=new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+// ---------- Estado ----------
+let REPARTOS=[];          // eventos con montaje=NO
+let ENTREGAS={};          // enc -> doc de Firestore (entregas ya confirmadas)
+let pedidoActual=null;    // evento seleccionado
+
+// ---------- Lista ----------
+function pintarLista(){
+  const cont=$('pedidos');
+  const prox=REPARTOS.filter(e=>e.fecha>=hoyISO)
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
+  if(!prox.length){cont.innerHTML='<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';return;}
+  let html='',diaPrev='';
+  prox.forEach(e=>{
+    if(e.fecha!==diaPrev){html+=`<div class="diaSep">${etiquetaDia(e.fecha)}</div>`;diaPrev=e.fecha;}
+    const ent=ENTREGAS[e.enc];
+    const badge=ent?`<span class="badge b-ok">✓ ${ent.hora_entrega||'entregado'}</span>`
+                   :`<span class="badge b-pend">○ pendiente</span>`;
+    const horaRaw=(e.hora||'').trim();
+    const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
+    const horaHtml=esHora ? `${horaRaw}<small>ENTREGA</small>`
+                          : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${horaRaw||'🕒'}</span>`;
+    html+=`<div class="ped" data-enc="${e.enc}">
+      <div class="hora">${horaHtml}</div>
+      <div class="info">
+        <div class="emp">${e.empresa||'(sin nombre)'}</div>
+        <div class="dir">📍 ${e.direccion||'sin dirección'}</div>
+        <div class="meta">${e.pax||0} pax · ${e.menu||''}</div>
+      </div>
+      <div class="badge">${badge}</div>
+    </div>`;
+  });
+  cont.innerHTML=html;
+  cont.querySelectorAll('.ped').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc')));
+}
+
+function pintarRegistro(){
+  const ents=Object.values(ENTREGAS)
+    .sort((a,b)=>(b.entregado_en||'').localeCompare(a.entregado_en||''));
+  if(!ents.length){$('cardRegistro').style.display='none';return;}
+  $('cardRegistro').style.display='';
+  $('registro').innerHTML=ents.map(en=>`
+    <div class="regrow" data-enc="${en.enc}">
+      <div><b>${en.empresa||en.enc}</b><span class="nt">${en.fecha?fmtFecha(en.fecha):''} · entregado ${en.hora_entrega||''}${en.receptor?' · firmó '+en.receptor:''}</span></div>
+      <span class="badge b-ok">✓</span>
+    </div>`).join('');
+  $('registro').querySelectorAll('.regrow').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc')));
+}
+
+// ---------- Abrir un pedido ----------
+function buscarEvento(enc){
+  return REPARTOS.find(e=>e.enc===enc) || (ENTREGAS[enc]?{
+    enc, empresa:ENTREGAS[enc].empresa, fecha:ENTREGAS[enc].fecha,
+    direccion:ENTREGAS[enc].direccion, hora:ENTREGAS[enc].hora_prevista,
+    pax:ENTREGAS[enc].pax, menu:ENTREGAS[enc].menu
+  }:null);
+}
+function abrir(enc){
+  const ev=buscarEvento(enc); if(!ev)return;
+  pedidoActual=ev;
+  $('lista').style.display='none';
+  $('detalle').style.display='';
+  window.scrollTo(0,0);
+  const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.direccion||ev.empresa||'');
+  $('resumen').innerHTML=`
+    <div class="enc">Pedido ${ev.enc}</div>
+    <h3>${ev.empresa||'(sin nombre)'}</h3>
+    <div class="linea"><span class="ic">📅</span><span>${ev.fecha?fmtFecha(ev.fecha):''}${ev.hora?' · entrega '+ev.hora:''}</span></div>
+    <div class="linea"><span class="ic">📍</span><span>${ev.direccion||'sin dirección'}</span></div>
+    <div class="linea"><span class="ic">🍽️</span><span>${ev.pax||0} pax · ${ev.menu||''}</span></div>
+    ${ev.direccion?`<a class="mapsBtn" href="${maps}" target="_blank" rel="noopener">🗺️ Abrir en Maps</a>`:''}`;
+
+  const ent=ENTREGAS[enc];
+  if(ent){ mostrarEntregado(ent); }
+  else { mostrarFormulario(); }
+}
+
+function mostrarFormulario(){
+  $('formEntrega').style.display='';
+  $('cardEntregado').style.display='none';
+  $('receptor').value='';
+  $('fotoInput').value='';
+  $('estadoMsg').textContent='';
+  $('btnConfirmar').disabled=false;
+  $('btnConfirmar').textContent='✅ Confirmar entrega';
+  prepararFirma();
+}
+
+function mostrarEntregado(ent){
+  $('formEntrega').style.display='none';
+  $('cardEntregado').style.display='';
+  $('datosEntrega').innerHTML=`
+    <p style="margin:0 0 6px"><b>${ent.receptor||'—'}</b> recibió el pedido</p>
+    <p style="margin:0;color:var(--gris)">🕒 ${ent.fecha?fmtFecha(ent.fecha)+' · ':''}${ent.hora_entrega||''}</p>`;
+  let pr='';
+  if(ent.firma_url)pr+=`<a href="${ent.firma_url}" target="_blank" rel="noopener"><img src="${ent.firma_url}"><span>✍️ Ver firma</span></a>`;
+  if(ent.foto_url)pr+=`<a href="${ent.foto_url}" target="_blank" rel="noopener"><img src="${ent.foto_url}"><span>📷 Ver foto</span></a>`;
+  $('pruebas').innerHTML=pr||'<p style="font-size:12px;color:var(--gris);grid-column:1/-1">Sin imágenes adjuntas.</p>';
+}
+
+$('btnVolver').onclick=()=>{
+  $('detalle').style.display='none';
+  $('lista').style.display='';
+  pedidoActual=null;
+};
+
+// ---------- Firma (canvas) ----------
+let ctx=null, dibujando=false, hayFirma=false, ultimo=null;
+function prepararFirma(){
+  const cv=$('firma');
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||300, h=200;
+  cv.width=w*dpr; cv.height=h*dpr;
+  ctx=cv.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  hayFirma=false; $('firmaHint').style.display='';
+}
+function posFirma(ev){
+  const cv=$('firma'), r=cv.getBoundingClientRect();
+  const p=ev.touches?ev.touches[0]:ev;
+  return {x:p.clientX-r.left, y:p.clientY-r.top};
+}
+function iniciarTrazo(ev){ev.preventDefault();dibujando=true;ultimo=posFirma(ev);
+  if(!hayFirma){hayFirma=true;$('firmaHint').style.display='none';}}
+function moverTrazo(ev){
+  if(!dibujando)return; ev.preventDefault();
+  const p=posFirma(ev);
+  ctx.beginPath();ctx.moveTo(ultimo.x,ultimo.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+  ultimo=p;
+}
+function finTrazo(){dibujando=false;}
+(function bindFirma(){
+  const cv=$('firma');
+  cv.addEventListener('pointerdown',iniciarTrazo);
+  cv.addEventListener('pointermove',moverTrazo);
+  window.addEventListener('pointerup',finTrazo);
+  // respaldo táctil para navegadores antiguos sin pointer events
+  cv.addEventListener('touchstart',iniciarTrazo,{passive:false});
+  cv.addEventListener('touchmove',moverTrazo,{passive:false});
+  cv.addEventListener('touchend',finTrazo);
+})();
+$('btnBorrarFirma').onclick=()=>prepararFirma();
+
+// ---------- Subir a Cloudinary ----------
+function subirCloudinary(fileOrBlob, enc, tipo){
+  const fd=new FormData();
+  fd.append('file', fileOrBlob);
+  fd.append('upload_preset', CLOUDINARY.preset);
+  fd.append('folder', 'repartos/'+enc);
+  fd.append('tags', enc+','+tipo);
+  return fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloud}/image/upload`,{method:'POST',body:fd})
+    .then(r=>r.json())
+    .then(d=>{ if(!d.secure_url) throw new Error((d.error&&d.error.message)||'subida rechazada'); return d.secure_url; });
+}
+function canvasABlob(){return new Promise(res=>$('firma').toBlob(res,'image/png'));}
+
+// Ubicación GPS best-effort (prueba de dónde se firmó). No bloquea si se deniega.
+function ubicacion(){return new Promise(res=>{
+  if(!navigator.geolocation)return res(null);
+  navigator.geolocation.getCurrentPosition(
+    p=>res({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)}),
+    ()=>res(null),{timeout:6000,maximumAge:120000});
+});}
+
+// ---------- Confirmar entrega ----------
+$('btnConfirmar').onclick=async ()=>{
+  if(!pedidoActual)return;
+  const receptor=$('receptor').value.trim();
+  if(!receptor){$('estadoMsg').textContent='⚠️ Pon el nombre de quien recibe el pedido.';$('receptor').focus();return;}
+  if(!hayFirma){$('estadoMsg').textContent='⚠️ Falta la firma del cliente.';return;}
+  if(!DB){$('estadoMsg').textContent='⚠️ Sin conexión: no se puede registrar la entrega. Reintenta con datos/WiFi.';return;}
+
+  const ev=pedidoActual, enc=ev.enc;
+  $('btnConfirmar').disabled=true;
+  $('btnConfirmar').textContent='Guardando…';
+  $('estadoMsg').textContent='Subiendo firma…';
+  try{
+    const firmaBlob=await canvasABlob();
+    const firma_url=await subirCloudinary(firmaBlob, enc, 'firma');
+    let foto_url='';
+    const f=$('fotoInput').files;
+    if(f&&f.length){ $('estadoMsg').textContent='Subiendo foto…'; foto_url=await subirCloudinary(f[0], enc, 'foto'); }
+    const geo=await ubicacion();
+    const reg={
+      enc, empresa:ev.empresa||'', fecha:ev.fecha||'', direccion:ev.direccion||'',
+      hora_prevista:ev.hora||'', pax:ev.pax||0, menu:ev.menu||'',
+      receptor, firma_url, foto_url,
+      hora_entrega:ahoraTexto(), entregado_en:new Date().toISOString(),
+      geo: geo||null
+    };
+    $('estadoMsg').textContent='Registrando entrega…';
+    await DB.collection('entregas').doc(enc).set(reg);
+    ENTREGAS[enc]=reg;
+    $('estadoMsg').textContent='✅ Entrega registrada.';
+    mostrarEntregado(reg);
+    pintarLista(); pintarRegistro();
+  }catch(e){
+    $('btnConfirmar').disabled=false;
+    $('btnConfirmar').textContent='✅ Confirmar entrega';
+    $('estadoMsg').textContent='⚠️ No se pudo registrar: '+e.message;
+  }
+};
+
+// ---------- Cargar entregas ya hechas (Firestore) ----------
+function cargarEntregas(){
+  if(!DB)return Promise.resolve();
+  return DB.collection('entregas').get().then(snap=>{
+    ENTREGAS={};
+    snap.forEach(d=>{ ENTREGAS[d.id]=d.data(); });
+  }).catch(()=>{});
+}
+
+// ---------- Arranque ----------
+(async()=>{
+  const r=await descifrarEventos();
+  if(r===null){
+    $('pedidos').innerHTML='<p class="vacio">🔒 Pedidos bloqueados.<br>Abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.</p>';
+    return;
+  }
+  // Solo repartos: eventos sin montaje (montaje = 'NO').
+  REPARTOS=(r||[]).filter(e=>String(e.montaje||'NO').toUpperCase()==='NO');
+  await cargarEntregas();
+  pintarLista();
+  pintarRegistro();
+})();
+
+// PWA offline
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>

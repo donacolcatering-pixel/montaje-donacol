@@ -1,7 +1,7 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v5';
-const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html',
-                './manifest.json', './icon.svg', './logo.png'];
+const CACHE = 'montaje-v6';
+const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html', './repartos.html',
+                './manifest.json', './repartos-manifest.json', './icon.svg', './logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

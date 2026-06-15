@@ -1,0 +1,13 @@
+{
+  "name": "Reparto de Pedidos · Doña Col",
+  "short_name": "Repartos",
+  "description": "Pedidos a repartir, firma del cliente y prueba de entrega para repartidores de Doña Col",
+  "start_url": "./repartos.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5EAD8",
+  "theme_color": "#3F2920",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
