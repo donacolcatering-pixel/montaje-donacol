@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v4';
+const CACHE = 'montaje-v5';
 const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html',
                 './manifest.json', './icon.svg', './logo.png'];
 

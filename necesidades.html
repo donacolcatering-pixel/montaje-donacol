@@ -82,6 +82,7 @@
   .galeria a{display:block;position:relative}
   .galeria img{width:100%;height:95px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}
   .galeria .dl{position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;font-size:14px;padding:1px 6px;text-decoration:none}
+  .galeria .del{position:absolute;right:4px;top:4px;background:rgba(178,59,59,.9);color:#fff;border-radius:6px;font-size:13px;padding:1px 6px;cursor:pointer}
   footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
   footer b{color:var(--marron2)}
   @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
@@ -748,11 +749,22 @@ function cargarFotos(enc){
     urls.sort((a,b)=>(a.ts||0)-(b.ts||0));
     urls.forEach(item=>{
       const a=document.createElement('a'); a.href=item.url; a.target='_blank';
-      a.innerHTML=`<img src="${item.url}" loading="lazy"><span class="dl" title="Descargar">⬇️</span>`;
+      a.innerHTML=`<img src="${item.url}" loading="lazy">`
+        +`<span class="dl" title="Descargar">⬇️</span>`
+        +`<span class="del" title="Eliminar">🗑️</span>`;
       a.querySelector('.dl').onclick=ev=>{ev.preventDefault();window.open(urlDescarga(item.url),'_blank');};
+      a.querySelector('.del').onclick=ev=>{ev.preventDefault();ev.stopPropagation();borrarFoto(enc,item);};
       g.appendChild(a);
     });
   }).catch(e=>{ g.innerHTML=`<p style="font-size:12px;color:#999;grid-column:1/-1">No se pudieron cargar las fotos (${e.message}).</p>`; });
+}
+
+function borrarFoto(enc, item){
+  if(!DB) return;
+  if(!confirm('¿Eliminar esta foto? Desaparecerá del evento para todos.')) return;
+  DB.collection('fotos').doc(enc).update({urls:firebase.firestore.FieldValue.arrayRemove(item)})
+    .then(()=>{ $('fotoEstado').textContent='🗑️ Foto eliminada.'; cargarFotos(enc); })
+    .catch(e=>{ $('fotoEstado').textContent='⚠️ No se pudo eliminar: '+e.message; });
 }
 $('btnGuardarNube').onclick=guardarEnNube;
 $('btnSubirFotos').onclick=subirFotos;
