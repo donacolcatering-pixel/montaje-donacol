@@ -706,36 +706,53 @@ function guardarEnNube(){
   }).catch(e=>{ $('nubeEstado').textContent='⚠️ No se pudo guardar: '+e.message; });
 }
 
+// Fotos: se SUBEN a Cloudinary (gratis, sin tarjeta) y el ENLACE se guarda en
+// Firestore (colección 'fotos', un doc por evento) para que la oficina las vea/descargue.
+const CLOUDINARY={cloud:'drfjs9u7p', preset:'drfjs9u7p'};
+function urlDescarga(url){ return url.replace('/image/upload/','/image/upload/fl_attachment/'); }
+
 function subirFotos(){
   if(!EV_NUBE) return;
   const files=$('fotoInput').files;
   if(!files||!files.length){ $('fotoEstado').textContent='Elige al menos una foto.'; return; }
-  if(!ST){ $('fotoEstado').textContent='⚠️ Sin conexión: reintenta con datos/WiFi.'; return; }
+  const enc=EV_NUBE.enc;
   let hechas=0; const total=files.length;
   $('fotoEstado').textContent=`Subiendo 0/${total}…`;
-  Array.from(files).forEach((f,i)=>{
-    const nombre=`${Date.now()}_${i}_${(f.name||'foto').replace(/[^A-Za-z0-9._-]/g,'_')}`;
-    const ref=ST.ref(`eventos/${EV_NUBE.enc}/${nombre}`);
-    ref.put(f).then(()=>{ hechas++; $('fotoEstado').textContent=`Subiendo ${hechas}/${total}…`;
-      if(hechas===total){ $('fotoEstado').textContent=`✅ ${total} foto(s) subidas.`; $('fotoInput').value=''; cargarFotos(EV_NUBE.enc); }
-    }).catch(e=>{ $('fotoEstado').textContent='⚠️ Error subiendo: '+e.message; });
+  Array.from(files).forEach(f=>{
+    const fd=new FormData();
+    fd.append('file', f);
+    fd.append('upload_preset', CLOUDINARY.preset);
+    fd.append('folder', 'eventos/'+enc);
+    fd.append('tags', enc);
+    fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloud}/image/upload`, {method:'POST', body:fd})
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data.secure_url) throw new Error((data.error&&data.error.message)||'subida rechazada');
+        const item={url:data.secure_url, public_id:data.public_id||'', ts:Date.now()};
+        if(DB){ return DB.collection('fotos').doc(enc)
+                  .set({enc, urls:firebase.firestore.FieldValue.arrayUnion(item)},{merge:true})
+                  .catch(()=>{}); }
+      })
+      .then(()=>{ hechas++; $('fotoEstado').textContent=`Subiendo ${hechas}/${total}…`;
+        if(hechas===total){ $('fotoEstado').textContent=`✅ ${total} foto(s) subidas.`; $('fotoInput').value=''; cargarFotos(enc); } })
+      .catch(e=>{ $('fotoEstado').textContent='⚠️ Error subiendo: '+e.message; });
   });
 }
 
 function cargarFotos(enc){
   const g=$('galeria'); g.innerHTML='';
-  if(!ST) return;
-  ST.ref(`eventos/${enc}`).listAll().then(res=>{
-    if(!res.items.length){ g.innerHTML='<p style="font-size:12px;color:#999;grid-column:1/-1">Aún no hay fotos de este evento.</p>'; return; }
-    res.items.forEach(item=>{
-      item.getDownloadURL().then(url=>{
-        const a=document.createElement('a'); a.href=url; a.target='_blank';
-        a.innerHTML=`<img src="${url}" loading="lazy"><span class="dl" title="Descargar">⬇️</span>`;
-        a.querySelector('.dl').onclick=ev=>{ev.preventDefault();const x=document.createElement('a');x.href=url;x.download=item.name;document.body.appendChild(x);x.click();x.remove();};
-        g.appendChild(a);
-      }).catch(()=>{});
+  if(!DB) return;
+  DB.collection('fotos').doc(enc).get().then(d=>{
+    const urls=(d.exists && d.data().urls)?d.data().urls.slice():[];
+    if(!urls.length){ g.innerHTML='<p style="font-size:12px;color:#999;grid-column:1/-1">Aún no hay fotos de este evento.</p>'; return; }
+    urls.sort((a,b)=>(a.ts||0)-(b.ts||0));
+    urls.forEach(item=>{
+      const a=document.createElement('a'); a.href=item.url; a.target='_blank';
+      a.innerHTML=`<img src="${item.url}" loading="lazy"><span class="dl" title="Descargar">⬇️</span>`;
+      a.querySelector('.dl').onclick=ev=>{ev.preventDefault();window.open(urlDescarga(item.url),'_blank');};
+      g.appendChild(a);
     });
-  }).catch(e=>{ g.innerHTML=`<p style="font-size:12px;color:#999;grid-column:1/-1">No se pudieron cargar las fotos (${e.code||e.message}).</p>`; });
+  }).catch(e=>{ g.innerHTML=`<p style="font-size:12px;color:#999;grid-column:1/-1">No se pudieron cargar las fotos (${e.message}).</p>`; });
 }
 $('btnGuardarNube').onclick=guardarEnNube;
 $('btnSubirFotos').onclick=subirFotos;
