@@ -518,6 +518,23 @@ function calcular(){
     it('Mini basurero para mesas','✓',''),
   ]);
 
+  // --- RECOGIDA: lo RETORNABLE que hay que traer de vuelta al obrador tras el evento.
+  //     NO incluye desechables ni comida/bebida (eso no se recoge). Solo aparece lo que
+  //     realmente se llevó (cantidad > 0). Nombres propios ('Recoger · …') para que su
+  //     marca sea independiente de la de 'lo que hay que llevar'.
+  const recogItems=[
+    mesas>0         && it('Recoger · Mesas bajas', mesas, 'devolver al obrador'),
+    mesasAltas>0    && it('Recoger · Mesas altas de cóctel', mesasAltas, 'devolver al obrador'),
+    manteles>0      && it('Recoger · Manteles (mesas bajas)', manteles, 'a lavandería'),
+    mantelesAltas>0 && it('Recoger · Manteles (mesas altas)', mantelesAltas, 'a lavandería'),
+    champaneras>0   && it('Recoger · Champaneras', champaneras, 'devolver'),
+    florales>0      && it('Recoger · Arreglos florales', florales, 'devolver'),
+    chafing>0       && it('Recoger · Chafing dish', chafing, 'devolver'),
+    fuegos>0        && it('Recoger · Fuegos de etileno', fuegos, 'los que sobren'),
+    dispensadores>0 && it('Recoger · Dispensadores / fuentes de agua', dispensadores, 'devolver'),
+  ].filter(Boolean);
+  if(recogItems.length) sec('🔄','Recogida — traer de vuelta al obrador', recogItems);
+
   // Inventario para el plano 2D (recursos limitados según checklist)
   INV_ACTUAL={
     inv:{
