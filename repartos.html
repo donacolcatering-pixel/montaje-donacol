@@ -214,6 +214,15 @@ let REPARTOS=[];          // eventos con montaje=NO
 let ENTREGAS={};          // enc -> doc de Firestore (entregas ya confirmadas)
 let pedidoActual=null;    // evento seleccionado
 
+// ¿Es un reparto (entrega a domicilio)? Usa el 'tipo' del evento; para datos antiguos
+// sin tipo, cae a: sin montaje y que NO empiece por RECOG (recogida en obrador).
+function esReparto(e){
+  const t=(e.tipo||'').toUpperCase();
+  if(t) return t==='REPARTO';
+  if(String(e.montaje||'NO').toUpperCase()!=='NO') return false;
+  return !/^\s*RECOG/i.test(e.hora||'');
+}
+
 // ---------- Lista ----------
 function pintarLista(){
   const cont=$('pedidos');
@@ -433,8 +442,9 @@ function cargarEntregas(){
     $('pedidos').innerHTML='<p class="vacio">🔒 Pedidos bloqueados.<br>Abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.</p>';
     return;
   }
-  // Solo repartos: eventos sin montaje (montaje = 'NO').
-  REPARTOS=(r||[]).filter(e=>String(e.montaje||'NO').toUpperCase()==='NO');
+  // Solo REPARTOS (entregas a domicilio). Excluye montajes y también las RECOGIDAS
+  // (el cliente recoge en el obrador → no hay reparto que hacer).
+  REPARTOS=(r||[]).filter(esReparto);
   await cargarEntregas();
   pintarLista();
   pintarRegistro();

@@ -895,10 +895,17 @@ function borrarFoto(enc, item){
 $('btnGuardarNube').onclick=guardarEnNube;
 $('btnSubirFotos').onclick=subirFotos;
 
+// ¿Es un montaje? (lo único que se monta y va al checklist). Usa 'tipo'; para datos
+// antiguos sin tipo, cae a montaje != NO.
+function esMontaje(e){
+  const t=(e.tipo||'').toUpperCase();
+  if(t) return t==='MONTAJE';
+  return String(e.montaje||'NO').toUpperCase()!=='NO';
+}
 function pintarEventos(){
   if(!EVS.length)return;
   $('cardEventos').style.display='';
-  const prox=EVS.filter(e=>e.fecha>=hoyISO)
+  const prox=EVS.filter(e=>e.fecha>=hoyISO && esMontaje(e))
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.enc.localeCompare(b.enc));
   let html='<option value="">— Manual / elegir evento —</option>',fechaPrev='';
   prox.forEach(e=>{
