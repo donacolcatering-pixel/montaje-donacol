@@ -87,6 +87,9 @@
   footer b{color:var(--marron2)}
   @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
     .card{box-shadow:none;border:none;padding:0}.item{cursor:auto}.tile{background:#efe3d0;color:#3F2920}.tile b{color:#3F2920}.seccion h3{background:#efe3d0;color:#3F2920}}
+  .navbar{position:sticky;top:0;z-index:30;background:#fff;padding:8px 0 10px;margin:-4px 0 6px;box-shadow:0 4px 10px -8px rgba(0,0,0,.4)}
+  .navbar select{width:100%;padding:12px;border-radius:12px;border:2px solid var(--marron2);background:#fff;font-size:16px;font-weight:800;color:var(--marron2);cursor:pointer}
+  .vista{display:block}
   #printHead{display:none}
   @media print{#printHead{display:block;margin-bottom:8px}#printHead h1{margin:0;font-size:18px}#printHead p{margin:2px 0;font-size:12px}}
 </style>
@@ -102,6 +105,17 @@
   </div>
 </header>
 <main>
+
+  <div class="navbar">
+    <select id="vista" aria-label="Sección">
+      <option value="montaje">🧰 Montaje · checklist</option>
+      <option value="retorno">🔄 Retorno · recogida</option>
+      <option value="cerrados">🗂️ Cerrados</option>
+      <option value="fotos">📷 Fotos del evento</option>
+    </select>
+  </div>
+
+  <section id="view-montaje" class="vista">
 
   <div class="card config" id="cardEventos" style="display:none">
     <h2>📅 Eventos cargados</h2>
@@ -205,28 +219,51 @@
     <button id="irPlano" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">🗺️ Abrir plano 2D con estos recursos</button>
   </div>
 
-  <!-- Guardar en la nube + fotos (solo con un evento elegido) -->
-  <div class="card" id="cardNube" style="display:none">
-    <h2>☁️ Guardar evento</h2>
+  <!-- Guardar el checklist en la nube (solo con un evento elegido) -->
+  <div class="card" id="cardGuardar" style="display:none">
+    <h2>☁️ Guardar checklist</h2>
     <button id="btnGuardarNube" class="nubeBtn" style="background:var(--ok);color:#fff">💾 Guardar checklist</button>
     <p id="nubeEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
-
-    <h2 style="margin-top:16px">📷 Fotos del evento (para la oficina)</h2>
-    <p style="font-size:12px;color:#777;margin:0 0 8px">Haz fotos de cómo ha quedado el montaje. La oficina las descarga para redes.</p>
-    <input id="fotoInput" type="file" accept="image/*" multiple capture="environment"
-           style="font-size:13px">
-    <button id="btnSubirFotos" class="nubeBtn" style="background:var(--oro);color:#fff;margin-top:8px">⬆️ Subir fotos</button>
-    <p id="fotoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
-    <div id="galeria" class="galeria"></div>
   </div>
 
-  <div class="card" id="cardRegistro" style="display:none">
-    <h2>🗂️ Registro de eventos pasados</h2>
-    <div id="registro"></div>
-    <p style="font-size:11px;color:var(--gris);margin:8px 0 0">Toca un evento para revisar cómo quedó su checklist.</p>
-  </div>
+  </section> <!-- /view-montaje -->
 
-  <footer>Doña Col · checklist de montaje v2 (sport)</footer>
+  <!-- ======================= RETORNO (recogida) ======================= -->
+  <section id="view-retorno" class="vista" style="display:none">
+    <div class="card">
+      <h2>🔄 Retorno — traer de vuelta al obrador</h2>
+      <p id="retornoInfo" style="font-size:12px;color:#777;margin:0 0 6px"></p>
+      <p class="leyenda" style="margin:0 0 6px">Toca cada línea: ○ pendiente → ✓ recogido → ! falta → ✕ no estaba</p>
+      <div id="retornoLista"></div>
+      <div class="acciones" style="margin-top:12px">
+        <button id="btnCerrarRetorno" class="nubeBtn" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;font-size:15px;font-weight:800">🔒 Cerrar retorno y guardar en Cerrados</button>
+      </div>
+      <p id="retornoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+    </div>
+  </section>
+
+  <!-- ======================= CERRADOS ======================= -->
+  <section id="view-cerrados" class="vista" style="display:none">
+    <div class="card">
+      <h2>🗂️ Cerrados</h2>
+      <p style="font-size:12px;color:#777;margin:0 0 8px">Eventos con el retorno cerrado. Toca uno para revisarlo en Montaje.</p>
+      <div id="cerradosLista"></div>
+    </div>
+  </section>
+
+  <!-- ======================= FOTOS ======================= -->
+  <section id="view-fotos" class="vista" style="display:none">
+    <div class="card">
+      <h2>📷 Fotos del evento (para la oficina)</h2>
+      <p id="fotosInfo" style="font-size:12px;color:#777;margin:0 0 8px">Elige un evento en Montaje. Haz fotos de cómo ha quedado; la oficina las descarga para redes.</p>
+      <input id="fotoInput" type="file" accept="image/*" multiple capture="environment" style="font-size:13px">
+      <button id="btnSubirFotos" class="nubeBtn" style="background:var(--oro);color:#fff;margin-top:8px">⬆️ Subir fotos</button>
+      <p id="fotoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+      <div id="galeria" class="galeria"></div>
+    </div>
+  </section>
+
+  <footer>Doña Col · checklist de montaje v3 (vistas)</footer>
 </main>
 
 <!-- Firebase (guardar checklist en la nube + fotos del evento) -->
@@ -327,7 +364,6 @@ function guardar(){
         if(st==='ok')ok++;else if(st==='falta')falta++;else if(st==='no')no++;});
       localStorage.setItem('nec_resumen@'+eventoActual,
         JSON.stringify({ok,falta,no,total:rows.length,ts:Date.now()}));
-      pintarRegistro();
     }
   }catch(e){}
 }
@@ -339,6 +375,73 @@ document.querySelectorAll('#servicio button').forEach(b=>b.onclick=()=>{
 $('addIntol').onclick=()=>{intol.push({nombre:'',pax:0});render();};
 $('reiniciar').onclick=()=>{estados={};guardar();calcular();};
 $('irPlano').onclick=()=>{try{localStorage.setItem('montaje_inv',JSON.stringify(INV_ACTUAL||{}));}catch(e){}window.location.href='montaje2d.html';};
+
+// ============ NAVEGACIÓN por vistas (Montaje / Retorno / Cerrados / Fotos) ============
+let RETORNO_ITEMS=[];
+function showVista(v){
+  document.querySelectorAll('.vista').forEach(s=>{ s.style.display=(s.id==='view-'+v)?'':'none'; });
+  if(v==='retorno')renderRetorno();
+  if(v==='cerrados')pintarCerrados();
+  try{window.scrollTo(0,0);}catch(_){}
+}
+$('vista').onchange=e=>showVista(e.target.value);
+
+function renderRetorno(){
+  const cont=$('retornoLista'); if(!cont)return;
+  $('retornoInfo').textContent = EV_NUBE
+    ? (EV_NUBE.enc+' · '+(EV_NUBE.empresa||''))
+    : 'Modo manual — elige un evento en Montaje para poder cerrar el retorno.';
+  if(!RETORNO_ITEMS.length){ cont.innerHTML='<p style="font-size:13px;color:#999">Sin material retornable en este servicio.</p>'; return; }
+  cont.innerHTML=RETORNO_ITEMS.map(i=>{
+    const st=estados[i.nm]||''; const cls=st?(' '+st):'';
+    return `<div class="item${cls}" data-key="${i.nm.replace(/"/g,'&quot;')}">
+      <div class="st">${ICONO[st]}</div>
+      <div class="nm">${i.nm}${i.nt?`<span class="nt">${i.nt}</span>`:''}</div>
+      <div class="qt">${i.qt}</div></div>`;
+  }).join('');
+}
+$('retornoLista').addEventListener('click',e=>{
+  const row=e.target.closest('.item'); if(!row)return;
+  const k=row.getAttribute('data-key');
+  const cur=estados[k]||'';
+  const next=ESTADOS[(ESTADOS.indexOf(cur)+1)%ESTADOS.length];
+  if(next)estados[k]=next;else delete estados[k];
+  guardar();
+  row.className='item'+(next?' '+next:'');
+  row.querySelector('.st').textContent=ICONO[next];
+});
+$('btnCerrarRetorno').onclick=function(){
+  if(!EV_NUBE){ $('retornoEstado').textContent='Elige un evento en Montaje para poder cerrar su retorno.'; return; }
+  if(!DB){ $('retornoEstado').textContent='⚠️ Sin conexión: se guardó en este móvil. Reintenta con datos/WiFi.'; return; }
+  const retEstados={}; RETORNO_ITEMS.forEach(i=>retEstados[i.nm]=estados[i.nm]||'');
+  $('retornoEstado').textContent='Cerrando…';
+  DB.collection('checklists').doc(EV_NUBE.enc).set({
+    enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
+    retorno_estados:retEstados, retorno_cerrado:true, retorno_cerrado_en:new Date().toISOString()
+  },{merge:true}).then(()=>{
+    $('retornoEstado').textContent='✅ Retorno cerrado y guardado en Cerrados.';
+    pintarCerrados();
+  }).catch(e=>{ $('retornoEstado').textContent='⚠️ No se pudo cerrar: '+e.message; });
+};
+
+function pintarCerrados(){
+  const cont=$('cerradosLista'); if(!cont)return;
+  if(!DB){ cont.innerHTML='<p style="font-size:12px;color:#999">Sin conexión: no puedo cargar los cerrados.</p>'; return; }
+  cont.innerHTML='<p style="font-size:12px;color:#999">Cargando…</p>';
+  DB.collection('checklists').where('retorno_cerrado','==',true).get().then(snap=>{
+    const rows=[]; snap.forEach(d=>rows.push(d.data()));
+    if(!rows.length){ cont.innerHTML='<p style="font-size:12px;color:#999">Aún no hay retornos cerrados.</p>'; return; }
+    rows.sort((a,b)=>(b.retorno_cerrado_en||'').localeCompare(a.retorno_cerrado_en||''));
+    cont.innerHTML=rows.map(r=>`<div class="regrow" data-enc="${r.enc}">
+      <div><b>${r.enc}</b> · ${r.empresa||''}<span class="nt">${r.fecha?fmtFecha(r.fecha):''} · cerrado ${(r.retorno_cerrado_en||'').slice(0,10)}</span></div>
+      <span class="badge c-ok">🔒 cerrado</span></div>`).join('');
+  }).catch(e=>{ cont.innerHTML=`<p style="font-size:12px;color:#999">No se pudieron cargar (${e.message}).</p>`; });
+}
+$('cerradosLista').addEventListener('click',e=>{
+  const row=e.target.closest('.regrow'); if(!row)return;
+  seleccionarEvento(row.getAttribute('data-enc'));
+  $('vista').value='montaje'; showVista('montaje');
+});
 
 function setServicio(v){
   document.querySelectorAll('#servicio button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
@@ -522,7 +625,9 @@ function calcular(){
   //     NO incluye desechables ni comida/bebida (eso no se recoge). Solo aparece lo que
   //     realmente se llevó (cantidad > 0). Nombres propios ('Recoger · …') para que su
   //     marca sea independiente de la de 'lo que hay que llevar'.
-  const recogItems=[
+  // Retorno (recogida): lo RETORNABLE que se lleva y hay que traer de vuelta. Va a su
+  // PROPIA vista (no al checklist de montaje). Solo lo que realmente se llevó (>0).
+  RETORNO_ITEMS=[
     mesas>0         && it('Recoger · Mesas bajas', mesas, 'devolver al obrador'),
     mesasAltas>0    && it('Recoger · Mesas altas de cóctel', mesasAltas, 'devolver al obrador'),
     manteles>0      && it('Recoger · Manteles (mesas bajas)', manteles, 'a lavandería'),
@@ -533,7 +638,7 @@ function calcular(){
     fuegos>0        && it('Recoger · Fuegos de etileno', fuegos, 'los que sobren'),
     dispensadores>0 && it('Recoger · Dispensadores / fuentes de agua', dispensadores, 'devolver'),
   ].filter(Boolean);
-  if(recogItems.length) sec('🔄','Recogida — traer de vuelta al obrador', recogItems);
+  renderRetorno();
 
   // Inventario para el plano 2D (recursos limitados según checklist)
   INV_ACTUAL={
@@ -687,7 +792,11 @@ function seleccionarEvento(enc){
 let EV_NUBE=null;  // datos del evento seleccionado (para guardar meta)
 function prepararNube(ev){
   EV_NUBE=ev;
-  $('cardNube').style.display = ev ? '' : 'none';
+  $('cardGuardar').style.display = ev ? '' : 'none';
+  renderRetorno();  // el info del retorno depende del evento elegido
+  $('fotosInfo').textContent = ev
+    ? ('Evento: '+ev.enc+' · '+(ev.empresa||''))
+    : 'Elige un evento en Montaje. Haz fotos de cómo ha quedado; la oficina las descarga para redes.';
   if(!ev) return;
   $('nubeEstado').textContent='';
   $('fotoEstado').textContent='';
@@ -803,38 +912,8 @@ function pintarEventos(){
   sel.onchange=e=>seleccionarEvento(e.target.value);
 }
 
-function pintarRegistro(){
-  const past=EVS.filter(e=>e.fecha<hoyISO)
-    .sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,40);
-  if(!past.length)return;
-  $('cardRegistro').style.display='';
-  const badgeDe=r=>{
-    if(!r||!r.total||(!r.ok&&!r.falta&&!r.no))return '<span class="badge c-pend">○ sin checklist</span>';
-    if(r.no>0)return `<span class="badge c-no">✕ ${r.no} no había</span>`;
-    if(r.falta>0)return `<span class="badge c-falta">! ${r.falta} faltaron</span>`;
-    if(r.ok>=r.total)return '<span class="badge c-ok">✓ completo</span>';
-    return `<span class="badge c-ok">✓ ${r.ok}/${r.total}</span>`;
-  };
-  $('registro').innerHTML=past.map(e=>{
-    let r=null;try{r=JSON.parse(localStorage.getItem('nec_resumen@'+e.enc)||'null');}catch(_){}
-    return `<div class="regrow" data-enc="${e.enc}">
-      <div><b>${e.enc}</b> · ${e.empresa}<span class="nt">${fmtFecha(e.fecha)} · ${e.pax} pax · ${e.menu||''}</span></div>
-      <span data-badge="${e.enc}">${badgeDe(r)}</span></div>`;
-  }).join('');
-  // Actualizar los badges con lo guardado en la NUBE (lo que ve la oficina desde otro móvil).
-  if(DB){
-    DB.collection('checklists').get().then(snap=>{
-      snap.forEach(d=>{
-        const el=document.querySelector(`[data-badge="${d.id}"]`);
-        if(el) el.innerHTML=badgeDe(d.data());
-      });
-    }).catch(()=>{});
-  }
-}
-$('registro').addEventListener('click',e=>{
-  const row=e.target.closest('.regrow');
-  if(row)seleccionarEvento(row.getAttribute('data-enc'));
-});
+// (El antiguo "Registro de eventos pasados" se sustituyó por la vista CERRADOS,
+//  que lista los retornos cerrados desde Firebase — ver pintarCerrados().)
 
 render();calcular();
 (async()=>{
@@ -846,7 +925,7 @@ render();calcular();
     return;
   }
   EVS=r||[];
-  pintarEventos();pintarRegistro();
+  pintarEventos();
 })();
 </script>
 </body>
