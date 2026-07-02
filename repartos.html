@@ -145,6 +145,7 @@
 <!-- Firebase (guarda la entrega: firma, hora, receptor, foto) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 // Mismo proyecto que el checklist de montaje (donacol-montaje). No es secreto.
 const firebaseConfig = {
@@ -158,6 +159,15 @@ const firebaseConfig = {
 let DB=null;
 try{ firebase.initializeApp(firebaseConfig); DB=firebase.firestore(); }
 catch(e){ console.warn('Firebase no disponible:', e); }
+// Login ANÓNIMO: da un token para poder cerrar las reglas de Firestore (que hoy están
+// abiertas). Es best-effort y NO bloquea: si el login anónimo aún no está activado en la
+// consola, la app sigue funcionando (con las reglas abiertas actuales). Una vez la oficina
+// active "Anonymous" y ponga las reglas, esto establece la sesión antes de leer/escribir.
+async function ensureAuth(){
+  if(!window.firebase || !firebase.auth) return;
+  try{ if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
+  catch(e){ console.warn('Auth anónima no disponible:', e.code||e.message); }
+}
 </script>
 <script src="eventos.js"></script>
 <script>
@@ -407,6 +417,7 @@ $('btnConfirmar').onclick=async ()=>{
   $('btnConfirmar').textContent='Guardando…';
   $('estadoMsg').textContent='Subiendo firma…';
   try{
+    await ensureAuth();
     const firmaBlob=await canvasABlob();
     const firma_url=await subirCloudinary(firmaBlob, enc, 'firma');
     let foto_url='';
@@ -434,8 +445,9 @@ $('btnConfirmar').onclick=async ()=>{
 };
 
 // ---------- Cargar entregas ya hechas (Firestore) ----------
-function cargarEntregas(){
-  if(!DB)return Promise.resolve();
+async function cargarEntregas(){
+  if(!DB)return;
+  await ensureAuth();
   return DB.collection('entregas').get().then(snap=>{
     ENTREGAS={};
     snap.forEach(d=>{ ENTREGAS[d.id]=d.data(); });

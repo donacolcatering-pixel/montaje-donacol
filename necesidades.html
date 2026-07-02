@@ -270,6 +270,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 // Config del proyecto donacol-montaje. Solo identifica el proyecto (no es secreto).
 const firebaseConfig = {
@@ -286,6 +287,13 @@ try{
   DB=firebase.firestore();
   ST=firebase.storage();
 }catch(e){ console.warn('Firebase no disponible:', e); }
+// Login ANÓNIMO (best-effort, no bloquea): permite cerrar las reglas de Firestore. Si el
+// método aún no está activado en la consola, la app sigue funcionando con las reglas actuales.
+async function ensureAuth(){
+  if(!window.firebase || !firebase.auth) return;
+  try{ if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
+  catch(e){ console.warn('Auth anónima no disponible:', e.code||e.message); }
+}
 </script>
 <script src="eventos.js"></script>
 <script>
@@ -417,10 +425,10 @@ $('btnCerrarRetorno').onclick=function(){
   if(!DB){ $('retornoEstado').textContent='⚠️ Sin conexión: se guardó en este móvil. Reintenta con datos/WiFi.'; return; }
   const retEstados={}; RETORNO_ITEMS.forEach(i=>retEstados[i.nm]=estados[i.nm]||'');
   $('retornoEstado').textContent='Cerrando…';
-  DB.collection('checklists').doc(EV_NUBE.enc).set({
+  ensureAuth().then(()=>DB.collection('checklists').doc(EV_NUBE.enc).set({
     enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
     retorno_estados:retEstados, retorno_cerrado:true, retorno_cerrado_en:new Date().toISOString()
-  },{merge:true}).then(()=>{
+  },{merge:true})).then(()=>{
     $('retornoEstado').textContent='✅ Retorno cerrado y guardado en Cerrados.';
     pintarCerrados();
   }).catch(e=>{ $('retornoEstado').textContent='⚠️ No se pudo cerrar: '+e.message; });
@@ -430,7 +438,7 @@ function pintarCerrados(){
   const cont=$('cerradosLista'); if(!cont)return;
   if(!DB){ cont.innerHTML='<p style="font-size:12px;color:#999">Sin conexión: no puedo cargar los cerrados.</p>'; return; }
   cont.innerHTML='<p style="font-size:12px;color:#999">Cargando…</p>';
-  DB.collection('checklists').where('retorno_cerrado','==',true).get().then(snap=>{
+  ensureAuth().then(()=>DB.collection('checklists').where('retorno_cerrado','==',true).get()).then(snap=>{
     const rows=[]; snap.forEach(d=>rows.push(d.data()));
     if(!rows.length){ cont.innerHTML='<p style="font-size:12px;color:#999">Aún no hay retornos cerrados.</p>'; return; }
     rows.sort((a,b)=>(b.retorno_cerrado_en||'').localeCompare(a.retorno_cerrado_en||''));
@@ -825,12 +833,12 @@ function guardarEnNube(){
   let ok=0,falta=0,no=0;
   rows.forEach(r=>{const s=estados[r.getAttribute('data-key')]||''; if(s==='ok')ok++;else if(s==='falta')falta++;else if(s==='no')no++;});
   $('nubeEstado').textContent='Guardando…';
-  DB.collection('checklists').doc(EV_NUBE.enc).set({
+  ensureAuth().then(()=>DB.collection('checklists').doc(EV_NUBE.enc).set({
     enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
     pax:EV_NUBE.pax||0, menu:EV_NUBE.menu||'',
     estados:estados, ok, falta, no, total:rows.length,
     guardado_en:new Date().toISOString()
-  }).then(()=>{
+  })).then(()=>{
     $('nubeEstado').innerHTML=`✅ Guardado · ✓ ${ok} cargado · ! ${falta} falta · ✕ ${no} no había`;
   }).catch(e=>{ $('nubeEstado').textContent='⚠️ No se pudo guardar: '+e.message; });
 }
@@ -926,6 +934,7 @@ function pintarEventos(){
 
 render();calcular();
 (async()=>{
+  ensureAuth();  // establece la sesión anónima cuanto antes (best-effort)
   const r=await descifrarEventos();
   if(r===null){
     // hay eventos publicados pero este móvil no tiene la clave
