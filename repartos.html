@@ -165,6 +165,12 @@ catch(e){ console.warn('Firebase no disponible:', e); }
 const CLOUDINARY={cloud:'drfjs9u7p', preset:'drfjs9u7p'};
 const $=id=>document.getElementById(id);
 
+// --- Seguridad: escapar TODO dato que se meta en innerHTML (los eventos y las entregas
+// vienen de Firestore, que es escribible; sin escapar, un nombre/dirección con HTML podría
+// ejecutar JavaScript en el móvil). safeUrl solo deja pasar http(s) en los enlaces.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safeUrl(u){u=String(u==null?'':u);return /^https?:\/\//i.test(u)?u:'';}
+
 // ---------- Descifrado de eventos (idéntico a necesidades.html) ----------
 // eventos.js viaja CIFRADO (el repo es público). La clave llega en el enlace (#k=...)
 // y se recuerda en este móvil. Mismo algoritmo que checklist_export.py.
@@ -231,20 +237,20 @@ function pintarLista(){
   if(!prox.length){cont.innerHTML='<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';return;}
   let html='',diaPrev='';
   prox.forEach(e=>{
-    if(e.fecha!==diaPrev){html+=`<div class="diaSep">${etiquetaDia(e.fecha)}</div>`;diaPrev=e.fecha;}
+    if(e.fecha!==diaPrev){html+=`<div class="diaSep">${esc(etiquetaDia(e.fecha))}</div>`;diaPrev=e.fecha;}
     const ent=ENTREGAS[e.enc];
-    const badge=ent?`<span class="badge b-ok">✓ ${ent.hora_entrega||'entregado'}</span>`
+    const badge=ent?`<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`
                    :`<span class="badge b-pend">○ pendiente</span>`;
     const horaRaw=(e.hora||'').trim();
     const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
-    const horaHtml=esHora ? `${horaRaw}<small>ENTREGA</small>`
-                          : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${horaRaw||'🕒'}</span>`;
-    html+=`<div class="ped" data-enc="${e.enc}">
+    const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
+                          : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${esc(horaRaw||'🕒')}</span>`;
+    html+=`<div class="ped" data-enc="${esc(e.enc)}">
       <div class="hora">${horaHtml}</div>
       <div class="info">
-        <div class="emp">${e.empresa||'(sin nombre)'}</div>
-        <div class="dir">📍 ${e.direccion||'sin dirección'}</div>
-        <div class="meta">${e.pax||0} pax · ${e.menu||''}</div>
+        <div class="emp">${esc(e.empresa||'(sin nombre)')}</div>
+        <div class="dir">📍 ${esc(e.direccion||'sin dirección')}</div>
+        <div class="meta">${esc(e.pax||0)} pax · ${esc(e.menu||'')}</div>
       </div>
       <div class="badge">${badge}</div>
     </div>`;
@@ -259,8 +265,8 @@ function pintarRegistro(){
   if(!ents.length){$('cardRegistro').style.display='none';return;}
   $('cardRegistro').style.display='';
   $('registro').innerHTML=ents.map(en=>`
-    <div class="regrow" data-enc="${en.enc}">
-      <div><b>${en.empresa||en.enc}</b><span class="nt">${en.fecha?fmtFecha(en.fecha):''} · entregado ${en.hora_entrega||''}${en.receptor?' · firmó '+en.receptor:''}</span></div>
+    <div class="regrow" data-enc="${esc(en.enc)}">
+      <div><b>${esc(en.empresa||en.enc)}</b><span class="nt">${esc(en.fecha?fmtFecha(en.fecha):'')} · entregado ${esc(en.hora_entrega||'')}${en.receptor?' · firmó '+esc(en.receptor):''}</span></div>
       <span class="badge b-ok">✓</span>
     </div>`).join('');
   $('registro').querySelectorAll('.regrow').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc')));
@@ -282,12 +288,12 @@ function abrir(enc){
   window.scrollTo(0,0);
   const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.direccion||ev.empresa||'');
   $('resumen').innerHTML=`
-    <div class="enc">Pedido ${ev.enc}</div>
-    <h3>${ev.empresa||'(sin nombre)'}</h3>
-    <div class="linea"><span class="ic">📅</span><span>${ev.fecha?fmtFecha(ev.fecha):''}${ev.hora?' · entrega '+ev.hora:''}</span></div>
-    <div class="linea"><span class="ic">📍</span><span>${ev.direccion||'sin dirección'}</span></div>
-    <div class="linea"><span class="ic">🍽️</span><span>${ev.pax||0} pax · ${ev.menu||''}</span></div>
-    ${ev.direccion?`<a class="mapsBtn" href="${maps}" target="_blank" rel="noopener">🗺️ Abrir en Maps</a>`:''}`;
+    <div class="enc">Pedido ${esc(ev.enc)}</div>
+    <h3>${esc(ev.empresa||'(sin nombre)')}</h3>
+    <div class="linea"><span class="ic">📅</span><span>${esc(ev.fecha?fmtFecha(ev.fecha):'')}${ev.hora?' · entrega '+esc(ev.hora):''}</span></div>
+    <div class="linea"><span class="ic">📍</span><span>${esc(ev.direccion||'sin dirección')}</span></div>
+    <div class="linea"><span class="ic">🍽️</span><span>${esc(ev.pax||0)} pax · ${esc(ev.menu||'')}</span></div>
+    ${ev.direccion?`<a class="mapsBtn" href="${esc(maps)}" target="_blank" rel="noopener">🗺️ Abrir en Maps</a>`:''}`;
 
   const ent=ENTREGAS[enc];
   if(ent){ mostrarEntregado(ent); }
@@ -310,12 +316,13 @@ function mostrarEntregado(ent){
   $('formEntrega').style.display='none';
   $('cardEntregado').style.display='';
   $('datosEntrega').innerHTML=`
-    <p style="margin:0 0 6px"><b>${ent.receptor||'—'}</b> recibió el pedido</p>
-    <p style="margin:0;color:var(--gris)">🕒 ${ent.fecha?fmtFecha(ent.fecha)+' · ':''}${ent.hora_entrega||''}</p>`
-    +(ent.observaciones?`<p style="margin:8px 0 0;padding:8px 10px;background:var(--pendbg);border-radius:8px;font-size:13px">📝 ${ent.observaciones}</p>`:'');
+    <p style="margin:0 0 6px"><b>${esc(ent.receptor||'—')}</b> recibió el pedido</p>
+    <p style="margin:0;color:var(--gris)">🕒 ${esc(ent.fecha?fmtFecha(ent.fecha)+' · ':'')}${esc(ent.hora_entrega||'')}</p>`
+    +(ent.observaciones?`<p style="margin:8px 0 0;padding:8px 10px;background:var(--pendbg);border-radius:8px;font-size:13px">📝 ${esc(ent.observaciones)}</p>`:'');
   let pr='';
-  if(ent.firma_url)pr+=`<a href="${ent.firma_url}" target="_blank" rel="noopener"><img src="${ent.firma_url}"><span>✍️ Ver firma</span></a>`;
-  if(ent.foto_url)pr+=`<a href="${ent.foto_url}" target="_blank" rel="noopener"><img src="${ent.foto_url}"><span>📷 Ver foto</span></a>`;
+  const fu=safeUrl(ent.firma_url), fo=safeUrl(ent.foto_url);
+  if(fu)pr+=`<a href="${esc(fu)}" target="_blank" rel="noopener"><img src="${esc(fu)}"><span>✍️ Ver firma</span></a>`;
+  if(fo)pr+=`<a href="${esc(fo)}" target="_blank" rel="noopener"><img src="${esc(fo)}"><span>📷 Ver foto</span></a>`;
   $('pruebas').innerHTML=pr||'<p style="font-size:12px;color:var(--gris);grid-column:1/-1">Sin imágenes adjuntas.</p>';
 }
 

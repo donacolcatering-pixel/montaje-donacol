@@ -340,6 +340,8 @@ function derivar(m){
 }
 let menuSel='', menuTortPP=0, INV_ACTUAL=null;
 const $=id=>document.getElementById(id);
+// Seguridad: escapar TODO dato de eventos/Firestore antes de meterlo en innerHTML.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const num=id=>parseFloat($(id).value)||0;
 const ceil=Math.ceil, rnd=Math.round;
 const fmtL=x=>x.toFixed(1).replace('.',',')+' L';
@@ -432,8 +434,8 @@ function pintarCerrados(){
     const rows=[]; snap.forEach(d=>rows.push(d.data()));
     if(!rows.length){ cont.innerHTML='<p style="font-size:12px;color:#999">Aún no hay retornos cerrados.</p>'; return; }
     rows.sort((a,b)=>(b.retorno_cerrado_en||'').localeCompare(a.retorno_cerrado_en||''));
-    cont.innerHTML=rows.map(r=>`<div class="regrow" data-enc="${r.enc}">
-      <div><b>${r.enc}</b> · ${r.empresa||''}<span class="nt">${r.fecha?fmtFecha(r.fecha):''} · cerrado ${(r.retorno_cerrado_en||'').slice(0,10)}</span></div>
+    cont.innerHTML=rows.map(r=>`<div class="regrow" data-enc="${esc(r.enc)}">
+      <div><b>${esc(r.enc)}</b> · ${esc(r.empresa||'')}<span class="nt">${esc(r.fecha?fmtFecha(r.fecha):'')} · cerrado ${esc((r.retorno_cerrado_en||'').slice(0,10))}</span></div>
       <span class="badge c-ok">🔒 cerrado</span></div>`).join('');
   }).catch(e=>{ cont.innerHTML=`<p style="font-size:12px;color:#999">No se pudieron cargar (${e.message}).</p>`; });
 }
@@ -673,7 +675,7 @@ function pintar(S,m){
 
   // Checklist
   let html='';
-  html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?m.cliente+' · ':''}${m.pax} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · SPORT</p></div>`;
+  html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?esc(m.cliente)+' · ':''}${esc(m.pax)} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · SPORT</p></div>`;
   S.forEach(s=>{
     html+=`<div class="seccion"><h3>${s.icono} ${s.titulo}</h3>`;
     s.items.forEach(i=>{
@@ -780,9 +782,9 @@ function seleccionarEvento(enc){
   const clave=matchMenu(ev.menu);
   $('menu').value=clave;menuSel=clave;aplicarMenu();
   if(!clave)setServicio(/COFFEE/i.test(ev.menu||'')?'coffee':'coctel');
-  info.innerHTML=`<b>${ev.enc}</b> · ${ev.menu||''}<br>${fmtFecha(ev.fecha)} · ${ev.ciudad||''}`+
-    ` · montaje <b>${ev.montaje||'NO'}</b>`+(ev.hora?` · ${ev.hora}`:'')+
-    (ev.direccion?`<br>📍 ${ev.direccion}`:'')+
+  info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
+    ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+
+    (ev.direccion?`<br>📍 ${esc(ev.direccion)}`:'')+
     (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
   calcular();
   prepararNube(ev);   // muestra Guardar + fotos y carga lo que haya en la nube
@@ -911,7 +913,7 @@ function pintarEventos(){
   prox.forEach(e=>{
     if(e.fecha!==fechaPrev){if(fechaPrev)html+='</optgroup>';
       html+=`<optgroup label="${fmtFecha(e.fecha).toUpperCase()}">`;fechaPrev=e.fecha;}
-    html+=`<option value="${e.enc}">${e.enc} · ${e.empresa} · ${e.pax} pax</option>`;
+    html+=`<option value="${esc(e.enc)}">${esc(e.enc)} · ${esc(e.empresa)} · ${esc(e.pax)} pax</option>`;
   });
   if(fechaPrev)html+='</optgroup>';
   const sel=$('selEvento');
