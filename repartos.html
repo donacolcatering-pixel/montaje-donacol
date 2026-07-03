@@ -42,6 +42,8 @@
   .badge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
   .b-pend{background:var(--pendbg);color:var(--pend)} .b-ok{background:var(--okbg);color:var(--ok)}
   .vacio{font-size:13px;color:var(--gris);text-align:center;padding:18px 8px}
+  .rutaBtn{display:block;text-align:center;background:var(--azul);color:#fff;text-decoration:none;border-radius:12px;padding:12px;font-weight:800;font-size:14px;margin:0 0 10px;box-shadow:0 2px 8px rgba(47,111,143,.3)}
+  .rutaBtn:active{transform:scale(.99)}
 
   /* Detalle / entrega */
   #detalle{display:none}
@@ -240,30 +242,50 @@ function esReparto(e){
 }
 
 // ---------- Lista ----------
+// Ruta del día en Google Maps con TODAS las paradas (sin API key: Maps calcula la
+// ruta al abrir). Origen = ubicación actual del móvil; paradas en el orden de la lista.
+function urlRutaDia(entregas){
+  const dirs=entregas.map(e=>e.direccion).filter(Boolean).map(encodeURIComponent);
+  if(!dirs.length) return null;
+  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dirs[dirs.length-1];
+  const wp=dirs.slice(0,-1).join('%7C');
+  if(wp) u+='&waypoints='+wp;
+  return u;
+}
 function pintarLista(){
   const cont=$('pedidos');
   const prox=REPARTOS.filter(e=>e.fecha>=hoyISO)
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
   if(!prox.length){cont.innerHTML='<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';return;}
-  let html='',diaPrev='';
-  prox.forEach(e=>{
-    if(e.fecha!==diaPrev){html+=`<div class="diaSep">${esc(etiquetaDia(e.fecha))}</div>`;diaPrev=e.fecha;}
-    const ent=ENTREGAS[e.enc];
-    const badge=ent?`<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`
-                   :`<span class="badge b-pend">○ pendiente</span>`;
-    const horaRaw=(e.hora||'').trim();
-    const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
-    const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
-                          : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${esc(horaRaw||'🕒')}</span>`;
-    html+=`<div class="ped" data-enc="${esc(e.enc)}">
-      <div class="hora">${horaHtml}</div>
-      <div class="info">
-        <div class="emp">${esc(e.empresa||'(sin nombre)')}</div>
-        <div class="dir">📍 ${esc(e.direccion||'sin dirección')}</div>
-        <div class="meta">${esc(e.pax||0)} pax · ${esc(e.menu||'')}</div>
-      </div>
-      <div class="badge">${badge}</div>
-    </div>`;
+  const dias={};
+  prox.forEach(e=>{ (dias[e.fecha]=dias[e.fecha]||[]).push(e); });
+  let html='';
+  Object.keys(dias).sort().forEach(fecha=>{
+    const grupo=dias[fecha];
+    html+=`<div class="diaSep">${esc(etiquetaDia(fecha))}</div>`;
+    const conDir=grupo.filter(e=>e.direccion);
+    const rutaUrl=urlRutaDia(grupo);
+    if(rutaUrl && conDir.length){
+      html+=`<a class="rutaBtn" href="${esc(rutaUrl)}" target="_blank" rel="noopener">🗺️ Ver la RUTA del día en Maps · ${conDir.length} parada${conDir.length>1?'s':''}</a>`;
+    }
+    grupo.forEach(e=>{
+      const ent=ENTREGAS[e.enc];
+      const badge=ent?`<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`
+                     :`<span class="badge b-pend">○ pendiente</span>`;
+      const horaRaw=(e.hora||'').trim();
+      const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
+      const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
+                            : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${esc(horaRaw||'🕒')}</span>`;
+      html+=`<div class="ped" data-enc="${esc(e.enc)}">
+        <div class="hora">${horaHtml}</div>
+        <div class="info">
+          <div class="emp">${esc(e.empresa||'(sin nombre)')}</div>
+          <div class="dir">📍 ${esc(e.direccion||'sin dirección')}</div>
+          <div class="meta">${esc(e.pax||0)} pax · ${esc(e.menu||'')}</div>
+        </div>
+        <div class="badge">${badge}</div>
+      </div>`;
+    });
   });
   cont.innerHTML=html;
   cont.querySelectorAll('.ped').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc')));
