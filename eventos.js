@@ -1,3 +1,3 @@
 // Generado automáticamente por la app de pedidos Doña Col — NO editar a mano.
 // Datos CIFRADOS: la clave va en el enlace de la app (#k=...).
-window.EVENTOS_MONTAJE_CIFRADO = {"n": "Gq5URab23LCLtb54", "d": "Weg="};
+window.EVENTOS_MONTAJE_CIFRADO = {"n": "+YiYl/4KCFBBSE7x", "d": "1g7pzIzNVABAYVrDvCwv3iD6/LIhbzE/nrb/Ewp0YMeTyx5CK30/HGnBGZEIK7m7Z/Ep8k1te4dT+1DMncVjBk8kTtI/foyhehuUxi64v1yHKLjbz82o3y9U73d4IaYdrw42uR3ilWvdYhLja7BV+ZYSaEEL/eRwpAWc6/bTJexYCQuBJIGBLdmjjQBrhIYwIP3YrZ/FekV8wKS8/mes5XxG3d5LhMuer/qyBa7BsR68ZhUsNwK77SEqDGKTepxIhJRGAfH2BH7MoI0RDgyiHqEa/qHVscuQDt0BOGirQAdBLtAp2TKgXCAYiIJhhOL9epSGdcXFfWEPHiaB0ArWGCBdK8zxQ0JmZgTHWSWFlbC1kTvvN3qAPCwHPJoKcji9OyY7PI/VTW5rW4dH8VSwjb9xNQrhkC5vF8Ek"};
