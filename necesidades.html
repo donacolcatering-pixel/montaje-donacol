@@ -162,6 +162,11 @@
       <button data-v="coctel">Cóctel</button>
     </div>
     <div class="chk"><input id="vino" type="checkbox"><label for="vino" style="margin:0">Con alcohol — vino/cerveza (→ copas)</label></div>
+    <label>Montaje</label>
+    <div class="seg" id="montajeSeg">
+      <button data-mv="sport" class="on">Sport · desechable</button>
+      <button data-mv="elegante">Elegante · se devuelve</button>
+    </div>
     <div class="row">
       <div><label>Piezas saladas / pax</label><input id="saladasPP" type="number" step="0.5" value="3"></div>
       <div><label>Piezas dulces / pax</label><input id="dulcesPP" type="number" step="0.5" value="2"></div>
@@ -298,6 +303,7 @@ async function ensureAuth(){
 <script src="eventos.js"></script>
 <script>
 let servicio='coffee';
+let montajeTipo='sport';   // 'sport' = desechable · 'elegante' = loza/cristal (se devuelve)
 const intol=[];
 
 // ---- CATÁLOGO DE PRODUCTOS (transcrito de donacol.es) ----
@@ -382,6 +388,10 @@ document.querySelectorAll('#servicio button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#servicio button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');servicio=b.dataset.v;calcular();
 });
+document.querySelectorAll('#montajeSeg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#montajeSeg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');montajeTipo=b.dataset.mv;calcular();
+});
 $('addIntol').onclick=()=>{intol.push({nombre:'',pax:0});render();};
 $('reiniciar').onclick=()=>{estados={};guardar();calcular();};
 $('irPlano').onclick=()=>{try{localStorage.setItem('montaje_inv',JSON.stringify(INV_ACTUAL||{}));}catch(e){}window.location.href='montaje2d.html';};
@@ -456,6 +466,10 @@ $('cerradosLista').addEventListener('click',e=>{
 function setServicio(v){
   document.querySelectorAll('#servicio button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
   servicio=v;
+}
+function setMontaje(v){
+  document.querySelectorAll('#montajeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mv===v));
+  montajeTipo=v;
 }
 function aplicarMenu(){
   const m=CATALOGO[menuSel];
@@ -555,6 +569,11 @@ function calcular(){
   const champaneras=champLatas+champVino;
   const hielo=ceil((champaneras+dispensadores)*1.33);
 
+  // ELEGANTE: platos, vasos, copas y cubos son de material real (loza/cristal/metal) y
+  // hay que TRAERLOS DE VUELTA. En SPORT son desechables (no se recogen).
+  const elegante=(montajeTipo==='elegante');
+  const sufE=elegante?' · se DEVUELVE':'';
+
   // ---- estructura de secciones ----
   const S=[];
   const sec=(icono,titulo,items)=>S.push({icono,titulo,items:items.filter(Boolean)});
@@ -570,11 +589,11 @@ function calcular(){
     bandItems.push(it('Fuegos de etileno',fuegos,'1 por chafing'));}
   sec('🍽️','Bandejas y caliente',bandItems);
 
-  sec('🥢','Menaje (desechable)',[
-    it('Platos',platos,'1,5/pax'),
+  sec('🥢', elegante?'Menaje (loza y cristal · se DEVUELVE)':'Menaje (desechable)',[
+    it(elegante?'Platos (loza)':'Platos',platos,'1,5/pax'+sufE),
     it('Servilletas',servilletas,'1,5/pax'),
-    it('Vasos',vasos,'2/pax'),
-    copas>0&&it('Copas de vino (cristal)',copas,'1,25/pax'),
+    it(elegante?'Vasos de agua (cristal)':'Vasos',vasos,'2/pax'+sufE),
+    copas>0&&it('Copas de vino (cristal)',copas,'1,25/pax'+sufE),
     tenedores>0&&it('Tenedores pequeños',tenedores,'0,75/pieza'),
   ]);
 
@@ -624,7 +643,7 @@ function calcular(){
   ]);
 
   sec('🧤','Limpieza y útiles',[
-    it('Cubos de basura',cubos,'1/100 pax'),
+    it(elegante?'Cubos de basura (metal)':'Cubos de basura',cubos,'1/100 pax'+sufE),
     it('Guantes de nitrilo','✓','llevar caja'),
     it('Trapos de limpieza','✓',''),
     it('Bolsas de basura','✓',''),
@@ -638,6 +657,11 @@ function calcular(){
   // Retorno (recogida): lo RETORNABLE que se lleva y hay que traer de vuelta. Va a su
   // PROPIA vista (no al checklist de montaje). Solo lo que realmente se llevó (>0).
   RETORNO_ITEMS=[
+    // Solo en ELEGANTE: platos, vasos, copas y cubos son material real y se recogen.
+    elegante && platos>0 && it('Recoger · Platos (loza)', platos, 'lavar y devolver'),
+    elegante && vasos>0  && it('Recoger · Vasos de agua (cristal)', vasos, 'lavar y devolver'),
+    elegante && copas>0  && it('Recoger · Copas de vino (cristal)', copas, 'lavar y devolver'),
+    elegante && cubos>0  && it('Recoger · Cubos de basura (metal)', cubos, 'devolver'),
     mesas>0         && it('Recoger · Mesas bajas', mesas, 'devolver al obrador'),
     mesasAltas>0    && it('Recoger · Mesas altas de cóctel', mesasAltas, 'devolver al obrador'),
     manteles>0      && it('Recoger · Manteles (mesas bajas)', manteles, 'a lavandería'),
@@ -662,7 +686,7 @@ function calcular(){
     meta:{cliente:$('cliente').value, pax:pax, menu:(menuSel&&CATALOGO[menuSel])?CATALOGO[menuSel].nombre:(servicio==='coffee'?'Coffee break':'Cóctel')}
   };
 
-  pintar(S,{pax,servicio,llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
+  pintar(S,{pax,servicio,montaje:elegante?'ELEGANTE':'SPORT',llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
 }
 
 function pintar(S,m){
@@ -683,7 +707,7 @@ function pintar(S,m){
 
   // Checklist
   let html='';
-  html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?esc(m.cliente)+' · ':''}${esc(m.pax)} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · SPORT</p></div>`;
+  html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?esc(m.cliente)+' · ':''}${esc(m.pax)} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · ${m.montaje||'SPORT'}</p></div>`;
   S.forEach(s=>{
     html+=`<div class="seccion"><h3>${s.icono} ${s.titulo}</h3>`;
     s.items.forEach(i=>{
@@ -790,6 +814,7 @@ function seleccionarEvento(enc){
   const clave=matchMenu(ev.menu);
   $('menu').value=clave;menuSel=clave;aplicarMenu();
   if(!clave)setServicio(/COFFEE/i.test(ev.menu||'')?'coffee':'coctel');
+  setMontaje(/ELEG/i.test(ev.montaje||'')?'elegante':'sport');
   info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
     ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+
     (ev.direccion?`<br>📍 ${esc(ev.direccion)}`:'')+
