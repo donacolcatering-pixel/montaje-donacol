@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v13';
+const CACHE = 'montaje-v14';
 const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html', './repartos.html',
                 './manifest.json', './repartos-manifest.json', './icon.svg', './logo.png'];
 
@@ -16,17 +16,25 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  if (url.pathname.endsWith('/eventos.js')) {
-    // Datos de eventos: cambian cada día → red primero, copia en cache de respaldo
+  // Documentos HTML, la raíz y eventos.js → RED PRIMERO (así los móviles cogen SIEMPRE la
+  // última versión de la app y de los datos cuando hay internet), con la caché como
+  // respaldo si no hay cobertura. Evita quedarse pegado a una versión vieja (que era la
+  // causa del "Missing or insufficient permissions": apps viejas sin login).
+  const esDocumento = e.request.mode === 'navigate'
+      || url.pathname.endsWith('.html')
+      || url.pathname.endsWith('/')
+      || url.pathname.endsWith('/eventos.js');
+  if (esDocumento) {
     e.respondWith(
       fetch(e.request).then(r => {
         const copia = r.clone();
         caches.open(CACHE).then(c => c.put(e.request, copia));
         return r;
-      }).catch(() => caches.match(e.request))
+      }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
     );
     return;
   }
+  // Resto de recursos (iconos, logo, manifest): CACHÉ PRIMERO (rápido y offline).
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
   );
