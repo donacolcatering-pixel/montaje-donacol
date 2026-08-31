@@ -39,6 +39,12 @@
   .ped .dir{font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ped .meta{font-size:11px;color:var(--oro-d);font-weight:700;margin-top:2px}
   .ped .badge{flex:none}
+  .filtros{display:flex;gap:7px;margin:2px 0 12px}
+  .fbtn{flex:1;padding:10px 6px;border:1px solid var(--linea);border-radius:10px;background:#fff;
+        color:var(--marron);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .fbtn.on{background:var(--marron);color:#fff;border-color:var(--marron)}
+  .ciudadSep{font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--oro-d);
+             margin:10px 0 5px 2px;text-transform:uppercase}
   .badge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
   .b-pend{background:var(--pendbg);color:var(--pend)} .b-ok{background:var(--okbg);color:var(--ok)}
   .vacio{font-size:13px;color:var(--gris);text-align:center;padding:18px 8px}
@@ -95,6 +101,11 @@
   <div id="lista">
     <div class="card">
       <h2>📦 Pedidos a repartir</h2>
+      <div class="filtros" id="filtroCiudad">
+        <button class="fbtn" data-ciudad="">Todas</button>
+        <button class="fbtn" data-ciudad="Madrid">Madrid</button>
+        <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
+      </div>
       <div id="pedidos"><p class="vacio">Cargando pedidos…</p></div>
     </div>
 
@@ -252,21 +263,57 @@ function urlRutaDia(entregas){
   if(wp) u+='&waypoints='+wp;
   return u;
 }
+// Ciudad seleccionada: '' = todas. Se recuerda en el movil de cada repartidor.
+let CIUDAD = '';
+try { CIUDAD = localStorage.getItem('reparto_ciudad') || ''; } catch(e) {}
+
+// La ciudad viene como texto libre desde la oficina ('Madrid', 'Zaragoza', 'ZGZ'...).
+function normCiudad(c){
+  const t = (c||'').trim().toLowerCase();
+  if (t.startsWith('madrid')) return 'Madrid';
+  if (t.startsWith('zaragoza') || t.startsWith('zgz')) return 'Zaragoza';
+  return (c||'').trim() || 'Sin ciudad';
+}
+
+function pintarFiltros(){
+  document.querySelectorAll('#filtroCiudad .fbtn').forEach(b=>{
+    b.classList.toggle('on', b.getAttribute('data-ciudad') === CIUDAD);
+    b.onclick = () => {
+      CIUDAD = b.getAttribute('data-ciudad');
+      try { localStorage.setItem('reparto_ciudad', CIUDAD); } catch(e) {}
+      pintarFiltros(); pintarLista();
+    };
+  });
+}
+
 function pintarLista(){
   const cont=$('pedidos');
-  const prox=REPARTOS.filter(e=>e.fecha>=hoyISO)
-    .sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
-  if(!prox.length){cont.innerHTML='<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';return;}
+  let prox=REPARTOS.filter(e=>e.fecha>=hoyISO);
+  if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
+  prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
+  if(!prox.length){
+    cont.innerHTML = CIUDAD
+      ? `<p class="vacio">No hay repartos pendientes en <b>${esc(CIUDAD)}</b>.<br>Pulsa «Todas» para ver los de la otra ciudad.</p>`
+      : '<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';
+    return;
+  }
   const dias={};
   prox.forEach(e=>{ (dias[e.fecha]=dias[e.fecha]||[]).push(e); });
   let html='';
   Object.keys(dias).sort().forEach(fecha=>{
-    const grupo=dias[fecha];
     html+=`<div class="diaSep">${esc(etiquetaDia(fecha))}</div>`;
+    // Dentro de cada día se agrupa por CIUDAD. No es solo estético: la ruta de Maps
+    // no puede mezclar Madrid y Zaragoza, saldrían 300 km de por medio.
+    const porCiudad={};
+    dias[fecha].forEach(e=>{ const c=normCiudad(e.ciudad); (porCiudad[c]=porCiudad[c]||[]).push(e); });
+    const ciudades=Object.keys(porCiudad).sort();
+    ciudades.forEach(ciudad=>{
+    const grupo=porCiudad[ciudad];
+    if(!CIUDAD && ciudades.length>1) html+=`<div class="ciudadSep">📍 ${esc(ciudad)}</div>`;
     const conDir=grupo.filter(e=>e.direccion);
     const rutaUrl=urlRutaDia(grupo);
     if(rutaUrl && conDir.length){
-      html+=`<a class="rutaBtn" href="${esc(rutaUrl)}" target="_blank" rel="noopener">🗺️ Ver la RUTA del día en Maps · ${conDir.length} parada${conDir.length>1?'s':''}</a>`;
+      html+=`<a class="rutaBtn" href="${esc(rutaUrl)}" target="_blank" rel="noopener">🗺️ Ver la RUTA de ${esc(ciudad)} en Maps · ${conDir.length} parada${conDir.length>1?'s':''}</a>`;
     }
     grupo.forEach(e=>{
       const ent=ENTREGAS[e.enc];
@@ -285,6 +332,7 @@ function pintarLista(){
         </div>
         <div class="badge">${badge}</div>
       </div>`;
+    });
     });
   });
   cont.innerHTML=html;
@@ -487,6 +535,7 @@ async function cargarEntregas(){
   // (el cliente recoge en el obrador → no hay reparto que hacer).
   REPARTOS=(r||[]).filter(esReparto);
   await cargarEntregas();
+  pintarFiltros();
   pintarLista();
   pintarRegistro();
 })();
