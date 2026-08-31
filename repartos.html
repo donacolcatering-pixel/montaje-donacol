@@ -316,14 +316,14 @@ function pintarLista(){
       html+=`<a class="rutaBtn" href="${esc(rutaUrl)}" target="_blank" rel="noopener">🗺️ Ver la RUTA de ${esc(ciudad)} en Maps · ${conDir.length} parada${conDir.length>1?'s':''}</a>`;
     }
     grupo.forEach(e=>{
-      const ent=ENTREGAS[e.enc];
+      const ent=entregaDe(e);
       const badge=ent?`<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`
                      :`<span class="badge b-pend">○ pendiente</span>`;
       const horaRaw=(e.hora||'').trim();
       const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
       const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
                             : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${esc(horaRaw||'🕒')}</span>`;
-      html+=`<div class="ped" data-enc="${esc(e.enc)}">
+      html+=`<div class="ped" data-enc="${esc(e.enc)}" data-fecha="${esc(e.fecha||'')}">
         <div class="hora">${horaHtml}</div>
         <div class="info">
           <div class="emp">${esc(e.empresa||'(sin nombre)')}</div>
@@ -336,7 +336,7 @@ function pintarLista(){
     });
   });
   cont.innerHTML=html;
-  cont.querySelectorAll('.ped').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc')));
+  cont.querySelectorAll('.ped').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc'), p.getAttribute('data-fecha')));
 }
 
 function pintarRegistro(){
@@ -345,23 +345,31 @@ function pintarRegistro(){
   if(!ents.length){$('cardRegistro').style.display='none';return;}
   $('cardRegistro').style.display='';
   $('registro').innerHTML=ents.map(en=>`
-    <div class="regrow" data-enc="${esc(en.enc)}">
+    <div class="regrow" data-enc="${esc(en.enc)}" data-fecha="${esc(en.fecha||'')}">
       <div><b>${esc(en.empresa||en.enc)}</b><span class="nt">${esc(en.fecha?fmtFecha(en.fecha):'')} · entregado ${esc(en.hora_entrega||'')}${en.receptor?' · firmó '+esc(en.receptor):''}</span></div>
       <span class="badge b-ok">✓</span>
     </div>`).join('');
-  $('registro').querySelectorAll('.regrow').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc')));
+  $('registro').querySelectorAll('.regrow').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc'), r.getAttribute('data-fecha')));
 }
 
+// La clave de la entrega lleva la FECHA porque el codigo ENC se repite cada semana
+// ('X-1Z' = miercoles, nº1, Zaragoza). Guardando solo por enc, dos repartos distintos
+// compartian documento y la firma del segundo borraba la del primero.
+function claveEntrega(ev){ return (ev.fecha||'sinfecha') + '_' + ev.enc; }
+// Compatibilidad: los documentos guardados antes del 2026-08-31 usan solo el enc.
+function entregaDe(ev){ return ENTREGAS[claveEntrega(ev)] || ENTREGAS[ev.enc] || null; }
+
 // ---------- Abrir un pedido ----------
-function buscarEvento(enc){
-  return REPARTOS.find(e=>e.enc===enc) || (ENTREGAS[enc]?{
-    enc, empresa:ENTREGAS[enc].empresa, fecha:ENTREGAS[enc].fecha,
-    direccion:ENTREGAS[enc].direccion, hora:ENTREGAS[enc].hora_prevista,
-    pax:ENTREGAS[enc].pax, menu:ENTREGAS[enc].menu
-  }:null);
+function buscarEvento(enc, fecha){
+  const ev = (fecha && REPARTOS.find(e=>e.enc===enc && e.fecha===fecha))
+          || REPARTOS.find(e=>e.enc===enc);
+  if(ev) return ev;
+  const en = ENTREGAS[(fecha||'sinfecha')+'_'+enc] || ENTREGAS[enc];
+  return en ? { enc, empresa:en.empresa, fecha:en.fecha, direccion:en.direccion,
+                hora:en.hora_prevista, pax:en.pax, menu:en.menu } : null;
 }
-function abrir(enc){
-  const ev=buscarEvento(enc); if(!ev)return;
+function abrir(enc, fecha){
+  const ev=buscarEvento(enc, fecha); if(!ev)return;
   pedidoActual=ev;
   $('lista').style.display='none';
   $('detalle').style.display='block';   // 'block' explícito: el CSS tiene #detalle{display:none}
@@ -375,7 +383,7 @@ function abrir(enc){
     <div class="linea"><span class="ic">🍽️</span><span>${esc(ev.pax||0)} pax · ${esc(ev.menu||'')}</span></div>
     ${ev.direccion?`<a class="mapsBtn" href="${esc(maps)}" target="_blank" rel="noopener">🗺️ Abrir en Maps</a>`:''}`;
 
-  const ent=ENTREGAS[enc];
+  const ent=entregaDe(ev);
   if(ent){ mostrarEntregado(ent); }
   else { mostrarFormulario(); }
 }
@@ -502,8 +510,8 @@ $('btnConfirmar').onclick=async ()=>{
       geo: geo||null
     };
     $('estadoMsg').textContent='Registrando entrega…';
-    await DB.collection('entregas').doc(enc).set(reg);
-    ENTREGAS[enc]=reg;
+    await DB.collection('entregas').doc(claveEntrega(ev)).set(reg);
+    ENTREGAS[claveEntrega(ev)]=reg;
     $('estadoMsg').textContent='✅ Entrega registrada.';
     mostrarEntregado(reg);
     pintarLista(); pintarRegistro();
