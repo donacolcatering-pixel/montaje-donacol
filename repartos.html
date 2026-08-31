@@ -106,6 +106,7 @@
         <button class="fbtn" data-ciudad="Madrid">Madrid</button>
         <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
       </div>
+      <div id="avisoCola" style="display:none"></div>
       <div id="pedidos"><p class="vacio">Cargando pedidos…</p></div>
     </div>
 
@@ -147,6 +148,10 @@
     <!-- Prueba de entrega (pedido ya entregado) -->
     <div class="card" id="cardEntregado" style="display:none">
       <h2>✅ Entregado</h2>
+      <p id="avisoPendiente" style="display:none;margin:0 0 10px;padding:9px 11px;background:#fff4e5;
+         border:1px solid #f0c98a;border-radius:9px;color:#7a4b00;font-size:13px">
+        📥 Guardada en este móvil. <b>Se subirá sola en cuanto haya cobertura.</b>
+        No hace falta repetirla.</p>
       <div id="datosEntrega" style="font-size:14px"></div>
       <div class="pruebas" id="pruebas"></div>
     </div>
@@ -293,7 +298,28 @@ function pintarFiltros(){
   });
 }
 
+function pintarCola(){
+  const c=$('avisoCola'); if(!c) return;
+  const n=Object.keys(PENDIENTES).length;
+  if(!n){ c.style.display='none'; c.innerHTML=''; return; }
+  c.style.display='';
+  c.innerHTML=`<div style="padding:10px 12px;background:#fff4e5;border:1px solid #f0c98a;
+      border-radius:10px;margin-bottom:10px;font-size:13px;color:#7a4b00">
+      📥 <b>${n} entrega(s) guardada(s) en este móvil</b>, todavía sin subir.
+      Se suben solas al recuperar cobertura.
+      <button id="btnReintentarCola" style="margin-top:7px;width:100%;padding:8px;border:1px solid #d9a441;
+        border-radius:8px;background:#fff;color:#7a4b00;font-weight:800;font-family:inherit">
+        ↻ Intentar subirlas ahora</button></div>`;
+  $('btnReintentarCola').onclick=async ()=>{
+    $('btnReintentarCola').textContent='Subiendo…';
+    const r=await subirCola();
+    if(r && r.fallos && !r.subidas) alert('Sigue sin poder subirse. Inténtalo cuando tengas cobertura.');
+    pintarCola();
+  };
+}
+
 function pintarLista(){
+  pintarCola();
   const cont=$('pedidos');
   let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
@@ -327,8 +353,10 @@ function pintarLista(){
     }
     grupo.forEach(e=>{
       const ent=entregaDe(e);
-      const badge=ent?`<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`
-                     :`<span class="badge b-pend">○ pendiente</span>`;
+      const badge = !ent ? `<span class="badge b-pend">○ pendiente</span>`
+        : estaPendiente(e)
+          ? `<span class="badge b-pend" style="background:#fff4e5;color:#7a4b00">📥 sin subir</span>`
+          : `<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`;
       const horaRaw=(e.hora||'').trim();
       const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
       const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
@@ -367,7 +395,9 @@ function pintarRegistro(){
 // compartian documento y la firma del segundo borraba la del primero.
 function claveEntrega(ev){ return (ev.fecha||'sinfecha') + '_' + ev.enc; }
 // Compatibilidad: los documentos guardados antes del 2026-08-31 usan solo el enc.
-function entregaDe(ev){ return ENTREGAS[claveEntrega(ev)] || ENTREGAS[ev.enc] || null; }
+function entregaDe(ev){ return ENTREGAS[claveEntrega(ev)] || PENDIENTES[claveEntrega(ev)] || ENTREGAS[ev.enc] || null; }
+// ¿Esta entregada pero todavia sin subir?
+function estaPendiente(ev){ return !!PENDIENTES[claveEntrega(ev)]; }
 
 // ---------- Abrir un pedido ----------
 function buscarEvento(enc, fecha){
@@ -410,9 +440,10 @@ function mostrarFormulario(){
   prepararFirma();
 }
 
-function mostrarEntregado(ent){
+function mostrarEntregado(ent, pendiente){
   $('formEntrega').style.display='none';
   $('cardEntregado').style.display='';
+  $('avisoPendiente').style.display = pendiente ? '' : 'none';
   $('datosEntrega').innerHTML=`
     <p style="margin:0 0 6px"><b>${esc(ent.receptor||'—')}</b> recibió el pedido</p>
     <p style="margin:0;color:var(--gris)">🕒 ${esc(ent.fecha?fmtFecha(ent.fecha)+' · ':'')}${esc(ent.hora_entrega||'')}</p>`
@@ -491,44 +522,126 @@ function ubicacion(){return new Promise(res=>{
     ()=>res(null),{timeout:6000,maximumAge:120000});
 });}
 
+// ---------- Cola offline ----------
+// Sin cobertura, el repartidor recogia la firma y NO podia guardarla: al salir de la
+// pantalla se perdia. Ahora la entrega (con firma y foto) se guarda en el propio movil
+// con IndexedDB —localStorage no vale, las fotos pesan megas— y se sube sola en cuanto
+// hay red.
+const COLA_DB='reparto_cola_v1', COLA_ST='pendientes';
+let PENDIENTES={};        // clave -> reg guardado en el movil, todavia sin subir
+let subiendoCola=false;
+
+function _idb(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(COLA_DB,1);
+    r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains(COLA_ST))
+      r.result.createObjectStore(COLA_ST,{keyPath:'clave'}); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+function _idbReq(modo, fn){
+  return _idb().then(db=>new Promise((res,rej)=>{
+    const req=fn(db.transaction(COLA_ST,modo).objectStore(COLA_ST));
+    req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+  }));
+}
+const colaGuardar = it => _idbReq('readwrite', st=>st.put(it));
+const colaListar  = ()  => _idbReq('readonly',  st=>st.getAll());
+const colaBorrar  = k   => _idbReq('readwrite', st=>st.delete(k));
+
+async function cargarPendientes(){
+  PENDIENTES={};
+  try{ (await colaListar()).forEach(it=>{ PENDIENTES[it.clave]=it.reg; }); }catch(e){}
+}
+
+// Sube lo que quedo pendiente. Se llama al arrancar, al volver la red y a mano.
+async function subirCola(silencioso){
+  if(subiendoCola || !DB) return null;
+  let items=[]; try{ items=await colaListar(); }catch(e){ return null; }
+  if(!items.length) return null;
+  subiendoCola=true;
+  if(!silencioso) $('avisoCola').textContent='Subiendo '+items.length+' entrega(s) pendiente(s)…';
+  let subidas=0, fallos=0;
+  for(const it of items){
+    try{
+      await ensureAuth();
+      const reg=Object.assign({}, it.reg);
+      if(!reg.firma_url && it.firma) reg.firma_url=await subirCloudinary(it.firma, it.reg.enc, 'firma');
+      if(!reg.foto_url  && it.foto)  reg.foto_url =await subirCloudinary(it.foto,  it.reg.enc, 'foto');
+      await DB.collection('entregas').doc(it.clave).set(reg);
+      ENTREGAS[it.clave]=reg;
+      await colaBorrar(it.clave);
+      delete PENDIENTES[it.clave];
+      subidas++;
+    }catch(e){ fallos++; }
+  }
+  subiendoCola=false;
+  pintarLista(); pintarRegistro();
+  return {subidas, fallos};
+}
+
+// Cuando el movil recupera cobertura, se sube solo.
+window.addEventListener('online', ()=>subirCola(true));
+
 // ---------- Confirmar entrega ----------
 $('btnConfirmar').onclick=async ()=>{
   if(!pedidoActual)return;
   const receptor=$('receptor').value.trim();
   if(!receptor){$('estadoMsg').textContent='⚠️ Pon el nombre de quien recibe el pedido.';$('receptor').focus();return;}
   if(!hayFirma){$('estadoMsg').textContent='⚠️ Falta la firma del cliente.';return;}
-  if(!DB){$('estadoMsg').textContent='⚠️ Sin conexión: no se puede registrar la entrega. Reintenta con datos/WiFi.';return;}
 
-  const ev=pedidoActual, enc=ev.enc;
+  const ev=pedidoActual, enc=ev.enc, clave=claveEntrega(ev);
   const obs=$('obs').value.trim();
   $('btnConfirmar').disabled=true;
   $('btnConfirmar').textContent='Guardando…';
-  $('estadoMsg').textContent='Subiendo firma…';
+  $('estadoMsg').textContent='Preparando…';
+
+  const firmaBlob=await canvasABlob();
+  const f=$('fotoInput').files;
+  const fotoFile=(f&&f.length)?f[0]:null;
+  const geo=await ubicacion();
+  const reg={
+    enc, empresa:ev.empresa||'', fecha:ev.fecha||'', direccion:ev.direccion||'',
+    hora_prevista:ev.hora||'', pax:ev.pax||0, menu:ev.menu||'',
+    receptor, observaciones:obs, firma_url:'', foto_url:'',
+    hora_entrega:ahoraTexto(), entregado_en:new Date().toISOString(),
+    geo: geo||null
+  };
+
+  // Guardar en el movil. Es el ultimo recurso, y NUNCA debe fallar en silencio:
+  // aqui ya hay una firma de un cliente de por medio.
+  async function guardarEnElMovil(){
+    try{
+      await colaGuardar({clave, reg, firma:firmaBlob, foto:fotoFile});
+      PENDIENTES[clave]=reg;
+      $('estadoMsg').textContent='📥 Entrega guardada en el móvil. Se subirá sola en cuanto haya cobertura.';
+      mostrarEntregado(reg, true);
+      pintarLista(); pintarRegistro();
+      return true;
+    }catch(e){
+      $('btnConfirmar').disabled=false;
+      $('btnConfirmar').textContent='✅ Confirmar entrega';
+      $('estadoMsg').textContent='⚠️ No se pudo guardar NI en el móvil ('+e.message+'). No cierres esta pantalla.';
+      return false;
+    }
+  }
+
+  if(!DB || !navigator.onLine){ await guardarEnElMovil(); return; }
+
   try{
     await ensureAuth();
-    const firmaBlob=await canvasABlob();
-    const firma_url=await subirCloudinary(firmaBlob, enc, 'firma');
-    let foto_url='';
-    const f=$('fotoInput').files;
-    if(f&&f.length){ $('estadoMsg').textContent='Subiendo foto…'; foto_url=await subirCloudinary(f[0], enc, 'foto'); }
-    const geo=await ubicacion();
-    const reg={
-      enc, empresa:ev.empresa||'', fecha:ev.fecha||'', direccion:ev.direccion||'',
-      hora_prevista:ev.hora||'', pax:ev.pax||0, menu:ev.menu||'',
-      receptor, observaciones:obs, firma_url, foto_url,
-      hora_entrega:ahoraTexto(), entregado_en:new Date().toISOString(),
-      geo: geo||null
-    };
+    $('estadoMsg').textContent='Subiendo firma…';
+    reg.firma_url=await subirCloudinary(firmaBlob, enc, 'firma');
+    if(fotoFile){ $('estadoMsg').textContent='Subiendo foto…'; reg.foto_url=await subirCloudinary(fotoFile, enc, 'foto'); }
     $('estadoMsg').textContent='Registrando entrega…';
-    await DB.collection('entregas').doc(claveEntrega(ev)).set(reg);
-    ENTREGAS[claveEntrega(ev)]=reg;
+    await DB.collection('entregas').doc(clave).set(reg);
+    ENTREGAS[clave]=reg;
     $('estadoMsg').textContent='✅ Entrega registrada.';
     mostrarEntregado(reg);
     pintarLista(); pintarRegistro();
   }catch(e){
-    $('btnConfirmar').disabled=false;
-    $('btnConfirmar').textContent='✅ Confirmar entrega';
-    $('estadoMsg').textContent='⚠️ No se pudo registrar: '+e.message;
+    // Falló la red a mitad: no se pierde nada, va a la cola.
+    await guardarEnElMovil();
   }
 };
 
@@ -552,10 +665,12 @@ async function cargarEntregas(){
   // Solo REPARTOS (entregas a domicilio). Excluye montajes y también las RECOGIDAS
   // (el cliente recoge en el obrador → no hay reparto que hacer).
   REPARTOS=(r||[]).filter(esReparto);
+  await cargarPendientes();   // lo que quedo sin subir en este movil
   await cargarEntregas();
   pintarFiltros();
   pintarLista();
   pintarRegistro();
+  subirCola(true);            // reintento silencioso al abrir
 })();
 
 // PWA offline
