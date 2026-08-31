@@ -791,8 +791,10 @@ async function descifrarEventos(){
     return JSON.parse(new TextDecoder().decode(out));
   }catch(e){return null;}
 }
-const hoyISO=(()=>{const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+// Funcion, no constante: con la app abierta toda la noche, una constante se quedaria
+// en el dia de ayer y el listado de proximos saldria mal.
+function hoyISO(){const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 function fmtFecha(iso){const d=new Date(iso+'T00:00:00');
   return DIAS_SEM[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);}
@@ -860,7 +862,11 @@ function prepararNube(ev){
         if(data && data.estados){ estados=data.estados; guardarLocal(); calcular(); }
         if(data && (data.ok||data.falta||data.no)) actualizarContador();
       }
-    }).catch(()=>{});
+    }).catch(e=>{
+      // Antes se callaba: el montador empezaba de cero sin saber que habia trabajo
+      // guardado en la nube.
+      $('nubeEstado').textContent='⚠️ No pude comprobar si había checklist guardado: '+e.message;
+    });
   }
   cargarFotos(claveNube(ev));
 }
@@ -893,7 +899,7 @@ function subirFotos(){
   const files=$('fotoInput').files;
   if(!files||!files.length){ $('fotoEstado').textContent='Elige al menos una foto.'; return; }
   const enc=claveNube(EV_NUBE);
-  let hechas=0; const total=files.length;
+  let hechas=0; const total=files.length; const fotoFallos=[];
   $('fotoEstado').textContent=`Subiendo 0/${total}…`;
   Array.from(files).forEach(f=>{
     const fd=new FormData();
@@ -908,10 +914,16 @@ function subirFotos(){
         const item={url:data.secure_url, public_id:data.public_id||'', ts:Date.now()};
         if(DB){ return DB.collection('fotos').doc(enc)
                   .set({enc, urls:firebase.firestore.FieldValue.arrayUnion(item)},{merge:true})
-                  .catch(()=>{}); }
+                  // La foto YA esta en Cloudinary; si esto falla, la oficina no la vera
+                  // nunca. Antes se callaba y parecia que todo habia ido bien.
+                  .catch(e=>{ fotoFallos.push(e.message||'error'); }); }
       })
       .then(()=>{ hechas++; $('fotoEstado').textContent=`Subiendo ${hechas}/${total}…`;
-        if(hechas===total){ $('fotoEstado').textContent=`✅ ${total} foto(s) subidas.`; $('fotoInput').value=''; cargarFotos(enc); } })
+        if(hechas===total){
+          $('fotoEstado').textContent = fotoFallos.length
+            ? `⚠️ ${total} foto(s) subidas, pero ${fotoFallos.length} no se registraron y la oficina NO las verá (${fotoFallos[0]}). Reinténtalo.`
+            : `✅ ${total} foto(s) subidas.`;
+          $('fotoInput').value=''; cargarFotos(enc); } })
       .catch(e=>{ $('fotoEstado').textContent='⚠️ Error subiendo: '+e.message; });
   });
 }
@@ -955,7 +967,7 @@ function esMontaje(e){
 function pintarEventos(){
   if(!EVS.length)return;
   $('cardEventos').style.display='';
-  const prox=EVS.filter(e=>e.fecha>=hoyISO && esMontaje(e))
+  const prox=EVS.filter(e=>e.fecha>=hoyISO() && esMontaje(e))
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.enc.localeCompare(b.enc));
   let html='<option value="">— Manual / elegir evento —</option>',fechaPrev='';
   prox.forEach(e=>{

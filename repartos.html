@@ -222,15 +222,18 @@ async function descifrarEventos(){
 }
 
 // ---------- Fechas ----------
-const hoyISO=(()=>{const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+// Funcion, no constante: si el movil deja la app abierta toda la noche, una constante
+// se quedaria en el dia de ayer y "HOY" y el filtro de proximos saldrian mal.
+function hoyISO(){const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 function fmtFecha(iso){const d=new Date(iso+'T00:00:00');
   return DIAS_SEM[d.getDay()]+' '+d.getDate()+' '+MESES[d.getMonth()];}
 function etiquetaDia(iso){
-  if(iso===hoyISO)return 'HOY · '+fmtFecha(iso);
-  const man=new Date(hoyISO+'T00:00:00');man.setDate(man.getDate()+1);
+  const hoy=hoyISO();
+  if(iso===hoy)return 'HOY · '+fmtFecha(iso);
+  const man=new Date(hoy+'T00:00:00');man.setDate(man.getDate()+1);
   const manISO=man.getFullYear()+'-'+String(man.getMonth()+1).padStart(2,'0')+'-'+String(man.getDate()).padStart(2,'0');
   if(iso===manISO)return 'MAÑANA · '+fmtFecha(iso);
   return fmtFecha(iso);
@@ -242,6 +245,10 @@ function ahoraTexto(){const d=new Date();
 let REPARTOS=[];          // eventos con montaje=NO
 let ENTREGAS={};          // enc -> doc de Firestore (entregas ya confirmadas)
 let pedidoActual=null;    // evento seleccionado
+// Si falla la lectura de entregas, TODO sale como "pendiente" aunque este entregado.
+// Antes se tragaba en silencio: por eso paso mes y medio sin que nadie notara que las
+// reglas de Firestore estaban caducadas. Ahora se avisa en pantalla.
+let AVISO_ENTREGAS='';
 
 // ¿Es un reparto (entrega a domicilio)? Usa el 'tipo' del evento; para datos antiguos
 // sin tipo, cae a: sin montaje y que NO empiece por RECOG (recogida en obrador).
@@ -288,18 +295,21 @@ function pintarFiltros(){
 
 function pintarLista(){
   const cont=$('pedidos');
-  let prox=REPARTOS.filter(e=>e.fecha>=hoyISO);
+  let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
   prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
+  const aviso = AVISO_ENTREGAS
+    ? `<p class="vacio" style="background:#fff4e5;border:1px solid #f0c98a;color:#7a4b00">⚠️ No he podido comprobar qué repartos están ya entregados.<br>Los que veas como «pendiente» quizá estén hechos. <small>(${esc(AVISO_ENTREGAS)})</small></p>`
+    : '';
   if(!prox.length){
-    cont.innerHTML = CIUDAD
+    cont.innerHTML = aviso + (CIUDAD
       ? `<p class="vacio">No hay repartos pendientes en <b>${esc(CIUDAD)}</b>.<br>Pulsa «Todas» para ver los de la otra ciudad.</p>`
-      : '<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>';
+      : '<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>');
     return;
   }
   const dias={};
   prox.forEach(e=>{ (dias[e.fecha]=dias[e.fecha]||[]).push(e); });
-  let html='';
+  let html=aviso;
   Object.keys(dias).sort().forEach(fecha=>{
     html+=`<div class="diaSep">${esc(etiquetaDia(fecha))}</div>`;
     // Dentro de cada día se agrupa por CIUDAD. No es solo estético: la ruta de Maps
@@ -527,9 +537,9 @@ async function cargarEntregas(){
   if(!DB)return;
   await ensureAuth();
   return DB.collection('entregas').get().then(snap=>{
-    ENTREGAS={};
+    ENTREGAS={}; AVISO_ENTREGAS='';
     snap.forEach(d=>{ ENTREGAS[d.id]=d.data(); });
-  }).catch(()=>{});
+  }).catch(e=>{ AVISO_ENTREGAS=(e&&e.message)||'error desconocido'; });
 }
 
 // ---------- Arranque ----------

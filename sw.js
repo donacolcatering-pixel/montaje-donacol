@@ -1,7 +1,11 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v14';
+const CACHE = 'montaje-v15';
+// eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
+// cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
+// primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
 const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html', './repartos.html',
-                './manifest.json', './repartos-manifest.json', './icon.svg', './logo.png'];
+                './eventos.js', './manifest.json', './repartos-manifest.json',
+                './icon.svg', './logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
