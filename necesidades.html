@@ -1039,6 +1039,17 @@ render();calcular();
   EVS=r||[];
   pintarEventos();
 })();
+
+// PWA: registrar el Service Worker + auto-actualización (el checklist no lo hacía).
+// updateViaCache:'none' → el navegador coge SIEMPRE el sw.js nuevo (no de su caché),
+// y al activarse la versión nueva la página se recarga sola.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(r){
+    r.update(); document.addEventListener('visibilitychange',function(){if(!document.hidden)r.update();});
+  }).catch(function(){});
+  var _swrel=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_swrel){_swrel=true;location.reload();}});
+}
 </script>
 </body>
 </html>
