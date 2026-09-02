@@ -9,7 +9,7 @@
   :root{
     --beige:#F5EAD8; --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --oro-d:#b06d24;
     --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#3a2c22; --gris:#8c7a68;
-    --ok:#4e7d3a; --okbg:#eef4e6; --falta:#cf8a2e; --faltabg:#fbf1e0; --no:#b23b3b; --nobg:#fbeeee;
+    --ok:#4e7d3a; --okbg:#eef4e6; --falta:#b58900; --faltabg:#faf3d3; --no:#b23b3b; --nobg:#fbeeee;
     --cargado:#2f6fb0; --cargadobg:#e7f0fa;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -58,6 +58,10 @@
   .item .nm{flex:1;font-size:15px;color:var(--tinta)}
   .item .nt{font-size:11px;color:var(--gris);display:block}
   .item .qt{font-weight:800;color:var(--oro-d);white-space:nowrap;font-size:17px;font-family:Georgia,serif}
+  .item .ret{display:flex;align-items:center;gap:5px;flex:none}
+  .item .ret .retnum{width:54px;padding:6px 4px;border:1px solid var(--linea);border-radius:8px;font-size:16px;font-weight:800;text-align:center;color:var(--marron);font-family:Georgia,serif;background:#fff}
+  .item .ret .retde{font-size:12px;color:var(--gris);font-weight:700;white-space:nowrap}
+  .item .ret .retroto{font-size:12px;font-weight:800;color:var(--no);min-width:26px}
   .item.ok{background:var(--okbg)} .item.ok .st{border-color:var(--ok);color:var(--ok)}
   .item.falta{background:var(--faltabg)} .item.falta .st{border-color:var(--falta);color:var(--falta)}
   .item.no{background:var(--nobg)} .item.no .st{border-color:var(--no);color:var(--no)} .item.no .nm{text-decoration:line-through;color:#a99}
@@ -216,7 +220,7 @@
     <div class="barra"><i id="barraFill" style="width:0%"></i></div>
     <div id="hoja"></div>
   </div>
-  <p class="leyenda">Toca cada línea: ○ pendiente → ✓ tengo → 📦 cargado → ! falta → ✕ no tengo</p>
+  <p class="leyenda">Toca cada línea: ○ pendiente → ✓ preparado → 📦 cargado → ! falta → ✕ no tengo</p>
 
   <div class="acciones">
     <button class="btnPrint" onclick="window.print()">🖨️ Imprimir / PDF</button>
@@ -240,7 +244,7 @@
     <div class="card">
       <h2>🔄 Retorno — traer de vuelta al obrador</h2>
       <p id="retornoInfo" style="font-size:12px;color:#777;margin:0 0 6px"></p>
-      <p class="leyenda" style="margin:0 0 6px">Toca cada línea: ○ pendiente → ✓ recogido → ! falta → ✕ no estaba</p>
+      <p class="leyenda" style="margin:0 0 6px">Toca cada línea: ○ pendiente → ✓ recogido → ! falta → ✕ no estaba.<br>Baja el <b>número que vuelve</b> si algo se rompió o se perdió (queda registrado).</p>
       <div id="retornoLista"></div>
       <div class="acciones" style="margin-top:12px">
         <button id="btnCerrarRetorno" class="nubeBtn" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;font-size:15px;font-weight:800">🔒 Cerrar retorno y guardar en Cerrados</button>
@@ -370,6 +374,11 @@ function claveEstados(){return eventoActual?('nec_estados@'+eventoActual):'nec_e
 let estados={};
 function cargarEstados(){try{estados=JSON.parse(localStorage.getItem(claveEstados())||'{}');}catch(e){estados={};}}
 cargarEstados();
+// Cantidades que VUELVEN del retorno (por evento): si se rompen/pierden, se baja el nº.
+// Base para el futuro control de stock (llevado vs vuelto vs roto).
+function claveCantRet(){return eventoActual?('nec_retcant@'+eventoActual):'nec_retcant';}
+function leerCantRet(){try{return JSON.parse(localStorage.getItem(claveCantRet())||'{}');}catch(e){return {};}}
+function guardarCantRet(o){try{localStorage.setItem(claveCantRet(),JSON.stringify(o));}catch(e){}}
 const ESTADOS=['','ok','cargado','falta','no'];
 const ICONO={'':'○','ok':'✓','cargado':'📦','falta':'!','no':'✕'};
 function guardar(){
@@ -415,15 +424,26 @@ function renderRetorno(){
     ? (EV_NUBE.enc+' · '+(EV_NUBE.empresa||''))
     : 'Modo manual — elige un evento en Montaje para poder cerrar el retorno.';
   if(!RETORNO_ITEMS.length){ cont.innerHTML='<p style="font-size:13px;color:#999">Sin material retornable en este servicio.</p>'; return; }
+  const cant=leerCantRet();
   cont.innerHTML=RETORNO_ITEMS.map(i=>{
     const st=estados[i.nm]||''; const cls=st?(' '+st):'';
-    return `<div class="item${cls}" data-key="${i.nm.replace(/"/g,'&quot;')}">
+    const key=i.nm.replace(/"/g,'&quot;');
+    const llevadas=parseInt(i.qt)||0;
+    const vuelven=(i.nm in cant)?cant[i.nm]:llevadas;   // por defecto vuelven todas
+    const roto=Math.max(0,llevadas-vuelven);
+    return `<div class="item${cls}" data-key="${key}">
       <div class="st">${ICONO[st]}</div>
       <div class="nm">${i.nm}${i.nt?`<span class="nt">${i.nt}</span>`:''}</div>
-      <div class="qt">${i.qt}</div></div>`;
+      <div class="ret">
+        <input class="retnum" type="number" inputmode="numeric" min="0" max="${llevadas}"
+               value="${vuelven}" data-key="${key}" aria-label="Cantidad que vuelve">
+        <span class="retde">/ ${llevadas}</span>
+        <span class="retroto">${roto>0?'−'+roto:''}</span>
+      </div></div>`;
   }).join('');
 }
 $('retornoLista').addEventListener('click',e=>{
+  if(e.target.closest('.ret'))return;   // tocar el nº que vuelve NO cambia el estado
   const row=e.target.closest('.item'); if(!row)return;
   const k=row.getAttribute('data-key');
   const cur=estados[k]||'';
@@ -433,14 +453,34 @@ $('retornoLista').addEventListener('click',e=>{
   row.className='item'+(next?' '+next:'');
   row.querySelector('.st').textContent=ICONO[next];
 });
+// Bajar la cantidad que vuelve (roturas/pérdidas). Se guarda por evento.
+$('retornoLista').addEventListener('input',e=>{
+  const inp=e.target.closest('.retnum'); if(!inp)return;
+  const k=inp.getAttribute('data-key');
+  const llevadas=parseInt(inp.max)||0;
+  let v=parseInt(inp.value); if(isNaN(v))v=llevadas;
+  v=Math.max(0,Math.min(llevadas,v));
+  const cant=leerCantRet(); cant[k]=v; guardarCantRet(cant);
+  const roto=Math.max(0,llevadas-v);
+  const badge=inp.parentElement.querySelector('.retroto');
+  if(badge)badge.textContent=roto>0?('−'+roto):'';
+});
 $('btnCerrarRetorno').onclick=function(){
   if(!EV_NUBE){ $('retornoEstado').textContent='Elige un evento en Montaje para poder cerrar su retorno.'; return; }
   if(!DB){ $('retornoEstado').textContent='⚠️ Sin conexión: se guardó en este móvil. Reintenta con datos/WiFi.'; return; }
   const retEstados={}; RETORNO_ITEMS.forEach(i=>retEstados[i.nm]=estados[i.nm]||'');
+  // Cantidades por ítem: llevado / vuelto / roto (base para el control de stock).
+  const cant=leerCantRet(); const retCant={};
+  RETORNO_ITEMS.forEach(i=>{
+    const llevadas=parseInt(i.qt)||0;
+    const vuelven=(i.nm in cant)?cant[i.nm]:llevadas;
+    retCant[i.nm]={llevado:llevadas, vuelven:vuelven, roto:Math.max(0,llevadas-vuelven)};
+  });
   $('retornoEstado').textContent='Cerrando…';
   ensureAuth().then(()=>DB.collection('checklists').doc(claveNube(EV_NUBE)).set({
     enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
-    retorno_estados:retEstados, retorno_cerrado:true, retorno_cerrado_en:new Date().toISOString()
+    retorno_estados:retEstados, retorno_cantidades:retCant,
+    retorno_cerrado:true, retorno_cerrado_en:new Date().toISOString()
   },{merge:true})).then(()=>{
     $('retornoEstado').textContent='✅ Retorno cerrado y guardado en Cerrados.';
     pintarCerrados();
