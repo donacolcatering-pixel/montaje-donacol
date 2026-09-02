@@ -47,6 +47,7 @@
   .contador{display:flex;gap:6px;margin:10px 0 4px;font-size:12px;font-weight:700;flex-wrap:wrap}
   .contador span{padding:4px 9px;border-radius:20px}
   .c-ok{background:var(--okbg);color:var(--ok)} .c-falta{background:var(--faltabg);color:var(--falta)}
+  .c-cargado{background:var(--cargadobg);color:var(--cargado)}
   .c-no{background:var(--nobg);color:var(--no)} .c-pend{background:#efe5d4;color:var(--gris)}
   .barra{height:8px;background:#e7d8c1;border-radius:6px;overflow:hidden;margin-bottom:8px}
   .barra>i{display:block;height:100%;background:linear-gradient(90deg,var(--oro),var(--ok));transition:width .3s}
@@ -775,16 +776,18 @@ function pintar(S,m){
 
 function actualizarContador(){
   const rows=document.querySelectorAll('#hoja .item');
-  let total=rows.length,nOk=0,nFalta=0,nNo=0;
+  let total=rows.length,nOk=0,nCargado=0,nFalta=0,nNo=0;
   rows.forEach(r=>{const st=estados[r.getAttribute('data-key')]||'';
-    if(st==='ok')nOk++;else if(st==='falta')nFalta++;else if(st==='no')nNo++;});
-  const nPend=total-nOk-nFalta-nNo;
+    if(st==='ok')nOk++;else if(st==='cargado')nCargado++;else if(st==='falta')nFalta++;else if(st==='no')nNo++;});
+  const nPend=total-nOk-nCargado-nFalta-nNo;
   $('contador').innerHTML=`<div class="contador">
-    <span class="c-ok">✓ ${nOk} cargado</span>
+    <span class="c-ok">✓ ${nOk} preparado</span>
+    <span class="c-cargado">📦 ${nCargado} cargado</span>
     <span class="c-falta">! ${nFalta} falta</span>
     <span class="c-no">✕ ${nNo} no tengo</span>
     <span class="c-pend">○ ${nPend} pendiente</span></div>`;
-  $('barraFill').style.width=total?Math.round(nOk/total*100)+'%':'0%';
+  // La barra avanza con lo ya preparado o cargado (lo "resuelto").
+  $('barraFill').style.width=total?Math.round((nOk+nCargado)/total*100)+'%':'0%';
 }
 
 // Delegación: tocar una línea cicla su estado
