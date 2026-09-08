@@ -52,6 +52,14 @@
   .barra{height:8px;background:#e7d8c1;border-radius:6px;overflow:hidden;margin-bottom:8px}
   .barra>i{display:block;height:100%;background:linear-gradient(90deg,var(--oro),var(--ok));transition:width .3s}
 
+  /* Ubicacion del evento: se saca de la linea gris para que se lea de un vistazo */
+  .evDir{display:none;margin-top:10px;border:1px solid var(--linea);border-left:4px solid var(--oro);border-radius:10px;background:#fff;padding:10px 12px}
+  .evDir .dirTxt{display:flex;gap:8px;align-items:flex-start;font-size:15px;font-weight:700;color:var(--marron);line-height:1.35}
+  .evDir .dirTxt .ic{flex:none;font-size:16px}
+  .evDir .dirFalta{color:var(--no);font-weight:700;font-size:14px}
+  .evDir .mapsBtn{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:800;font-size:14px;margin-top:10px}
+  .evDir .mapsBtn:active{background:var(--oro-d)}
+
   /* Checklist */
   .seccion h3{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:#f7ecdc;background:var(--marron2);border-radius:9px;padding:7px 11px;margin:16px 0 4px;border-left:4px solid var(--oro)}
   .item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #efe3d0;cursor:pointer;user-select:none}
@@ -128,6 +136,7 @@
     <h2>📅 Eventos cargados</h2>
     <select id="selEvento"><option value="">— Manual / elegir evento —</option></select>
     <p id="evInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
+    <div class="evDir" id="evDir"></div>
   </div>
 
   <div class="card config">
@@ -856,6 +865,27 @@ function matchMenu(nombre){
   return '';
 }
 
+// Ubicacion del evento. Se pinta aparte y no dentro de la linea gris de info:
+// es el dato que se mira desde la furgoneta, con prisa. La ciudad entra en la
+// busqueda de Maps porque muchas direcciones vienen sin ella ("HALL SALON ARAGON").
+function pintarDireccion(ev){
+  const caja=$('evDir');
+  if(!caja) return;
+  if(!ev){caja.style.display='none';caja.innerHTML='';return;}
+  caja.style.display='block';   // '' devolveria el display:none de la hoja de estilos
+  const dir=(ev.direccion||'').trim();
+  if(!dir){
+    caja.innerHTML='<div class="dirFalta">📍 Sin dirección en el pedido — pregunta en oficina antes de salir.</div>';
+    return;
+  }
+  const consulta=encodeURIComponent(dir+(ev.ciudad?', '+ev.ciudad:''));
+  caja.innerHTML='<div class="dirTxt"><span class="ic">📍</span><span>'+esc(dir)+
+    (ev.ciudad?'<br><span style="font-weight:600;color:var(--gris);font-size:13px">'+esc(ev.ciudad)+'</span>':'')+
+    '</span></div>'+
+    '<a class="mapsBtn" href="https://www.google.com/maps/search/?api=1&query='+consulta+
+    '" target="_blank" rel="noopener">🗺️ Cómo llegar</a>';
+}
+
 function seleccionarEvento(val){
   // val = "2026-09-03_J-1Z". Antes se buscaba solo por el ENC y, como se repite cada
   // semana, se cargaba el evento equivocado (probado: pedir el montaje del 3-sep
@@ -865,7 +895,7 @@ function seleccionarEvento(val){
   eventoActual=ev?claveNube(ev):null;
   cargarEstados();
   const info=$('evInfo');
-  if(!ev){info.textContent='';calcular();return;}
+  if(!ev){info.textContent='';pintarDireccion(null);calcular();return;}
   const _v=claveNube(ev);
   if($('selEvento').value!==_v)$('selEvento').value=_v; // puede venir de Cerrados
   if(ev.pax)$('pax').value=ev.pax;
@@ -876,8 +906,8 @@ function seleccionarEvento(val){
   setMontaje(/ELEG/i.test(ev.montaje||'')?'elegante':'sport');
   info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
     ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+
-    (ev.direccion?`<br>📍 ${esc(ev.direccion)}`:'')+
     (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
+  pintarDireccion(ev);
   calcular();
   prepararNube(ev);   // muestra Guardar + fotos y carga lo que haya en la nube
 }
