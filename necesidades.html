@@ -57,6 +57,15 @@
   .fbtn{flex:1;padding:10px 6px;border:1px solid var(--linea);border-radius:10px;background:#fff;
         color:var(--marron);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
   .fbtn.on{background:var(--marron);color:#fff;border-color:var(--marron)}
+  .fbtn .n{display:inline-block;min-width:17px;margin-left:5px;padding:1px 4px;border-radius:9px;
+           background:var(--linea);color:var(--marron);font-size:11px;font-weight:800}
+  .fbtn.on .n{background:rgba(255,255,255,.25);color:#fff}
+  .fbtn.vacio{opacity:.45}
+  /* Aviso de lo que el filtro esta dejando fuera: quien lleva las dos ciudades no
+     puede perderse un montaje solo porque un dia dejo puesto un filtro. */
+  .otraCiudad{margin:8px 0 0;padding:8px 10px;border-radius:9px;background:var(--faltabg);
+              border:1px solid var(--falta);color:#6b5200;font-size:13px;font-weight:600}
+  .otraCiudad b{cursor:pointer;text-decoration:underline}
 
   /* Ubicacion del evento: se saca de la linea gris para que se lea de un vistazo */
   .evDir{display:none;margin-top:10px;border:1px solid var(--linea);border-left:4px solid var(--oro);border-radius:10px;background:#fff;padding:10px 12px}
@@ -146,6 +155,7 @@
       <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
     </div>
     <select id="selEvento"><option value="">— Manual / elegir evento —</option></select>
+    <div id="avisoOtraCiudad"></div>
     <p id="evInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
     <div class="evDir" id="evDir"></div>
   </div>
@@ -1064,15 +1074,40 @@ function normCiudad(c){
 let CIUDAD='';
 try { CIUDAD = localStorage.getItem('montaje_ciudad') || ''; } catch(e) {}
 
+// Montajes pendientes de cada ciudad. Es lo que va en los botones.
+function cuentaPorCiudad(){
+  const c={'':0};
+  EVS.filter(e=>e.fecha>=hoyISO() && esMontaje(e)).forEach(e=>{
+    const n=normCiudad(e.ciudad);
+    c[n]=(c[n]||0)+1; c['']++;
+  });
+  return c;
+}
+
 function pintarFiltros(){
+  const cuenta=cuentaPorCiudad();
   document.querySelectorAll('#filtroCiudad .fbtn').forEach(b=>{
-    b.classList.toggle('on', b.getAttribute('data-ciudad')===CIUDAD);
+    const ciu=b.getAttribute('data-ciudad');
+    const n=cuenta[ciu]||0;
+    b.classList.toggle('on', ciu===CIUDAD);
+    // Los numeros van en los botones para que se vea de un golpe que la otra
+    // ciudad tiene trabajo, aunque ahora mismo se este mirando solo una.
+    b.classList.toggle('vacio', n===0 && ciu!=='');
+    if(!b.dataset.txt) b.dataset.txt=b.textContent.trim();
+    b.innerHTML=esc(b.dataset.txt)+`<span class="n">${n}</span>`;
     b.onclick=()=>{
-      CIUDAD=b.getAttribute('data-ciudad');
+      CIUDAD=ciu;
       try { localStorage.setItem('montaje_ciudad', CIUDAD); } catch(e) {}
       pintarFiltros(); pintarEventos();
     };
   });
+}
+
+// Deja que el aviso cambie de ciudad de un toque, sin buscar el boton.
+function verCiudad(c){
+  CIUDAD=c;
+  try { localStorage.setItem('montaje_ciudad', CIUDAD); } catch(e) {}
+  pintarFiltros(); pintarEventos();
 }
 
 function pintarEventos(){
@@ -1108,8 +1143,22 @@ function pintarEventos(){
   const aviso=$('evInfo');
   if(!prox.length && aviso){
     aviso.innerHTML=CIUDAD
-      ? `No hay montajes pendientes en <b>${esc(CIUDAD)}</b>. Pulsa «Todas» para ver los de la otra ciudad.`
+      ? `No hay montajes pendientes en <b>${esc(CIUDAD)}</b>.`
       : 'No hay montajes pendientes.';
+  }
+
+  // Lo que el filtro esta dejando fuera, dicho claramente. Un filtro que se
+  // recuerda semanas no puede esconder trabajo en silencio.
+  const caja=$('avisoOtraCiudad');
+  if(caja){
+    const fuera=todos.length-prox.length;
+    if(CIUDAD && fuera>0){
+      const otras=[...new Set(todos.filter(e=>normCiudad(e.ciudad)!==CIUDAD)
+                                   .map(e=>normCiudad(e.ciudad)))];
+      caja.innerHTML=`<p class="otraCiudad">👀 Hay ${fuera} montaje${fuera>1?'s':''} más en `+
+        `${otras.map(c=>esc(c)).join(' y ')}, que el filtro está ocultando. `+
+        `<b onclick="verCiudad('')">Ver todos</b></p>`;
+    } else caja.innerHTML='';
   }
 }
 
