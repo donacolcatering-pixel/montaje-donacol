@@ -52,6 +52,12 @@
   .barra{height:8px;background:#e7d8c1;border-radius:6px;overflow:hidden;margin-bottom:8px}
   .barra>i{display:block;height:100%;background:linear-gradient(90deg,var(--oro),var(--ok));transition:width .3s}
 
+  /* Filtro de ciudad: identico al de repartos.html, que ya lo tenia */
+  .filtros{display:flex;gap:8px;margin:0 0 10px}
+  .fbtn{flex:1;padding:10px 6px;border:1px solid var(--linea);border-radius:10px;background:#fff;
+        color:var(--marron);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .fbtn.on{background:var(--marron);color:#fff;border-color:var(--marron)}
+
   /* Ubicacion del evento: se saca de la linea gris para que se lea de un vistazo */
   .evDir{display:none;margin-top:10px;border:1px solid var(--linea);border-left:4px solid var(--oro);border-radius:10px;background:#fff;padding:10px 12px}
   .evDir .dirTxt{display:flex;gap:8px;align-items:flex-start;font-size:15px;font-weight:700;color:var(--marron);line-height:1.35}
@@ -134,6 +140,11 @@
 
   <div class="card config" id="cardEventos" style="display:none">
     <h2>📅 Eventos cargados</h2>
+    <div class="filtros" id="filtroCiudad">
+      <button class="fbtn" data-ciudad="">Todas</button>
+      <button class="fbtn" data-ciudad="Madrid">Madrid</button>
+      <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
+    </div>
     <select id="selEvento"><option value="">— Manual / elegir evento —</option></select>
     <p id="evInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
     <div class="evDir" id="evDir"></div>
@@ -1039,21 +1050,67 @@ function esMontaje(e){
   if(t) return t==='MONTAJE';
   return String(e.montaje||'NO').toUpperCase()!=='NO';
 }
+// La ciudad la escribe la oficina a mano ('Madrid', 'Zaragoza', a veces 'ZGZ'),
+// asi que se normaliza igual que en repartos.html en vez de comparar en crudo.
+function normCiudad(c){
+  const t=(c||'').trim().toLowerCase();
+  if(t.startsWith('madrid')) return 'Madrid';
+  if(t.startsWith('zaragoza')||t.startsWith('zgz')) return 'Zaragoza';
+  return (c||'').trim() || 'Sin ciudad';
+}
+
+// Filtro elegido. Se guarda en el movil: un montador de Zaragoza lo pone una vez
+// y ya no vuelve a ver los de Madrid. Clave propia, para no pisar la de repartos.
+let CIUDAD='';
+try { CIUDAD = localStorage.getItem('montaje_ciudad') || ''; } catch(e) {}
+
+function pintarFiltros(){
+  document.querySelectorAll('#filtroCiudad .fbtn').forEach(b=>{
+    b.classList.toggle('on', b.getAttribute('data-ciudad')===CIUDAD);
+    b.onclick=()=>{
+      CIUDAD=b.getAttribute('data-ciudad');
+      try { localStorage.setItem('montaje_ciudad', CIUDAD); } catch(e) {}
+      pintarFiltros(); pintarEventos();
+    };
+  });
+}
+
 function pintarEventos(){
   if(!EVS.length)return;
   $('cardEventos').style.display='';
-  const prox=EVS.filter(e=>e.fecha>=hoyISO() && esMontaje(e))
-    .sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.enc.localeCompare(b.enc));
-  let html='<option value="">— Manual / elegir evento —</option>',fechaPrev='';
+  const todos=EVS.filter(e=>e.fecha>=hoyISO() && esMontaje(e));
+  const prox=CIUDAD?todos.filter(e=>normCiudad(e.ciudad)===CIUDAD):todos;
+  // Con «Todas» manda la ciudad: primero TODO Madrid y luego TODO Zaragoza, en dos
+  // bloques seguidos. Si se ordenara por fecha las dos ciudades quedarian
+  // intercaladas y el desplegable volveria a ser una lista revuelta.
+  prox.sort((a,b)=>(CIUDAD?0:normCiudad(a.ciudad).localeCompare(normCiudad(b.ciudad)))
+                   || a.fecha.localeCompare(b.fecha) || a.enc.localeCompare(b.enc));
+  const sel=$('selEvento');
+  const antes=sel.value;   // si el evento elegido sigue estando, no se pierde
+
+  let html='<option value="">— Manual / elegir evento —</option>',grupoPrev='';
   prox.forEach(e=>{
-    if(e.fecha!==fechaPrev){if(fechaPrev)html+='</optgroup>';
-      html+=`<optgroup label="${fmtFecha(e.fecha).toUpperCase()}">`;fechaPrev=e.fecha;}
+    // Con «Todas» la ciudad va en la cabecera del grupo, que es la unica forma de
+    // separarlas dentro de un desplegable (los optgroup no se pueden anidar).
+    const ciu=normCiudad(e.ciudad);
+    const grupo=CIUDAD?fmtFecha(e.fecha).toUpperCase()
+                      :`📍 ${ciu.toUpperCase()} · ${fmtFecha(e.fecha).toUpperCase()}`;
+    if(grupo!==grupoPrev){if(grupoPrev)html+='</optgroup>';
+      html+=`<optgroup label="${esc(grupo)}">`;grupoPrev=grupo;}
     html+=`<option value="${esc(claveNube(e))}">${esc(e.enc)} · ${esc(e.empresa)} · ${esc(e.pax)} pax</option>`;
   });
-  if(fechaPrev)html+='</optgroup>';
-  const sel=$('selEvento');
+  if(grupoPrev)html+='</optgroup>';
   sel.innerHTML=html;
   sel.onchange=e=>seleccionarEvento(e.target.value);
+
+  if(antes && prox.some(e=>claveNube(e)===antes)) sel.value=antes;
+
+  const aviso=$('evInfo');
+  if(!prox.length && aviso){
+    aviso.innerHTML=CIUDAD
+      ? `No hay montajes pendientes en <b>${esc(CIUDAD)}</b>. Pulsa «Todas» para ver los de la otra ciudad.`
+      : 'No hay montajes pendientes.';
+  }
 }
 
 // (El antiguo "Registro de eventos pasados" se sustituyó por la vista CERRADOS,
@@ -1070,6 +1127,7 @@ render();calcular();
     return;
   }
   EVS=r||[];
+  pintarFiltros();
   pintarEventos();
 })();
 
