@@ -390,6 +390,11 @@ function derivar(m){
   };
 }
 let menuSel='', menuTortPP=0, INV_ACTUAL=null;
+// Lo que dice el presupuesto de verdad (desde el 10/9/2026). Antes solo llegaba el
+// NOMBRE del menu y aqui se tiraba de la plantilla: si la oficina cambiaba platos o
+// bebidas en la descripcion, el montador nunca lo veia. En Maria Luna (12/9) la
+// oficina pidio 50 cervezas y 12 botellas de tinto; el calculo decia 65 y 9.
+let BEB_ESCRITAS=null, DESC_ESCRITA='';
 const $=id=>document.getElementById(id);
 // Seguridad: escapar TODO dato de eventos/Firestore antes de meterlo en innerHTML.
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -684,6 +689,9 @@ function calcular(){
       it('Bricks de zumo',zumoBricks,'2 L · brick con grifo'),
       it('Dispensadores de agua (5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`),
     ]);
+    // Coffee: los bricks se siguen calculando (el texto no dice cuantos), pero lo
+    // escrito a mano se enseña al lado para que nadie lo pase por alto.
+    if(BEB_ESCRITAS)sec('📝','Bebidas escritas en el presupuesto',BEB_ESCRITAS.map(l=>it(esc(l),'✍️','revisar junto a los bricks')));
     sec('🧂','Café · minibox',[
       it('Azucarillos',azucar,'+25%'),
       it('Sacarina',sacarina,'10%'),
@@ -694,6 +702,12 @@ function calcular(){
   } else {
     // Bebidas de cóctel — cantidades ya calculadas (Excel BEBIDA OK.xlsx)
     let bebItems=[];
+    if(BEB_ESCRITAS){
+      // La oficina las cambio en el presupuesto: MANDA LO ESCRITO, sin calculo.
+      BEB_ESCRITAS.forEach(l=>bebItems.push(it(esc(l),'✍️','escrito en el presupuesto')));
+      bebItems.push(it('Dispensadores de agua (fuentes 5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`));
+      sec('🍷','Bebidas · escritas en el presupuesto',bebItems);
+    } else {
     if(conAlc){
       bebItems.push(it('Vino tinto',bvTinto,'vinos · botellas'));
       bebItems.push(it('Vino blanco',bvBlanco,'vinos · botellas'));
@@ -706,6 +720,7 @@ function calcular(){
     bebItems.push(it('Fanta',bvFanta,'refrescos'));
     bebItems.push(it('Dispensadores de agua (fuentes 5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`));
     sec('🍷','Bebidas'+(conAlc?'':' (sin alcohol)'),bebItems);
+    }
   }
 
   // Champaneras y hielo (después de bebidas). En coffee no hay champaneras: solo hielo para las fuentes de agua.
@@ -913,6 +928,8 @@ function seleccionarEvento(val){
   // devolvia el reparto del 27-ago, ambos J-1Z). Se acepta el ENC suelto por
   // compatibilidad con las filas de Cerrados y enlaces antiguos.
   const ev=EVS.find(e=>claveNube(e)===val)||EVS.find(e=>e.enc===val)||null;
+  BEB_ESCRITAS=(ev&&Array.isArray(ev.bebidas)&&ev.bebidas.length)?ev.bebidas:null;
+  DESC_ESCRITA=(ev&&ev.desc)||'';
   eventoActual=ev?claveNube(ev):null;
   cargarEstados();
   const info=$('evInfo');
@@ -928,6 +945,15 @@ function seleccionarEvento(val){
   info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
     ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+
     (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
+  if(DESC_ESCRITA){
+    const lineas=DESC_ESCRITA.split(/\n|•/).map(x=>x.trim()).filter(Boolean);
+    info.innerHTML+='<details style="margin-top:6px"'+(BEB_ESCRITAS?' open':'')+'>'
+      +'<summary style="cursor:pointer;color:#b06d24;font-weight:600">📝 Menú tal como está en el presupuesto'
+      +(BEB_ESCRITAS?' · <span style="color:#c0392b">bebidas cambiadas a mano</span>':'')+'</summary>'
+      +'<div style="margin-top:4px;line-height:1.45">'
+      +lineas.map(l=>/:$/.test(l)?'<b>'+esc(l)+'</b>':'• '+esc(l)).join('<br>')
+      +'</div></details>';
+  }
   pintarDireccion(ev);
   calcular();
   prepararNube(ev);   // muestra Guardar + fotos y carga lo que haya en la nube
