@@ -408,7 +408,15 @@ let eventoActual=null;   // clave 'fecha_ENC' del evento elegido, o null = manua
                          // (antes era solo el ENC, que se repite cada semana)
 function claveEstados(){return eventoActual?('nec_estados@'+eventoActual):'nec_estados';}
 let estados={};
-function cargarEstados(){try{estados=JSON.parse(localStorage.getItem(claveEstados())||'{}');}catch(e){estados={};}}
+// La HORA de cada marca (ms), por casilla. Decide que marca gana cuando dos moviles
+// tocan la misma casilla: la mas reciente. Ver fusionarNube (11/9/2026).
+var estadosT={};
+function claveEstadosT(){return eventoActual?('nec_estados_t@'+eventoActual):'nec_estados_t';}
+function cargarEstados(){
+  try{estados=JSON.parse(localStorage.getItem(claveEstados())||'{}');}catch(e){estados={};}
+  try{estadosT=JSON.parse(localStorage.getItem(claveEstadosT())||'{}');}catch(e){estadosT={};}
+}
+function guardarEstadosT(){try{localStorage.setItem(claveEstadosT(),JSON.stringify(estadosT));}catch(e){}}
 cargarEstados();
 // Cantidades que VUELVEN del retorno (por evento): si se rompen/pierden, se baja el nº.
 // Base para el futuro control de stock (llevado vs vuelto vs roto).
@@ -486,6 +494,8 @@ $('retornoLista').addEventListener('click',e=>{
   const next=ESTADOS[(ESTADOS.indexOf(cur)+1)%ESTADOS.length];
   if(next)estados[k]=next;else delete estados[k];
   guardar();
+  estadosT[k]=Date.now(); guardarEstadosT();
+  subirMarca(k);
   row.className='item'+(next?' '+next:'');
   row.querySelector('.st').textContent=ICONO[next];
 });
@@ -843,6 +853,8 @@ $('hoja').addEventListener('click',e=>{
   const next=ESTADOS[(ESTADOS.indexOf(cur)+1)%ESTADOS.length];
   if(next)estados[k]=next;else delete estados[k];
   guardar();
+  estadosT[k]=Date.now(); guardarEstadosT();
+  subirMarca(k);
   row.className='item'+(next?' '+next:'');
   row.querySelector('.st').textContent=ICONO[next];
   actualizarContador();
@@ -933,7 +945,7 @@ function seleccionarEvento(val){
   eventoActual=ev?claveNube(ev):null;
   cargarEstados();
   const info=$('evInfo');
-  if(!ev){info.textContent='';pintarDireccion(null);calcular();return;}
+  if(!ev){if(DESUSCRIBIR){DESUSCRIBIR();DESUSCRIBIR=null;}info.textContent='';pintarDireccion(null);calcular();return;}
   const _v=claveNube(ev);
   if($('selEvento').value!==_v)$('selEvento').value=_v; // puede venir de Cerrados
   if(ev.pax)$('pax').value=ev.pax;
@@ -972,42 +984,111 @@ function prepararNube(ev){
   $('nubeEstado').textContent='';
   $('fotoEstado').textContent='';
   $('galeria').innerHTML='';
-  // Si este móvil no tiene marcas locales del evento, traer las de la nube (lo que
-  // guardó el montador) — así la OFICINA ve el checklist hecho.
-  if(DB && Object.keys(estados).length===0){
-    // Primero la clave nueva (fecha_enc); si no esta, la vieja (solo enc).
-    DB.collection('checklists').doc(claveNube(ev)).get()
-      .then(d => d.exists ? d : DB.collection('checklists').doc(ev.enc).get())
-      .then(d=>{
-      if(d.exists && eventoActual===claveNube(ev)){
-        const data=d.data();
-        if(data && data.estados){ estados=data.estados; guardarLocal(); calcular(); }
-        if(data && (data.ok||data.falta||data.no)) actualizarContador();
-      }
-    }).catch(e=>{
-      // Antes se callaba: el montador empezaba de cero sin saber que habia trabajo
-      // guardado en la nube.
-      $('nubeEstado').textContent='⚠️ No pude comprobar si había checklist guardado: '+e.message;
-    });
-  }
+  // Antes solo se traia lo de la nube si ESTE movil no tenia ninguna marca: en
+  // cuanto un montador tocaba una casilla, dejaba de ver lo que marcaban los demas.
+  // Ahora se escucha en directo, siempre (11/9/2026).
+  suscribirNube(ev);
   cargarFotos(claveNube(ev));
 }
 function guardarLocal(){try{localStorage.setItem(claveEstados(),JSON.stringify(estados));}catch(e){}}
 
+// ============ SINCRONIZACION ENTRE MOVILES (11/9/2026) ============
+// POR QUE. Dos fallos que se sumaban: (1) un movil solo leia la nube si el no tenia
+// nada marcado, y (2) "Guardar" sobrescribia el checklist ENTERO con lo de ese movil.
+// Si un montador marcaba la carga y otro el retorno, el ultimo en guardar borraba lo
+// del otro, y cada movil veia una cosa distinta.
+// Ahora: cada casilla lleva su hora; se sube sola al tocarla; todos escuchan en
+// directo; y en cada casilla gana la marca MAS RECIENTE, venga del movil que venga.
+// Una casilla desmarcada se guarda como '' (con su hora), para que desmarcar tambien
+// llegue a los demas.
+var DESUSCRIBIR=null;
+
+function fusionarNube(data){
+  const nubeE=(data&&data.estados)||{}, nubeT=(data&&data.estados_t)||{};
+  const claves=new Set([...Object.keys(nubeE),...Object.keys(estados),...Object.keys(estadosT)]);
+  const subir={}, subirT={}; let cambia=false;
+  claves.forEach(k=>{
+    const enNube=Object.prototype.hasOwnProperty.call(nubeE,k);
+    const tn=+nubeT[k]||0, tl=+estadosT[k]||0;
+    const vn=nubeE[k]||'', vl=estados[k]||'';
+    if(enNube && tn>=tl){
+      // La nube es igual o mas nueva: manda la nube.
+      if(vn!==vl){ if(vn)estados[k]=vn; else delete estados[k]; cambia=true; }
+      if(tn>tl)estadosT[k]=tn;
+    }else if(vl||tl){
+      // Este movil tiene algo mas nuevo, o que la nube aun no tiene: se sube.
+      const t=tl||Date.now();
+      estadosT[k]=t; subir[k]=vl; subirT[k]=t;
+    }
+  });
+  guardarEstadosT();
+  if(cambia){ calcular(); guardar(); renderRetorno(); }
+  if(Object.keys(subir).length && DB && EV_NUBE && eventoActual===claveNube(EV_NUBE)){
+    ensureAuth().then(()=>DB.collection('checklists').doc(claveNube(EV_NUBE)).set({
+      enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
+      estados:subir, estados_t:subirT, actualizado_en:new Date().toISOString()
+    },{merge:true})).catch(()=>{});
+  }
+  return {cambia:cambia, subidas:Object.keys(subir).length};
+}
+
+function subirMarca(k){
+  if(!DB||!EV_NUBE||eventoActual!==claveNube(EV_NUBE))return;
+  const marca={}, hora={};
+  marca[k]=estados[k]||''; hora[k]=estadosT[k]||Date.now();
+  ensureAuth().then(()=>DB.collection('checklists').doc(claveNube(EV_NUBE)).set({
+    enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
+    estados:marca, estados_t:hora, actualizado_en:new Date().toISOString()
+  },{merge:true})).catch(()=>{
+    $('nubeEstado').textContent='⚠️ Sin cobertura: la marca queda en este móvil y se sube sola al volver la conexión.';
+  });
+}
+
+function suscribirNube(ev){
+  if(DESUSCRIBIR){DESUSCRIBIR();DESUSCRIBIR=null;}
+  if(!DB||!ev)return;
+  const clave=claveNube(ev);
+  ensureAuth().then(()=>{
+    if(eventoActual!==clave)return;
+    const ref=DB.collection('checklists').doc(clave);
+    // Checklists antiguos guardados solo con el ENC: se leen una vez y se migran solos.
+    ref.get().then(d=>{
+      if(!d.exists) return DB.collection('checklists').doc(ev.enc).get().then(v=>{
+        if(v.exists && eventoActual===clave) fusionarNube(v.data());
+      });
+    }).catch(()=>{});
+    DESUSCRIBIR=ref.onSnapshot(d=>{
+      if(eventoActual!==clave)return;
+      fusionarNube(d.exists?d.data():{});
+      $('nubeEstado').textContent='🔄 Sincronizado con los demás móviles · '
+        +new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    },e=>{
+      $('nubeEstado').textContent='⚠️ Sin conexión con la nube: lo que marques se queda en este móvil y se sube al volver la cobertura.';
+    });
+  });
+}
+
 function guardarEnNube(){
   if(!EV_NUBE) return;
   if(!DB){ $('nubeEstado').textContent='⚠️ Sin conexión: el checklist se guardó en este móvil, pero no en la nube. Reintenta con datos/WiFi.'; return; }
-  const rows=document.querySelectorAll('#hoja .item');
-  let ok=0,falta=0,no=0;
-  rows.forEach(r=>{const s=estados[r.getAttribute('data-key')]||''; if(s==='ok')ok++;else if(s==='falta')falta++;else if(s==='no')no++;});
   $('nubeEstado').textContent='Guardando…';
-  ensureAuth().then(()=>DB.collection('checklists').doc(claveNube(EV_NUBE)).set({
-    enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
-    pax:EV_NUBE.pax||0, menu:EV_NUBE.menu||'',
-    estados:estados, ok, falta, no, total:rows.length,
-    guardado_en:new Date().toISOString()
-  })).then(()=>{
-    $('nubeEstado').innerHTML=`✅ Guardado · ✓ ${ok} cargado · ! ${falta} falta · ✕ ${no} no había`;
+  const clave=claveNube(EV_NUBE), ref=DB.collection('checklists').doc(clave);
+  // Ya NO se sobrescribe el checklist entero con lo de este movil (borraba lo de los
+  // demas): se trae lo de la nube, gana la marca mas reciente de cada casilla y solo
+  // se suben las de este movil que sean mas nuevas.
+  ensureAuth().then(()=>ref.get()).then(d=>{
+    if(eventoActual!==clave) return;
+    fusionarNube(d.exists?d.data():{});
+    const rows=document.querySelectorAll('#hoja .item');
+    let ok=0,falta=0,no=0;
+    rows.forEach(r=>{const x=estados[r.getAttribute('data-key')]||''; if(x==='ok')ok++;else if(x==='falta')falta++;else if(x==='no')no++;});
+    return ref.set({
+      enc:EV_NUBE.enc, empresa:EV_NUBE.empresa||'', fecha:EV_NUBE.fecha||'',
+      pax:EV_NUBE.pax||0, menu:EV_NUBE.menu||'', ok, falta, no, total:rows.length,
+      guardado_en:new Date().toISOString()
+    },{merge:true}).then(()=>{
+      $('nubeEstado').innerHTML=`✅ Guardado y sincronizado · ✓ ${ok} · ! ${falta} falta · ✕ ${no} no había`;
+    });
   }).catch(e=>{ $('nubeEstado').textContent='⚠️ No se pudo guardar: '+e.message; });
 }
 
