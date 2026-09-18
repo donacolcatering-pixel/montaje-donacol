@@ -954,8 +954,18 @@ function seleccionarEvento(val){
   $('menu').value=clave;menuSel=clave;aplicarMenu();
   if(!clave)setServicio(/COFFEE/i.test(ev.menu||'')?'coffee':'coctel');
   setMontaje(/ELEG/i.test(ev.montaje||'')?'elegante':'sport');
+  // CAMAREROS (18/9/2026): lo primero que pregunta el montador es si se queda alguien
+  // sirviendo o monta y se va. Si el evento es viejo y no trae el dato, no se dice nada
+  // en vez de inventar un "sin camareros" que podria ser mentira.
+  let cam='';
+  if(typeof ev.cam==='number'){
+    cam = ev.cam>0
+      ? `<br>👤 <b>${ev.cam} camarero${ev.cam>1?'s':''}</b>`
+        + (ev.cam_dur?` · ${esc(ev.cam_dur)}`:'') + (ev.cam_hor?` · ${esc(ev.cam_hor)}`:'')
+      : '<br>👤 <b>Sin camareros</b> · se monta y se recoge, nadie se queda sirviendo';
+  }
   info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
-    ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+
+    ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+cam+
     (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
   if(DESC_ESCRITA){
     const lineas=DESC_ESCRITA.split(/\n|•/).map(x=>x.trim()).filter(Boolean);
