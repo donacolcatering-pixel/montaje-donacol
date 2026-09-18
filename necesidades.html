@@ -645,10 +645,29 @@ function calcular(){
   const tenedores=$('tenedorCroq').checked?ceil(fritosTot*0.75):0;
 
   // bebidas en BRICKS de 2 L (sport)
-  const cafeBricks=ceil((pax/20*1.5)/2),lecheBricks=ceil((pax/20*1.5)/2),zumoBricks=ceil((pax/20*2)/2);
+  // COFFEE SPORT: se cuenta por CAJAS, no por azucarillos sueltos (18/9/2026).
+  // El montador carga cajas; contar 44 azucarillos no le sirve de nada.
+  //
+  // El redondeo va por tramos de 5: con 35 personas y una caja cada 10 salen 3
+  // (35/10 = 3,5 y se queda abajo); a partir de 36 ya cuentan como 40, o sea 4.
+  const porCada = (n, cada) => { const q = Math.floor(n/cada), r = n % cada;
+                                 return Math.max(1, q + (r > cada/2 ? 1 : 0)); };
+  const MINIBOX = { azucarillos:15, sacarinas:4, paletinas:15 };   // lo que lleva cada una
+  const MINIBOX_CAL = { descafeinados:10, tes:5 };                 // la de agua caliente
+  const miniboxCafe = porCada(pax, 10);          // 1 cada 10 personas
+  const miniboxCal  = Math.max(1, ceil(pax/50)); // 1 cada 50: lo que baje de 50 va en una
+  const cafeBricks  = porCada(pax, 10);          // 1 caja de cafe cada 10
+  const lecheBricks = porCada(pax, 20);          // leche normal: 1 cada 20
+  const lecheSinLac = Math.max(1, ceil(pax/50)); // sin lactosa: 1 cada 50
+  const lecheSoja   = Math.max(1, ceil(pax/50)); // soja: 1 cada 50
+  const aguaCaliente= Math.max(1, ceil(pax/50)); // agua caliente: 1 cada 50
+  const zumoBricks=ceil((pax/20*2)/2);
   const deCada=pax<=80?1:pax<=200?2:2+ceil((pax-200)/100);
   const dispensadores=deCada*2;
-  const azucar=ceil(pax*1.25),sacarina=ceil(pax*0.10),desca=ceil(pax*0.10),te=ceil(pax*0.10);
+  // Totales sueltos: ya no se cargan asi, pero se enseñan como comprobacion.
+  const azucar=miniboxCafe*MINIBOX.azucarillos, sacarina=miniboxCafe*MINIBOX.sacarinas,
+        paletinas=miniboxCafe*MINIBOX.paletinas,
+        desca=miniboxCal*MINIBOX_CAL.descafeinados, te=miniboxCal*MINIBOX_CAL.tes;
   const cubos=ceil(pax/100);
 
   // Bebidas de cóctel (Excel) + champaneras + hielo
@@ -693,21 +712,24 @@ function calcular(){
   ]);
 
   if(servicio==='coffee'){
-    sec('☕','Bebidas (bricks de 2 L con grifo)',[
-      it('Bricks de café',cafeBricks,'2 L · brick con grifo'),
-      it('Bricks de leche — normal/sin lactosa/vegetal',lecheBricks,'2 L · 1 brick por tipo mín.'),
+    sec('☕','Bebidas · cajas que hay que cargar',[
+      it('Café · backing box',cafeBricks,'1 caja cada 10 personas'),
+      it('Leche normal',lecheBricks,'1 cada 20 personas'),
+      it('Leche sin lactosa',lecheSinLac,'1 cada 50 personas'),
+      it('Leche de soja',lecheSoja,'1 cada 50 personas'),
+      it('Agua caliente',aguaCaliente,'1 cada 50 personas'),
       it('Bricks de zumo',zumoBricks,'2 L · brick con grifo'),
       it('Dispensadores de agua (5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`),
     ]);
     // Coffee: los bricks se siguen calculando (el texto no dice cuantos), pero lo
     // escrito a mano se enseña al lado para que nadie lo pase por alto.
     if(BEB_ESCRITAS)sec('📝','Bebidas escritas en el presupuesto',BEB_ESCRITAS.map(l=>it(esc(l),'✍️','revisar junto a los bricks')));
-    sec('🧂','Café · minibox',[
-      it('Azucarillos',azucar,'+25%'),
-      it('Sacarina',sacarina,'10%'),
-      it('Descafeinado (sobre)',desca,'10%'),
-      it('Té / infusiones (sobre)',te,'10%'),
-      it('Paletinas',azucar,''),
+    sec('🧂','Mini box · lo que se carga',[
+      it('Mini box de café',miniboxCafe,'1 cada 10 personas'),
+      it('Mini box de agua caliente',miniboxCal,'1 cada 50 personas'),
+      it('— cada mini box de café lleva','',`${MINIBOX.azucarillos} azucarillos · ${MINIBOX.sacarinas} sacarinas · ${MINIBOX.paletinas} paletinas`),
+      it('— cada mini box de agua caliente lleva','',`${MINIBOX_CAL.descafeinados} descafeinados · ${MINIBOX_CAL.tes} tés`),
+      it('— suman en total','',`${azucar} azucarillos · ${sacarina} sacarinas · ${paletinas} paletinas · ${desca} descafeinados · ${te} tés`),
     ]);
   } else {
     // Bebidas de cóctel — cantidades ya calculadas (Excel BEBIDA OK.xlsx)
@@ -785,13 +807,14 @@ function calcular(){
       buffet:mesas, alta:mesasAltas,
       bandeja:bandSalado+bandDulce+bandSurtido+bandIntol,
       chafing:chafing, champ:champaneras, fuente:dispensadores,
-      cajaCafe:servicio==='coffee'?(cafeBricks+lecheBricks+zumoBricks):0,
+      cajaCafe:servicio==='coffee'?(cafeBricks+lecheBricks+lecheSinLac+lecheSoja+aguaCaliente
+                                    +zumoBricks+miniboxCafe+miniboxCal):0,
       floral:florales, papelera:cubos
     },
     meta:{cliente:$('cliente').value, pax:pax, menu:(menuSel&&CATALOGO[menuSel])?CATALOGO[menuSel].nombre:(servicio==='coffee'?'Coffee break':'Cóctel')}
   };
 
-  pintar(S,{pax,servicio,montaje:elegante?'ELEGANTE':'SPORT',llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
+  pintar(S,{pax,servicio,montaje:elegante?'ELEGANTE':'SPORT',llevaVino,bandejasTot,chafing,cafeBricks,zumoBricks,dispensadores,copas,mesasAltas,miniboxCafe,miniboxCal,aguaMin:rnd(pax*0.48),cliente:$('cliente').value});
 }
 
 function pintar(S,m){
@@ -800,8 +823,9 @@ function pintar(S,m){
   tiles.push(`<div class="tile"><b>${m.bandejasTot}</b><span>BANDEJAS</span></div>`);
   tiles.push(`<div class="tile"><b>${m.chafing}</b><span>CHAFING</span></div>`);
   if(m.servicio==='coffee'){
-    tiles.push(`<div class="tile"><b>${m.cafeBricks}</b><span>BRICKS CAFÉ</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.zumoBricks}</b><span>BRICKS ZUMO</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.cafeBricks}</b><span>CAJAS CAFÉ</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.miniboxCafe}</b><span>MINI BOX</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.miniboxCal}</b><span>MINI BOX CALIENTE</span></div>`);
     tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>AGUA 5L</span></div>`);
   }else{
     if(m.copas>0)tiles.push(`<div class="tile"><b>${m.copas}</b><span>COPAS VINO</span></div>`);
