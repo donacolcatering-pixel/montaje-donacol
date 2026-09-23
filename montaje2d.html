@@ -43,6 +43,13 @@
     background:var(--oro);color:#fff}
   .gBtns button.sec{background:#ecdcc4;color:var(--marron2)}
   .gNota{font-size:11.5px;color:var(--gris);margin:9px 0 0;line-height:1.35}
+  .gJunta{display:flex;flex-direction:column;gap:5px;margin-bottom:4px}
+  .gJunta label{font-size:12px;color:var(--tinta);display:flex;align-items:center;gap:6px}
+  .gJunta input[type=number]{width:62px;padding:4px 6px;border:1px solid var(--linea);border-radius:6px;font-size:12px}
+  /* Eje central: la referencia con la que el montador cuadra la barra */
+  #ejeLinea{position:absolute;top:0;width:0;border-left:2px dashed #c0413b;z-index:3;pointer-events:none;display:none}
+  #ejeLinea span{position:absolute;top:4px;left:6px;font-size:11px;font-weight:800;color:#c0413b;
+    background:rgba(255,255,255,.92);padding:1px 5px;border-radius:4px;white-space:nowrap}
 
   .paleta{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#f1e4cf;border-bottom:1px solid var(--linea)}
   .pBtn{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid var(--linea);border-radius:10px;padding:6px 7px;min-width:54px;cursor:pointer}
@@ -127,6 +134,12 @@
   <div class="gForma" id="gForma"></div>
   <label class="gLab">Largo de la sala (m)
     <input id="gLargo" type="number" value="12" min="2" step="0.5"></label>
+  <div class="gTit" style="margin-top:4px">¿Las mesas van juntas o separadas?</div>
+  <div class="gJunta">
+    <label><input type="radio" name="gJ" value="juntas" checked> Juntas (barra corrida)</label>
+    <label><input type="radio" name="gJ" value="separadas"> Separadas
+      <input id="gSep" type="number" value="80" min="20" step="10"> cm</label>
+  </div>
   <label class="gChk"><input type="checkbox" id="gEncima" checked>
     Colocar también lo de encima (bandejas, chafing, cajas…)</label>
   <label class="gChk"><input type="checkbox" id="gAltas" checked>
@@ -142,7 +155,7 @@
 <div class="paleta" id="paleta"></div>
 
 <div class="canvaswrap">
-  <div id="lienzo"><div id="mundoWrap"><div id="mundo"><svg id="paredes"></svg><div id="marquee"></div></div></div></div>
+  <div id="lienzo"><div id="mundoWrap"><div id="mundo"><svg id="paredes"></svg><div id="ejeLinea"><span></span></div><div id="marquee"></div></div></div></div>
   <div id="zoomctl"><button id="zout">−</button><span id="zlbl">100%</span><button id="zin">＋</button><button id="zfit">⊡</button></div>
 </div>
 
@@ -444,21 +457,73 @@ function genRect(mesa) {
     : {x: mesa.x, y: mesa.y, w: w, h: h};
 }
 
-/** Barra recta de n mesas pegadas, empezando en la esquina VISIBLE (xv, yv). */
+/** Separación entre mesas: 0 si van juntas (barra corrida), o los cm pedidos. */
+function genSeparacion() {
+  const juntas = document.querySelector('input[name="gJ"]:checked');
+  if (!juntas || juntas.value === 'juntas') return 0;
+  return Math.max(0, parseInt($('#gSep').value, 10) || 0);
+}
+
+/** El paso de una mesa a la siguiente, en píxeles. */
+function genPaso() { return cm(TIPOS.buffet.wc + genSeparacion()); }
+
+/** Barra recta de n mesas, empezando en la esquina VISIBLE (xv, yv). */
 function genBarra(n, xv, yv, vertical) {
-  const w = cm(TIPOS.buffet.wc), off = genDesfase(), fila = [];
+  const paso = genPaso(), off = genDesfase(), fila = [];
   for (let i = 0; i < n; i++) {
     fila.push(vertical
-      ? {tipo: 'buffet', rot: 90, x: xv - off, y: yv + w * i + off}
-      : {tipo: 'buffet', rot: 0,  x: xv + w * i, y: yv});
+      ? {tipo: 'buffet', rot: 90, x: xv - off, y: yv + paso * i + off}
+      : {tipo: 'buffet', rot: 0,  x: xv + paso * i, y: yv});
   }
   return fila;
 }
 
+/* EL EJE CENTRAL. Es lo que el montador usa para cuadrar la barra con la sala,
+   y no cae en el mismo sitio según cuántas mesas haya:
+
+     · IMPAR (3 mesas)  -> el centro es el CENTRO DE LA MESA DE EN MEDIO.
+                           Ahí va el punto fuerte: el floral grande, la tarta,
+                           lo que se quiere que se vea de frente al entrar.
+     · PAR (2 o 4)      -> el centro cae en la JUNTA entre las dos mesas
+                           centrales. No hay mesa que lo ocupe: si se pone algo
+                           encima queda partido entre dos tableros, así que lo
+                           que va al centro se reparte a un lado y a otro.
+
+   Con las mesas separadas el eje par cae en el hueco, que es aire: ahí no se
+   puede poner nada, y conviene verlo antes de montar. */
+function genEje(mesas) {
+  const rects = mesas.map(genRect).sort((a, b) => a.x - b.x);
+  if (!rects.length) return null;
+  const n = rects.length;
+  if (n % 2 === 1) {
+    const m = rects[(n - 1) / 2];
+    return {x: m.x + m.w / 2, sobreMesa: true, n,
+            texto: 'Eje · centro de la mesa ' + ((n - 1) / 2 + 1) + ' de ' + n};
+  }
+  const izq = rects[n / 2 - 1], der = rects[n / 2];
+  const hueco = (der.x - (izq.x + izq.w)) / SCALE;
+  return {x: (izq.x + izq.w + der.x) / 2, sobreMesa: false, n,
+          texto: hueco > 1 ? 'Eje · en el hueco entre la mesa ' + (n / 2) + ' y la ' + (n / 2 + 1)
+                             + ' (' + Math.round(hueco) + ' cm)'
+                           : 'Eje · en la junta de las mesas ' + (n / 2) + ' y ' + (n / 2 + 1)};
+}
+
+/** Pinta el eje en el plano, que es media explicación por sí solo. */
+function genPintarEje(eje) {
+  const l = $('#ejeLinea');
+  if (!eje) { l.style.display = 'none'; return; }
+  l.style.display = 'block';
+  l.style.left = eje.x + 'px';
+  l.style.height = WORLD_H + 'px';
+  l.querySelector('span').textContent = eje.texto;
+}
+
 /** Reparte las mesas según la forma elegida. Devuelve posiciones, aún sin id. */
 function genMesas(n, largoSalaCm) {
-  const t = TIPOS.buffet, anchoMesa = t.wc;
-  const centrar = (cuantas) => GEN.ORIGEN_X + Math.max(0, cm(largoSalaCm - cuantas * anchoMesa) / 2);
+  const t = TIPOS.buffet;
+  // Lo que ocupa una barra de k mesas: k mesas más los huecos que hay ENTRE ellas.
+  const ocupa = (k) => k * t.wc + Math.max(0, k - 1) * genSeparacion();
+  const centrar = (k) => GEN.ORIGEN_X + Math.max(0, cm(largoSalaCm - ocupa(k)) / 2);
 
   if (genForma === 'linea') return genBarra(n, centrar(n), GEN.ORIGEN_Y, false);
 
@@ -471,10 +536,10 @@ function genMesas(n, largoSalaCm) {
     // Dos mitades iguales con un hueco en medio: por ahí entra la gente y se
     // sirve por los dos lados a la vez, que es lo que descongestiona la cola.
     const a = Math.ceil(n / 2), b = n - a;
-    const anchoTotal = cm((a + b) * anchoMesa + GEN.HUECO_SIM);
+    const anchoTotal = cm(ocupa(a) + GEN.HUECO_SIM + ocupa(b));
     const x0 = GEN.ORIGEN_X + Math.max(0, (cm(largoSalaCm) - anchoTotal) / 2);
     return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
-            ...genBarra(b, x0 + cm(a * anchoMesa + GEN.HUECO_SIM), GEN.ORIGEN_Y, false)];
+            ...genBarra(b, x0 + cm(ocupa(a) + GEN.HUECO_SIM), GEN.ORIGEN_Y, false)];
   }
   if (genForma === 'ele') {
     const a = Math.ceil(n / 2), b = n - a;
@@ -587,6 +652,8 @@ function genMontar() {
 
   items = nuevos.map(o => ({...o, id: nextId++}));
   selEls = new Set(); selWall = null;
+  const eje = genEje(mesas);
+  genPintarEje(eje);
   renderEls(); marcarSel(); actualizarInv(); guardar();
 
   // Qué ha entrado y qué no: si algo no cabe, hay que decirlo, no esconderlo.
@@ -596,10 +663,21 @@ function genMontar() {
     const falta = (INV[k] || 0) - (puesto[k] || 0);
     if (falta > 0 && TIPOS[k]) fuera.push(falta + ' ' + TIPOS[k].nm.toLowerCase());
   });
-  $('#gNota').innerHTML = fuera.length
+  const sobreEje = eje
+    ? (eje.sobreMesa
+        ? '🎯 ' + nMesas + ' mesas (impar): el centro cae <b>sobre la mesa de en medio</b>, '
+          + 'ahí va el punto fuerte — el floral grande, la tarta, lo que se ve al entrar.'
+        : '🎯 ' + nMesas + ' mesas (par): el centro cae <b>' + (genSeparacion() ? 'en el hueco' : 'en la junta')
+          + '</b> entre las dos de en medio. '
+          + (genSeparacion() ? 'Ahí no se puede poner nada: es aire.'
+                             : 'Lo que vaya al centro queda partido entre dos tableros, '
+                               + 'así que se reparte a un lado y a otro.'))
+    : '';
+  $('#gNota').innerHTML = (fuera.length
     ? '⚠️ No ha cabido todo: falta colocar <b>' + fuera.join(', ') + '</b>. '
       + 'Añade una mesa más o prueba otra forma.'
-    : '✅ Montado con ' + nMesas + ' mesa(s). Todo lo del checklist está colocado.';
+    : '✅ Montado con ' + nMesas + ' mesa(s). Todo lo del checklist está colocado.')
+    + (sobreEje ? '<br><br>' + sobreEje : '');
   $('#lienzo').scrollTo(Math.max(0, GEN.ORIGEN_X * 0.5 - 100), Math.max(0, GEN.ORIGEN_Y * 0.5 - 100));
 }
 
@@ -613,6 +691,18 @@ $('#bGen').onclick = () => {
 };
 $('#gCerrar').onclick = () => { $('#genPanel').style.display = 'none'; };
 $('#gHacer').onclick = genMontar;
+
+/* Al llegar desde el checklist, el plano YA viene montado. Antes se abría un
+   lienzo en blanco y había que colocarlo todo a mano, que es justo el trabajo
+   que esto quita. Solo se monta solo si no hay nada guardado: si el montador
+   ya había movido cosas, se respeta lo suyo. */
+(function montarAlLlegar() {
+  if (!INV || items.length) return;
+  const hayAlgo = Object.values(INV).some(v => v > 0);
+  if (!hayAlgo) return;
+  genMontar();
+  $('#genPanel').style.display = 'block';   // abierto, por si quiere otra forma
+})();
 
 renderEls();renderWalls();setZoom(0.6);lienzo.scrollTo(0,0);
 </script>
