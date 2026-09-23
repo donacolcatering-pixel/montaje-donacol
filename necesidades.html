@@ -809,16 +809,24 @@ function calcular(){
       buffet:mesas, alta:mesasAltas,
       bandeja:bandSalado+bandDulce+bandSurtido+bandIntol,
       chafing:chafing, champ:champaneras, fuente:dispensadores,
-      // Separado por tipos: la hoja de montaje necesita saber qué es cada caja,
-      // no un montón. Los mini box van aparte de las cajas de bebida.
-      cajaCafe:servicio==='coffee'?(cafeBricks+lecheBricks+lecheSinLac+lecheSoja
-                                    +aguaCaliente+zumoBricks):0,
-      minibox:servicio==='coffee'?(miniboxCafe+miniboxCal):0,
-      // Una pila de vasos por cada caja de bebida, como se monta (ver fotos).
+      // CADA CAJA POR SU NOMBRE. En un coffee break el café manda: de él salen
+      // las demás. La hoja de montaje necesita distinguirlas para emparejar
+      // café con leche y repartir el resto, así que van una a una.
+      cafe:        servicio==='coffee'?cafeBricks  :0,
+      lecheNormal: servicio==='coffee'?lecheBricks :0,
+      sinLactosa:  servicio==='coffee'?lecheSinLac :0,
+      soja:        servicio==='coffee'?lecheSoja   :0,
+      aguaCal:     servicio==='coffee'?aguaCaliente:0,
+      zumo:        servicio==='coffee'?zumoBricks  :0,
+      minibox:     servicio==='coffee'?(miniboxCafe+miniboxCal):0,
+      // Una pila de vasos por cada caja de bebida, como en las fotos.
       vaso:servicio==='coffee'?(cafeBricks+lecheBricks+lecheSinLac+lecheSoja
                                 +aguaCaliente+zumoBricks):0,
-      servis:servicio==='coffee'?Math.max(2,Math.ceil(pax/40)*2):2,
-      floral:florales, papelera:cubos
+      // Servilletas: DOS POR MESA, y van entre las cajas.
+      servis:mesas*2,
+      // Florales: como mucho DOS POR MESA. Aunque el cálculo dé más, en la mesa
+      // no caben sin que parezca un escaparate: uno al centro o dos a los lados.
+      floral:Math.min(florales, mesas*2), papelera:cubos
     },
     meta:{cliente:$('cliente').value, pax:pax, menu:(menuSel&&CATALOGO[menuSel])?CATALOGO[menuSel].nombre:(servicio==='coffee'?'Coffee break':'Cóctel')}
   };
