@@ -818,7 +818,11 @@ function calcular(){
       soja:        servicio==='coffee'?lecheSoja   :0,
       aguaCal:     servicio==='coffee'?aguaCaliente:0,
       zumo:        servicio==='coffee'?zumoBricks  :0,
-      minibox:     servicio==='coffee'?(miniboxCafe+miniboxCal):0,
+      // Las dos mini box son cosas distintas y van en sitios distintos:
+      // la de café acompaña a CADA CAJA DE CAFÉ (el café guía), y la de
+      // infusiones va con el agua caliente.
+      minibox:     servicio==='coffee'?cafeBricks:0,
+      miniboxCal:  servicio==='coffee'?miniboxCal:0,
       // VASOS: se cuentan por puestos, no por cajas. Cada PUESTO de café (un
       // café con su leche) lleva una pila de 15 vasos; y cada fuente de agua,
       // 10 vasos a cada lado. Es la regla de montaje, no una estimación.

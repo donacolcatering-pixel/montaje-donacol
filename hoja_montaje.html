@@ -122,7 +122,8 @@ const PIEZAS = {
   fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0'},
   vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad'},
   vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad'},
-  minibox:    {nm:'Mini box',               wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a'},
+  minibox:    {nm:'Mini box de café',        wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a'},
+  miniboxCal: {nm:'Mini box de infusiones',  wc:12,  hc:6.5,  mk:'MI', col:'#e9dcc4', bd:'#a07f3a'},
   servis:     {nm:'Servilletas (platito)',  wc:10,  hc:10,   mk:'S',  col:'#eadfca', bd:'#b09a72'},
   floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a'},
   alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27'},
@@ -256,8 +257,10 @@ function filaDelante(cuantos, anchoCm, nMesas) {
   if (!mitad.length && !central) return [];
 
   const W = (t) => PIEZAS[t].wc;
+  const llevaInfusiones = (pu) => pu.includes('aguaCal') && (cuantos.miniboxCal || 0) > 0;
   const anchoPuesto = (pu) => pu.reduce((a, t) => a + W(t), 0) + (pu.length - 1) * 2
-                            + W('minibox') + 2 + W('vaso') + 2;
+                            + W('minibox') + 2 + W('vaso') + 2
+                            + (llevaInfusiones(pu) ? W('miniboxCal') + 2 : 0);
   const anchoAgua = () => W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
   const anchoDe = (c) => c.agua ? anchoAgua() : anchoPuesto(c.puesto);
 
@@ -285,7 +288,14 @@ function filaDelante(cuantos, anchoCm, nMesas) {
       const fuera = c.espejo ? 'der' : 'izq';                 // dónde va la mini box
       if (fuera === 'izq') { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
       else { puntos.push({tipo: 'vaso', x: dx}); dx += W('vaso') + 2; }
-      cajas.forEach(t => { puntos.push({tipo: t, x: dx}); dx += W(t) + 2; });
+      cajas.forEach(t => {
+        puntos.push({tipo: t, x: dx}); dx += W(t) + 2;
+        // La mini box de infusiones va pegada al AGUA CALIENTE, que es lo que
+        // acompaña: descafeinados y tés. Con el café no pinta nada.
+        if (t === 'aguaCal' && (cuantos.miniboxCal || 0) > 0) {
+          puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
+        }
+      });
       if (fuera === 'izq') puntos.push({tipo: 'vaso', x: dx});
       else puntos.push({tipo: 'minibox', x: dx});
     }
@@ -486,7 +496,8 @@ function pintar() {
   const detalle = {
     vaso:     n => n + ' pilas · ' + (n * 15) + ' vasos',
     vasoAgua: n => n + ' pilas · ' + (n * 10) + ' vasos',
-    minibox:  n => n + ' · 15 azucarillos, 4 sacarinas y 15 paletinas cada una',
+    minibox:  n => n + ' · una por cada caja de CAFÉ · 15 azucarillos, 4 sacarinas y 15 paletinas',
+    miniboxCal: n => n + ' · va con el agua caliente · 10 descafeinados y 5 tés',
   };
   const filas = Object.keys(PIEZAS).filter(t => t !== 'buffet' && (INV[t] || 0) > 0)
     .map(t => {
@@ -507,7 +518,8 @@ function pintar() {
     'El <b>logo de la servilleta vertical</b>, mirando al cliente y recto, sin colgar.',
     'Las <b>paletinas a un lado</b>, no repartidas.',
     'Las <b>aguas van siempre de dos en dos</b>: una normal y otra de limón con hierbabuena.',
-    'Cada <b>puesto de café</b> (café con su leche) lleva <b>una mini box y una pila de 15 vasos</b>.',
+    'Manda el café: por <b>cada caja de CAFÉ</b> van <b>una mini box y una pila de 15 vasos</b>. Las de leche no cuentan.',
+    'La <b>mini box de infusiones</b> (10 descafeinados, 5 tés) va con el <b>agua caliente</b>, no con el café.',
     'La <b>mini box por fuera y los vasos por dentro</b>: en la mitad izquierda la caja va a la izquierda del puesto; en la derecha, al revés.',
     'Cada <b>fuente de agua</b> lleva <b>10 vasos a cada lado</b>, y esos van un poco más adelantados que el resto.',
     '<b>Todo alineado a la misma altura</b> por el borde de delante. Solo se adelantan los vasos del agua.',
