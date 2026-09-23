@@ -304,50 +304,73 @@ function filaDelante(cuantos, anchoCm, nMesas) {
   return puntos;
 }
 
-/* --- LA FILA DE DETRÁS: comida y flores ----------------------------------
-   Regla del floral: NUNCA más de dos por mesa. Si es uno, va al centro; si
-   son dos, a los lados. Más de dos en una mesa parece un escaparate.        */
-function filaDetras(cuantos, anchoCm, nMesas) {
+/* --- LA COMIDA: MESA A MESA, NO POR TODA LA BARRA --------------------------
+
+   Esto estaba mal montado. Se centraba la comida en el conjunto de la barra y
+   quedaba un socavón a los lados: dos bandejas juntas en medio y dos metros de
+   mantel vacío a cada extremo. La mesa hay que LLENARLA.
+
+   Cómo se hace de verdad: se parte cada mesa y se le ponen SUS bandejas,
+   repartidas en su trozo, dejando entre ellas un hueco de una bandeja o algo
+   menos, sin llegar a los bordes. Y no en línea recta: escalonadas, de modo que
+   al mirar la barra se lee una V.
+
+   Las flores rematan: una en el centro del grupo y las demás a los lados, que
+   es lo que acaba de llenar la mesa.                                         */
+
+const HUECO_BANDEJA = 0.8;   // el hueco entre bandejas, en anchos de bandeja
+const DESVIO_V = 7;          // cm que se adelantan las del centro: la V
+
+function filaDetras(cuantos, anchoCm, nMesas, fondoDisponible) {
   const puntos = [];
-  const bandejas = cuantos.bandeja || 0, chafings = cuantos.chafing || 0;
-  const flores = Math.min(cuantos.floral || 0, nMesas * 2);
+  const anchoMesa = PIEZAS.buffet.wc;
 
-  const piezas = [];
-  for (let i = 0; i < chafings; i++) piezas.push('chafing');
-  for (let i = 0; i < bandejas; i++) piezas.push('bandeja');
-  if (!piezas.length && !flores) return puntos;
+  // --- la comida, repartida mesa a mesa ---
+  const comida = [];
+  for (let i = 0; i < (cuantos.chafing || 0); i++) comida.push('chafing');
+  for (let i = 0; i < (cuantos.bandeja || 0); i++) comida.push('bandeja');
 
-  // las flores, primero: una al centro si es impar, o a los lados
-  const floralCentral = flores % 2 === 1;
-  const anchoFloral = flores ? PIEZAS.floral.wc : 0;
-  if (floralCentral) puntos.push({tipo: 'floral', x: (anchoCm - anchoFloral) / 2, fila: 0});
-  const paresFlor = Math.floor(flores / 2);
+  const base = Math.floor(comida.length / nMesas), resto = comida.length % nMesas;
+  let k = 0;
+  for (let m = 0; m < nMesas; m++) {
+    const cuantas = base + (m < resto ? 1 : 0);
+    if (!cuantas) continue;
+    const mias = comida.slice(k, k + cuantas); k += cuantas;
+    const x0 = m * anchoMesa, centroMesa = x0 + anchoMesa / 2;
 
-  const mitad = piezas.slice(0, Math.floor(piezas.length / 2));
-  const central = piezas.length % 2 ? piezas[Math.floor(piezas.length / 2)] : null;
-  const anchoCentro = floralCentral ? anchoFloral : (central ? PIEZAS[central].wc : 0);
+    const anchoPieza = Math.max(...mias.map(t => PIEZAS[t].wc));
+    const hueco = anchoPieza * HUECO_BANDEJA;
+    const ancho = mias.reduce((a, t) => a + PIEZAS[t].wc, 0) + (mias.length - 1) * hueco;
+    let x = centroMesa - ancho / 2;                 // centradas en SU mesa
+    const maxDist = Math.max(1, ancho / 2);
 
-  const desde = MARGEN + (paresFlor ? PIEZAS.floral.wc + SEPARA : 0);
-  const hasta = anchoCm / 2 - anchoCentro / 2 - SEPARA;
-  const suma = mitad.reduce((a, t) => a + PIEZAS[t].wc, 0);
-  const hueco = mitad.length > 1 ? Math.max(SEPARA, ((hasta - desde) - suma) / (mitad.length - 1)) : 0;
-
-  for (let i = 0; i < paresFlor; i++) {
-    const x = MARGEN + i * (PIEZAS.floral.wc + SEPARA);
-    puntos.push({tipo: 'floral', x, fila: 0});
-    puntos.push({tipo: 'floral', x: anchoCm - x - PIEZAS.floral.wc, fila: 0});
+    mias.forEach(t => {
+      const w = PIEZAS[t].wc, centroPieza = x + w / 2;
+      // La V: las del centro de la mesa se adelantan, las de los lados quedan
+      // atrás. Como depende de la DISTANCIA al centro, las parejas de un lado
+      // y otro caen a la misma altura y la mesa se ve simétrica.
+      const dist = Math.abs(centroPieza - centroMesa) / maxDist;
+      puntos.push({tipo: t, x, desv: (1 - dist) * DESVIO_V});
+      x += w + hueco;
+    });
   }
-  if (central && !floralCentral) puntos.push({tipo: central, x: (anchoCm - PIEZAS[central].wc) / 2, fila: 0});
-  let x = desde;
-  mitad.forEach(t => {
-    puntos.push({tipo: t, x, fila: 0});
-    puntos.push({tipo: t, x: anchoCm - x - PIEZAS[t].wc, fila: 0});
-    x += PIEZAS[t].wc + hueco;
-  });
+
+  // --- las flores: una al centro del grupo, las demás a los lados ---
+  const flores = Math.min(cuantos.floral || 0, nMesas * 2);
+  if (flores) {
+    const w = PIEZAS.floral.wc;
+    let puestas = 0;
+    if (flores % 2 === 1) { puntos.push({tipo: 'floral', x: (anchoCm - w) / 2, desv: 0}); puestas = 1; }
+    for (let i = 0; puestas + 2 <= flores; i++, puestas += 2) {
+      // van a los extremos de cada mesa, de fuera hacia dentro
+      const x = MARGEN + i * anchoMesa;
+      puntos.push({tipo: 'floral', x, desv: 0});
+      puntos.push({tipo: 'floral', x: anchoCm - x - w, desv: 0});
+    }
+  }
   return puntos;
 }
 
-/* --- Qué lleva un grupo y dónde ------------------------------------------ */
 function montarGrupo(tamGrupo, cuantos) {
   const anchoCm = tamGrupo * PIEZAS.buffet.wc, fondoCm = PIEZAS.buffet.hc;
   const piezas = [];
@@ -370,10 +393,11 @@ function montarGrupo(tamGrupo, cuantos) {
 
   // DETRÁS: la comida y las flores.
   const detras = filaDetras(cuantos, anchoCm, tamGrupo);
-  const altoDetras = detras.length ? Math.max(...detras.map(p => PIEZAS[p.tipo].hc)) : 0;
+  const altoDetras = detras.length
+    ? Math.max(...detras.map(p => PIEZAS[p.tipo].hc + (p.desv || 0))) : 0;
   const sitio = fondoCm - MARGEN * 2 - fondoOcupadoDelante - SEPARA;
   if (altoDetras <= sitio) {
-    detras.forEach(p => piezas.push({tipo: p.tipo, x: p.x, y: MARGEN}));
+    detras.forEach(p => piezas.push({tipo: p.tipo, x: p.x, y: MARGEN + (p.desv || 0)}));
   }
 
   const leer = (lista) => lista.slice().sort((a, b) => a.x - b.x || (a.fila || 0) - (b.fila || 0))
