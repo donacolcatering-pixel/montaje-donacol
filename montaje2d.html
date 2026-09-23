@@ -782,6 +782,9 @@ const BANDA_FONDO  = ['chafing', 'bandeja'];
 // La fuente entra en la franja de delante y el floral en la de detrás como
 // una pieza más: si su cantidad es impar, el centro es suyo por la regla de
 // arriba. No hace falta tratarlos como caso especial.
+// Van siempre en pareja, una a cada lado, y nunca en el centro: las fuentes de
+// agua son dos —la normal y la de limón con hierbabuena— y de ahí no se baja.
+const SIEMPRE_EN_PAREJA = ['fuente'];
 const BANDA_FRENTE_TODO = ['cajaCafe', 'fuente', 'vaso', 'servis', 'minibox'];
 const BANDA_FONDO_TODO  = ['chafing', 'bandeja', 'floral'];
 
@@ -805,21 +808,38 @@ function genFilaEspejo(piezas, anchoCm, _hueco) {
                       .sort((a, b) => b.n - a.n || TIPOS[b.tipo].wc - TIPOS[a.tipo].wc);
   if (!vivos.length) return {puntos: [], sobra: []};
 
-  const impares = vivos.filter(p => p.n % 2);
+  // Las aguas van SIEMPRE de dos en dos —una normal y otra con limón y
+  // hierbabuena— así que nunca hay un número impar de fuentes y nunca se
+  // quedan el centro: van una a cada lado. El checklist ya las calcula en
+  // pares (dispensadores = deCada × 2), esto solo lo hace cumplir aquí.
+  const puedeIrAlCentro = (tipo) => !SIEMPRE_EN_PAREJA.includes(tipo);
+  const impares = vivos.filter(p => p.n % 2 && puedeIrAlCentro(p.tipo));
   const centro = impares.length ? impares[0].tipo : null;
   const sobra = impares.slice(1).map(p => p.tipo);   // los demás impares pierden una
+  // Si alguna de las que van en pareja llegara impar, se queda una fuera antes
+  // que descolocar el par.
+  vivos.filter(p => p.n % 2 && !puedeIrAlCentro(p.tipo)).forEach(p => sobra.push(p.tipo));
 
-  // Media fila, alternando: se va cogiendo del tipo al que más le queda, así
-  // no salen cuatro cajas seguidas y luego cuatro pilas de vasos.
-  const quedan = {};
-  vivos.forEach(p => quedan[p.tipo] = Math.floor(p.n / 2));
-  const mitad = [];
-  let total = Object.values(quedan).reduce((a, b) => a + b, 0);
-  while (total > 0) {
-    const tipo = Object.keys(quedan).sort((a, b) => quedan[b] - quedan[a])[0];
-    if (!quedan[tipo]) break;
-    mitad.push(tipo); quedan[tipo]--; total--;
-  }
+  /* Media fila, con cada tipo REPARTIDO a lo largo, no agrupado.
+     A cada pieza se le da su sitio proporcional dentro de la fila —la única
+     fuente de dos va al medio de su mitad, no al final— y luego se ordena por
+     ese sitio. Cogiendo siempre «del que más queda» pasaba lo contrario: las
+     dos aguas acababan juntas en el centro, y en la pared van separadas. */
+  const reparto = [];
+  vivos.forEach(p => {
+    const mitadN = Math.floor(p.n / 2);
+    for (let i = 0; i < mitadN; i++) {
+      reparto.push({tipo: p.tipo, sitio: (i + 0.5) / mitadN});
+    }
+  });
+  // A igual sitio manda el más numeroso, que es el que abre y cierra la fila:
+  // con 3 cafés y 2 aguas sale café·agua·café·agua·café, y no al revés.
+  const cuantos = {};
+  vivos.forEach(p => cuantos[p.tipo] = p.n);
+  reparto.sort((a, b) => a.sitio - b.sitio
+                      || cuantos[b.tipo] - cuantos[a.tipo]
+                      || TIPOS[b.tipo].wc - TIPOS[a.tipo].wc);
+  const mitad = reparto.map(r => r.tipo);
 
   const anchoCentro = centro ? TIPOS[centro].wc : 0;
   const desde = GEN.MARGEN;
