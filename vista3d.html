@@ -77,6 +77,7 @@
   <label for="cual">Mesas juntas</label>
   <select id="cual"></select>
   <span class="sp"></span>
+  <button id="bTodo" class="on">Barra entera</button>
   <button id="bSombra" class="on">Sombra</button>
   <button id="bMarcas">Marcas</button>
 </div>
@@ -115,7 +116,10 @@ PIEZAS.fuente.col = '#dce9f0'; PIEZAS.bandeja.col = '#d8b483';
    se gira el plano de la mesa alrededor de su centro antes de proyectarlo, y
    se vuelve a ordenar lo que tapa a qué. Es la misma cuenta, con un ángulo.
 --------------------------------------------------------------------------- */
-let ANG = 20 * Math.PI / 180, SOMBRA = true, MARCAS = false, GRUPO = null;
+/* SEP_GRUPOS —el hueco entre grupos— ya viene del motor compartido: si se
+   redeclarara aquí, el navegador para la página entera y además podrían
+   acabar valiendo cosas distintas en la hoja y en el visor. */
+let ANG = 20 * Math.PI / 180, SOMBRA = true, MARCAS = false, TODO = true, GRUPO = null;
 
 function proyectar(x, y, z, centro) {
   const dx = x - centro.x, dy = y - centro.y;
@@ -308,19 +312,45 @@ function adornos(p, z, centro) {
 
 function pintarEscena() {
   if (!GRUPO) return;
-  const {tam, cuantos} = GRUPO;
-  const m = montarGrupo(tam, cuantos);
-  const W = tam * PIEZAS.buffet.wc, D = PIEZAS.buffet.hc, ALTO = PIEZAS.buffet.zc;
+  const D = PIEZAS.buffet.hc, ALTO = PIEZAS.buffet.zc, ANCHO_MESA = PIEZAS.buffet.wc;
+
+  /* LA BARRA ENTERA o un grupo suelto.
+
+     Con «barra entera» se ven los grupos con sus huecos: tres mesas sueltas se
+     ven sueltas, y «dos juntas y una separada» se ve tal cual. Es lo que hace
+     falta para comprobar que el reparto es el que se quiere. Con «un grupo» se
+     mira uno de cerca, que es lo que se copia luego en los demás. */
+  const grupos = TODO ? GRUPO.grupos : [GRUPO.tam];
+  const cargas = TODO ? GRUPO.cargas : [GRUPO.cuantos];
+
+  const piezas = [], mesas = [];
+  let x0 = 0;
+  grupos.forEach((tam, gi) => {
+    const m = montarGrupo(tam, cargas[gi]);
+    mesas.push({x: x0, w: tam * ANCHO_MESA, tam});
+    m.piezas.forEach(p => piezas.push({...p, x: p.x + x0}));
+    x0 += tam * ANCHO_MESA + (TODO ? SEP_GRUPOS : 0);
+  });
+  const W = x0 - (TODO ? SEP_GRUPOS : 0);
   const centro = {x: W / 2, y: D / 2};
 
   let cuerpo = '';
-  if (SOMBRA) {
-    // La sombra en el suelo ayuda a entender que la mesa está apoyada.
-    const esq = [[0,0],[W,0],[W,D],[0,D]].map(([a,b]) => proyectar(a, b, 0, centro));
-    cuerpo += '<polygon points="' + esq.map(p => (p[0] + 5) + ',' + (p[1] + 5)).join(' ')
-            + '" fill="rgba(90,59,39,.14)"/>';
-  }
-  cuerpo += cajaGirada(0, 0, 0, W, D, ALTO, '#fdfbf6', '#b9a888', centro, null);
+  mesas.forEach(ms => {
+    if (SOMBRA) {
+      const esq = [[ms.x,0],[ms.x+ms.w,0],[ms.x+ms.w,D],[ms.x,D]]
+        .map(([a,b]) => proyectar(a, b, 0, centro));
+      cuerpo += '<polygon points="' + esq.map(p => (p[0] + 5) + ',' + (p[1] + 5)).join(' ')
+              + '" fill="rgba(90,59,39,.14)"/>';
+    }
+    cuerpo += cajaGirada(ms.x, 0, 0, ms.w, D, ALTO, '#fdfbf6', '#b9a888', centro, null);
+    // las juntas entre mesas de un mismo grupo
+    for (let i = 1; i < ms.tam; i++) {
+      const jx = ms.x + i * ANCHO_MESA;
+      const a = proyectar(jx, 0, ALTO, centro), b = proyectar(jx, D, ALTO, centro);
+      cuerpo += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1]
+              + '" stroke="rgba(120,95,60,.4)" stroke-width="0.6" stroke-dasharray="3 2"/>';
+    }
+  });
 
   // De más lejos a más cerca, según el ángulo: así unas cosas tapan a otras.
   const c = Math.cos(ANG), s = Math.sin(ANG);
@@ -328,7 +358,7 @@ function pintarEscena() {
     const dx = p.x + PIEZAS[p.tipo].wc / 2 - centro.x, dy = p.y + PIEZAS[p.tipo].hc / 2 - centro.y;
     return (dx * c - dy * s) + (dx * s + dy * c);
   };
-  m.piezas.slice().sort((a, b) => cerca(a) - cerca(b)).forEach(p => {
+  piezas.slice().sort((a, b) => cerca(a) - cerca(b)).forEach(p => {
     const t = PIEZAS[p.tipo], h = t.zc || 10;
     const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral');
     cuerpo += redondo
@@ -378,6 +408,11 @@ function ponerGrados(g) {
 document.getElementById('giro').addEventListener('input', e => ponerGrados(+e.target.value));
 document.querySelectorAll('.pistas button').forEach(b =>
   b.onclick = () => ponerGrados(+b.dataset.g));
+document.getElementById('bTodo').onclick = function () {
+  TODO = !TODO; this.classList.toggle('on', TODO);
+  this.textContent = TODO ? 'Barra entera' : 'Un grupo';
+  pintarEscena();
+};
 document.getElementById('bSombra').onclick = function () {
   SOMBRA = !SOMBRA; this.classList.toggle('on', SOMBRA); pintarEscena();
 };
@@ -406,7 +441,9 @@ window.addEventListener('resize', pintarEscena);
   const elegir = () => {
     const ag = opciones[+sel.value];
     const tam = Math.max.apply(null, ag.grupos);
-    GRUPO = {tam, cuantos: repartir(ag.grupos)[ag.grupos.indexOf(tam)]};
+    const cargas = repartir(ag.grupos);
+    GRUPO = {tam, cuantos: cargas[ag.grupos.indexOf(tam)],
+             grupos: ag.grupos, cargas};
     pintarEscena();
   };
   sel.onchange = elegir;
