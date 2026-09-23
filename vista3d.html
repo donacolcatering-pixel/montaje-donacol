@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#3F2920">
+<title>Ver la mesa · Doña Col</title>
+<!--
+  LA MESA, GIRÁNDOLA.
+
+  Aquí no se mide ni se toca nada: se mira. Se arrastra el dedo y la mesa da la
+  vuelta entera, para ver por dónde queda cada cosa y cómo se va a ver desde
+  donde llega la gente.
+
+  El dibujo no son fotos ni imágenes renderizadas: es la misma geometría de la
+  hoja impresa, girada. Por eso cambia solo cuando cambian las cantidades del
+  evento y nunca dice algo distinto que el papel.
+
+  Cuando estén las fotos de los productos, cada cara de estas cajas se puede
+  forrar con la foto de la cara real -el grifo, la madera impresa, el logo de
+  los vasos- y esto pasa de esquema a maqueta sin tocar el cálculo.
+-->
+<style>
+  :root{--marron:#3F2920;--marron2:#5A3B27;--oro:#C07A2C;--beige:#F5EAD8;
+        --crema:#FFFDF8;--linea:#E3D3B8;--tinta:#2e241d;--gris:#7d6c5c}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--beige);color:var(--tinta);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;
+       user-select:none}
+  header{background:var(--marron);color:#f7ecdc;padding:9px 14px;display:flex;
+         align-items:center;gap:10px;border-bottom:3px solid var(--oro)}
+  header img{width:36px;height:36px;object-fit:contain;background:#fbf4e7;border-radius:50%;padding:3px}
+  header h1{margin:0;font-family:Georgia,serif;font-size:16px}
+  header p{margin:1px 0 0;font-size:9.5px;color:var(--oro);text-transform:uppercase;letter-spacing:1px}
+  header a{margin-left:auto;color:#f7ecdc;font-size:12px;text-decoration:none;font-weight:700;
+           border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 10px}
+
+  .barra{display:flex;gap:7px;align-items:center;padding:8px 12px;background:var(--crema);
+         border-bottom:1px solid var(--linea);flex-wrap:wrap;font-size:12px}
+  .barra label{font-weight:600;color:var(--marron2)}
+  .barra select{padding:6px 8px;border:1px solid var(--linea);border-radius:7px;font-size:13px;
+                background:#fff;color:var(--tinta)}
+  .barra .sp{flex:1}
+  .barra button{border:1px solid var(--linea);background:#fff;color:var(--marron2);
+                border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer}
+  .barra button.on{background:var(--marron);color:#f7ecdc;border-color:var(--marron)}
+
+  #escena{position:relative;background:linear-gradient(#fdfaf3,#efe6d6);
+          touch-action:none;cursor:grab;overflow:hidden}
+  #escena.arrastrando{cursor:grabbing}
+  #escena svg{display:block;width:100%;height:100%}
+
+  .mando{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--crema);
+         border-top:1px solid var(--linea)}
+  .mando input[type=range]{flex:1;accent-color:var(--oro)}
+  .mando .grados{font-variant-numeric:tabular-nums;font-weight:800;color:var(--marron);
+                 min-width:52px;text-align:right;font-size:13px}
+  .pistas{display:flex;gap:6px;padding:0 14px 10px;background:var(--crema);flex-wrap:wrap}
+  .pistas button{flex:1;min-width:66px;border:1px solid var(--linea);background:#fff;
+    color:var(--marron2);border-radius:8px;padding:8px 4px;font-size:11px;font-weight:700;cursor:pointer}
+  .ayuda{padding:9px 14px 16px;font-size:11.5px;color:var(--gris);line-height:1.5;
+         background:var(--crema)}
+  .aviso{margin:16px;padding:12px 14px;background:#fdf3e3;border:1px solid var(--oro);
+         border-radius:10px;font-size:13px;color:var(--marron2)}
+  .aviso a{color:var(--oro)}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo.png" alt="">
+  <div><h1>Ver la mesa</h1><p id="cab">Doña Col Catering</p></div>
+  <a href="hoja_montaje.html">hoja para imprimir</a>
+</header>
+
+<div class="barra">
+  <label for="cual">Mesas juntas</label>
+  <select id="cual"></select>
+  <span class="sp"></span>
+  <button id="bSombra" class="on">Sombra</button>
+  <button id="bMarcas">Marcas</button>
+</div>
+
+<div id="escena"></div>
+
+<div class="mando">
+  <span>Girar</span>
+  <input id="giro" type="range" min="0" max="359" value="20">
+  <span class="grados" id="grados">20°</span>
+</div>
+<div class="pistas">
+  <button data-g="0">De frente</button>
+  <button data-g="45">En diagonal</button>
+  <button data-g="90">De lado</button>
+  <button data-g="180">Por detrás</button>
+</div>
+<p class="ayuda">Arrastra con el dedo para girar la mesa. <b>«De frente»</b> es lo que ve
+  la gente cuando llega. Esto es para mirar: lo que se mide está en la hoja.</p>
+
+<div id="aviso" class="aviso" style="display:none"></div>
+
+<script src="motor_montaje.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+   El giro. La isometría de la hoja mira siempre desde la misma esquina; aquí
+   se gira el plano de la mesa alrededor de su centro antes de proyectarlo, y
+   se vuelve a ordenar lo que tapa a qué. Es la misma cuenta, con un ángulo.
+--------------------------------------------------------------------------- */
+let ANG = 20 * Math.PI / 180, SOMBRA = true, MARCAS = false, GRUPO = null;
+
+function proyectar(x, y, z, centro) {
+  const dx = x - centro.x, dy = y - centro.y;
+  const c = Math.cos(ANG), s = Math.sin(ANG);
+  const rx = dx * c - dy * s, ry = dx * s + dy * c;
+  return [(rx - ry) * Math.cos(Math.PI / 6), (rx + ry) * 0.5 - z];
+}
+
+function tonoDe(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map(v => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1)))));
+  return 'rgb(' + c.join(',') + ')';
+}
+
+/** Una caja: se dibujan solo las caras que se ven desde este ángulo. */
+function cajaGirada(x, y, z, w, d, h, col, bd, centro, marca) {
+  const P = (X, Y, Z) => proyectar(X, Y, Z, centro);
+  const v = {
+    A: P(x, y, z + h), B: P(x + w, y, z + h), C: P(x + w, y + d, z + h), D: P(x, y + d, z + h),
+    a: P(x, y, z),     b: P(x + w, y, z),     c: P(x + w, y + d, z),     d: P(x, y + d, z),
+  };
+  const poly = (pts, f) => '<polygon points="' + pts.map(p => p.join(',')).join(' ')
+    + '" fill="' + tonoDe(col, f) + '" stroke="' + bd
+    + '" stroke-width="0.7" stroke-linejoin="round"/>';
+
+  // Orden de las caras laterales: se pinta primero la que está más lejos.
+  const lados = [
+    {q: [v.A, v.B, v.b, v.a], m: (y), f: .82},              // norte
+    {q: [v.C, v.D, v.d, v.c], m: -(y + d), f: .95},          // sur (el frente)
+    {q: [v.B, v.C, v.c, v.b], m: -(x + w), f: .74},          // este
+    {q: [v.D, v.A, v.a, v.d], m: (x), f: .88},               // oeste
+  ];
+  const cos = Math.cos(ANG), sen = Math.sin(ANG);
+  const haciaMi = [
+    -(Math.sin(ANG + Math.PI / 4)),  // norte
+     (Math.sin(ANG + Math.PI / 4)),  // sur
+     (Math.cos(ANG + Math.PI / 4)),  // este
+    -(Math.cos(ANG + Math.PI / 4)),  // oeste
+  ];
+  let out = '';
+  lados.forEach((L, i) => { if (haciaMi[i] > 0) out += poly(L.q, L.f); });
+  out += poly([v.A, v.B, v.C, v.D], 1.12);                   // la tapa, siempre
+  if (marca && MARCAS) {
+    const [mx, my] = P(x + w / 2, y + d / 2, z + h);
+    out += '<text x="' + mx + '" y="' + (my + 2.2) + '" font-size="6" font-weight="800"'
+         + ' text-anchor="middle" fill="#2e241d">' + marca + '</text>';
+  }
+  return out;
+}
+
+function cilindroGirado(x, y, z, diam, h, col, bd, centro) {
+  const r = diam / 2;
+  const [ax, ay] = proyectar(x + r, y + r, z + h, centro);
+  const [bx, by] = proyectar(x + r, y + r, z, centro);
+  const rx = r * Math.cos(Math.PI / 6) * 1.42, ry = r * 0.5 * 1.42;
+  const t = 'stroke="' + bd + '" stroke-width="0.7"';
+  return '<path d="M' + (ax - rx) + ',' + ay + ' L' + (bx - rx) + ',' + by
+       + ' A' + rx + ',' + ry + ' 0 0 0 ' + (bx + rx) + ',' + by
+       + ' L' + (ax + rx) + ',' + ay + ' Z" fill="' + tonoDe(col, .88) + '" ' + t + '/>'
+       + '<ellipse cx="' + ax + '" cy="' + ay + '" rx="' + rx + '" ry="' + ry
+       + '" fill="' + tonoDe(col, 1.12) + '" ' + t + '/>';
+}
+
+function pintarEscena() {
+  if (!GRUPO) return;
+  const {tam, cuantos} = GRUPO;
+  const m = montarGrupo(tam, cuantos);
+  const W = tam * PIEZAS.buffet.wc, D = PIEZAS.buffet.hc, ALTO = PIEZAS.buffet.zc;
+  const centro = {x: W / 2, y: D / 2};
+
+  let cuerpo = '';
+  if (SOMBRA) {
+    // La sombra en el suelo ayuda a entender que la mesa está apoyada.
+    const esq = [[0,0],[W,0],[W,D],[0,D]].map(([a,b]) => proyectar(a, b, 0, centro));
+    cuerpo += '<polygon points="' + esq.map(p => (p[0] + 5) + ',' + (p[1] + 5)).join(' ')
+            + '" fill="rgba(90,59,39,.14)"/>';
+  }
+  cuerpo += cajaGirada(0, 0, 0, W, D, ALTO, '#fdfbf6', '#b9a888', centro, null);
+
+  // De más lejos a más cerca, según el ángulo: así unas cosas tapan a otras.
+  const c = Math.cos(ANG), s = Math.sin(ANG);
+  const cerca = p => {
+    const dx = p.x + PIEZAS[p.tipo].wc / 2 - centro.x, dy = p.y + PIEZAS[p.tipo].hc / 2 - centro.y;
+    return (dx * c - dy * s) + (dx * s + dy * c);
+  };
+  m.piezas.slice().sort((a, b) => cerca(a) - cerca(b)).forEach(p => {
+    const t = PIEZAS[p.tipo], h = t.zc || 10;
+    const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral');
+    cuerpo += redondo
+      ? cilindroGirado(p.x, p.y, ALTO, t.wc, h, t.col, t.bd, centro)
+      : cajaGirada(p.x, p.y, ALTO, t.wc, t.hc, h, t.col, t.bd, centro, t.mk);
+  });
+
+  // Encuadre fijo: el mismo para todos los ángulos, para que no dé saltos al girar.
+  const radio = Math.hypot(W, D) / 2;
+  const anc = radio * 2 * Math.cos(Math.PI / 6) + 40;
+  const alt = radio * 2 * 0.5 + ALTO + 90;
+  const vb = [-anc / 2, -(alt - ALTO / 2 - 40), anc, alt].join(' ');
+
+  const esc = document.getElementById('escena');
+  esc.style.height = Math.max(240, Math.min(window.innerHeight * 0.52, 420)) + 'px';
+  esc.innerHTML = '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">'
+                + cuerpo + '</svg>';
+}
+
+/* --- arrastrar para girar --- */
+(function arrastrar() {
+  const esc = document.getElementById('escena');
+  let x0 = null, a0 = 0;
+  const empezar = (x) => { x0 = x; a0 = ANG; esc.classList.add('arrastrando'); };
+  const mover = (x) => {
+    if (x0 === null) return;
+    ANG = a0 + (x - x0) * 0.012;
+    const g = ((ANG * 180 / Math.PI) % 360 + 360) % 360;
+    document.getElementById('giro').value = Math.round(g);
+    document.getElementById('grados').textContent = Math.round(g) + '°';
+    pintarEscena();
+  };
+  const soltar = () => { x0 = null; esc.classList.remove('arrastrando'); };
+  esc.addEventListener('pointerdown', e => { esc.setPointerCapture(e.pointerId); empezar(e.clientX); });
+  esc.addEventListener('pointermove', e => mover(e.clientX));
+  esc.addEventListener('pointerup', soltar);
+  esc.addEventListener('pointercancel', soltar);
+})();
+
+function ponerGrados(g) {
+  ANG = g * Math.PI / 180;
+  document.getElementById('giro').value = g;
+  document.getElementById('grados').textContent = g + '°';
+  pintarEscena();
+}
+document.getElementById('giro').addEventListener('input', e => ponerGrados(+e.target.value));
+document.querySelectorAll('.pistas button').forEach(b =>
+  b.onclick = () => ponerGrados(+b.dataset.g));
+document.getElementById('bSombra').onclick = function () {
+  SOMBRA = !SOMBRA; this.classList.toggle('on', SOMBRA); pintarEscena();
+};
+document.getElementById('bMarcas').onclick = function () {
+  MARCAS = !MARCAS; this.classList.toggle('on', MARCAS); pintarEscena();
+};
+window.addEventListener('resize', pintarEscena);
+
+/* --- arranque: el evento que venga del checklist --- */
+(function arrancar() {
+  const nMesas = INV.buffet || 0;
+  if (!nMesas) {
+    document.getElementById('aviso').style.display = 'block';
+    document.getElementById('aviso').innerHTML =
+      'No hay ningún evento cargado. Abre el <a href="necesidades.html">checklist</a>, '
+      + 'calcula las necesidades y vuelve a entrar.';
+    return;
+  }
+  document.getElementById('cab').textContent =
+    (META.cliente || 'Evento') + ' · ' + (META.pax || '?') + ' pax';
+
+  const opciones = agrupaciones(nMesas);
+  const sel = document.getElementById('cual');
+  sel.innerHTML = opciones.map((ag, i) =>
+    '<option value="' + i + '">' + nombreDe(ag, nMesas) + '</option>').join('');
+  const elegir = () => {
+    const ag = opciones[+sel.value];
+    const tam = Math.max.apply(null, ag.grupos);
+    GRUPO = {tam, cuantos: repartir(ag.grupos)[ag.grupos.indexOf(tam)]};
+    pintarEscena();
+  };
+  sel.onchange = elegir;
+  sel.value = String(opciones.length - 1);      // por defecto, lo más juntas
+  elegir();
+})();
+</script>
+</body>
+</html>
