@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoja de montaje · Doña Col</title>
+<!--
+  UNA HOJA. Nada más.
+
+  El plano 2D sirve para dibujar, pero en una sala no sirve: hay que ponerlo al
+  15%, elegir la agrupación a clics y no se ven las alternativas a la vez. El
+  montador no sabe cómo va a colocar las mesas hasta que ve el espacio, así que
+  necesita TODAS las opciones delante y en papel.
+
+  Esta hoja sale del checklist con las cantidades del evento y se imprime:
+    · las tres maneras de agrupar las mesas, dibujadas a escala, una debajo de
+      otra, sin tocar nada;
+    · a la derecha, qué es cada elemento, cuántos hay y con qué marca sale;
+    · abajo, las reglas de presentación, que son las que hacen que un montaje
+      parezca cuidado.
+-->
+<style>
+  :root{
+    --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --beige:#F5EAD8;
+    --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#33271f; --gris:#7d6c5c;
+    --eje:#c0413b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e2d6;color:var(--tinta);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px}
+
+  .barra{display:flex;gap:10px;align-items:center;padding:10px 14px;background:var(--crema);
+         border-bottom:1px solid var(--linea);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+  .barra button{border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;
+                cursor:pointer;background:var(--oro);color:#fff}
+  .barra a{color:var(--marron2);font-weight:700;text-decoration:none;font-size:13px}
+  .barra .sp{flex:1}
+
+  .hoja{width:210mm;min-height:297mm;margin:14px auto;background:#fff;padding:13mm 12mm;
+        box-shadow:0 2px 14px rgba(0,0,0,.18)}
+
+  header{display:flex;align-items:flex-start;gap:10px;border-bottom:2.5px solid var(--oro);
+         padding-bottom:7px;margin-bottom:10px}
+  header h1{margin:0;font-family:Georgia,serif;font-size:19px;color:var(--marron)}
+  header .sub{font-size:11.5px;color:var(--gris);margin-top:2px}
+  header .cli{margin-left:auto;text-align:right;font-size:12px;line-height:1.45}
+  header .cli b{color:var(--marron);font-size:14px}
+
+  .cuerpo{display:grid;grid-template-columns:1fr 54mm;gap:7mm;align-items:start}
+
+  .variante{margin-bottom:6mm;break-inside:avoid}
+  .vcab{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+  .vnum{width:19px;height:19px;border-radius:50%;background:var(--marron);color:#fff;
+        font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+  .vtit{font-size:13.5px;font-weight:800;color:var(--marron)}
+  .vsub{font-size:11px;color:var(--gris);margin-left:auto;text-align:right}
+  .vsecuencia{font-size:10.5px;color:var(--tinta);margin:4px 0 0;line-height:1.5}
+  .vsecuencia b{color:var(--marron2)}
+
+  .leyenda h2,.reglas h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--marron2);margin:0 0 6px;padding-bottom:4px;border-bottom:1.5px solid var(--linea)}
+  .leyenda table{width:100%;border-collapse:collapse;font-size:11px}
+  .leyenda td{padding:3px 2px;border-bottom:1px solid #f0e8da;vertical-align:middle}
+  .leyenda .mk{width:17px}
+  .leyenda .marca{width:16px;height:16px;border-radius:3px;border:1.3px solid;
+    display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:#3a2c22}
+  .leyenda .ud{text-align:right;font-weight:800;color:var(--marron);white-space:nowrap}
+  .leyenda .dim{font-size:9px;color:var(--gris)}
+
+  .reglas{margin-top:6mm;border-top:2px solid var(--oro);padding-top:6px;break-inside:avoid}
+  .reglas ol{margin:0;padding-left:17px;columns:2;column-gap:8mm;font-size:10.5px;line-height:1.55}
+  .reglas li{margin-bottom:3px;break-inside:avoid}
+  .reglas b{color:var(--marron2)}
+
+  .pie{margin-top:5mm;font-size:9.5px;color:var(--gris);display:flex;gap:8px}
+  .pie .sp{flex:1}
+
+  .aviso{background:#fdf3e3;border:1px solid var(--oro);border-radius:9px;padding:9px 11px;
+         font-size:12px;color:var(--marron2);margin:14px auto;max-width:210mm}
+
+  @media print{
+    body{background:#fff}
+    .barra,.aviso{display:none}
+    .hoja{width:auto;min-height:0;margin:0;padding:0;box-shadow:none}
+    @page{size:A4 portrait;margin:11mm}
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <button id="bImprimir">🖨️ Imprimir</button>
+  <a href="necesidades.html">← volver al checklist</a>
+  <span class="sp"></span>
+  <a href="montaje2d.html">plano para dibujar a mano →</a>
+</div>
+
+<div id="aviso" class="aviso" style="display:none"></div>
+<div class="hoja" id="hoja"></div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   Piezas: medidas REALES en cm, vistas desde arriba. La mesa es 180 × 70 de
+   planta (los 74 cm son la altura y aquí no pintan nada).
+   La marca es la letra que sale dibujada en la pieza y en el listado lateral.
+--------------------------------------------------------------------------- */
+const PIEZAS = {
+  buffet:  {nm:'Mesa buffet',           wc:180, hc:70,   mk:'',  col:'#f7ecd8', bd:'#5A3B27'},
+  bandeja: {nm:'Bandeja de comida',     wc:35,  hc:26.5, mk:'B', col:'#cda36a', bd:'#8a6a3a'},
+  chafing: {nm:'Chafing dish',          wc:53,  hc:33,   mk:'C', col:'#b9bfc4', bd:'#6c7379'},
+  cajaCafe:{nm:'Caja de bebida (grifo)',wc:17,  hc:10,   mk:'A', col:'#b06a2e', bd:'#5e3613'},
+  fuente:  {nm:'Fuente de agua 5 L',    wc:25,  hc:25,   mk:'F', col:'#bcd4e6', bd:'#5a7fa0'},
+  vaso:    {nm:'Pila de vasos',         wc:6.5, hc:6.5,  mk:'V', col:'#e4eef5', bd:'#7a98ad'},
+  minibox: {nm:'Mini box',              wc:12,  hc:6.5,  mk:'M', col:'#e2cf9f', bd:'#a07f3a'},
+  servis:  {nm:'Servilletas (platito)', wc:10,  hc:10,   mk:'S', col:'#eadfca', bd:'#b09a72'},
+  floral:  {nm:'Arreglo floral',        wc:11,  hc:11,   mk:'L', col:'#d4ebc2', bd:'#5a8a4a'},
+  alta:    {nm:'Mesa alta de cóctel',   wc:70,  hc:70,   mk:'T', col:'#e9d3ad', bd:'#5A3B27'},
+  papelera:{nm:'Papelera',              wc:10,  hc:10,   mk:'P', col:'#c9c9c9', bd:'#666'},
+};
+
+/* Franjas: la bebida al borde de delante, la comida detrás. Sale de las fotos
+   de los montajes reales, no de una idea mía. */
+const DELANTE = ['cajaCafe','fuente','vaso','servis','minibox'];
+const DETRAS  = ['chafing','bandeja','floral'];
+const EN_PAREJA = ['fuente'];        // las aguas van de dos en dos, nunca impar
+
+const MARGEN = 4, SEPARA = 3, MAX_JUNTAS = 3;
+
+/* --- Inventario que viene del checklist ---------------------------------- */
+let INV = {}, META = {};
+try {
+  const g = JSON.parse(localStorage.getItem('montaje_inv') || 'null');
+  if (g && g.inv) { INV = g.inv; META = g.meta || {}; }
+} catch (e) {}
+
+/* --- Agrupaciones: las tres únicas maneras ------------------------------- */
+function agrupaciones(n) {
+  const salida = [];
+  for (let k = 1; k <= Math.min(n, MAX_JUNTAS); k++) {
+    const grupos = [];
+    let quedan = n;
+    while (quedan > 0) { grupos.push(Math.min(k, quedan)); quedan -= k; }
+    salida.push({k, grupos});
+  }
+  return salida;
+}
+
+function nombreDe(ag, n) {
+  const k = ag.k, enteros = ag.grupos.filter(g => g === k).length, sobra = n - enteros * k;
+  if (n === k) return n === 1 ? 'Una mesa sola' : n + ' mesas juntas';
+  const base = k === 1 ? 'De una en una' : k === 2 ? 'De dos en dos' : 'De tres en tres';
+  const cuantos = k === 1 ? enteros + ' mesas'
+                : enteros === 1 ? 'un grupo de ' + k : enteros + ' grupos de ' + k;
+  return base + ' · ' + cuantos
+       + (sobra ? ' y ' + (sobra === 1 ? 'una suelta' : sobra + ' sueltas') : '');
+}
+
+/* --- Una fila alternada y en espejo --------------------------------------
+   El centro es LO QUE CAIGA EN MEDIO: con 2 aguas y 3 cafés sale
+   café·agua·café·agua·café y el centro es un café. Las aguas nunca pueden
+   quedarse el centro porque siempre van en pareja.                        */
+function filaEspejo(piezas, anchoCm) {
+  const vivos = piezas.filter(p => p.n > 0).sort((a, b) => b.n - a.n);
+  if (!vivos.length) return {puntos: [], centro: null};
+
+  const puedeCentro = t => !EN_PAREJA.includes(t);
+  const impares = vivos.filter(p => p.n % 2 && puedeCentro(p.tipo));
+  const centro = impares.length ? impares[0].tipo : null;
+
+  const reparto = [];
+  vivos.forEach(p => {
+    const mitad = Math.floor(p.n / 2);
+    for (let i = 0; i < mitad; i++) reparto.push({tipo: p.tipo, sitio: (i + 0.5) / mitad});
+  });
+  const cuantos = {}; vivos.forEach(p => cuantos[p.tipo] = p.n);
+  reparto.sort((a, b) => a.sitio - b.sitio || cuantos[b.tipo] - cuantos[a.tipo]);
+  const mitad = reparto.map(r => r.tipo);
+
+  const anchoCentro = centro ? PIEZAS[centro].wc : 0;
+  const desde = MARGEN, hasta = anchoCm / 2 - anchoCentro / 2 - (centro ? SEPARA : 0);
+  const suma = mitad.reduce((a, t) => a + PIEZAS[t].wc, 0);
+  if (suma > hasta - desde) return {puntos: [], centro: null, nocabe: true};
+  const gap = mitad.length > 1 ? ((hasta - desde) - suma) / (mitad.length - 1) : 0;
+
+  const puntos = [];
+  if (centro) puntos.push({tipo: centro, x: (anchoCm - anchoCentro) / 2});
+  let x = desde;
+  mitad.forEach(tipo => {
+    const w = PIEZAS[tipo].wc;
+    puntos.push({tipo, x});
+    puntos.push({tipo, x: anchoCm - x - w});
+    x += w + gap;
+  });
+  return {puntos, centro};
+}
+
+/* --- Qué lleva un grupo y dónde ------------------------------------------ */
+function montarGrupo(tamGrupo, cuantos) {
+  const anchoCm = tamGrupo * PIEZAS.buffet.wc, fondoCm = PIEZAS.buffet.hc;
+  const piezas = [];
+
+  const frente = DELANTE.filter(t => cuantos[t] > 0);
+  const altoFrente = frente.length ? Math.max(...frente.map(t => PIEZAS[t].hc)) : 0;
+  let secFrente = [];
+  if (frente.length) {
+    const r = filaEspejo(frente.map(t => ({tipo: t, n: cuantos[t]})), anchoCm);
+    const y = fondoCm - MARGEN - altoFrente;
+    r.puntos.forEach(p => piezas.push({...p, y: y + (altoFrente - PIEZAS[p.tipo].hc)}));
+    secFrente = r.puntos.slice().sort((a, b) => a.x - b.x).map(p => p.tipo);
+  }
+
+  const detras = DETRAS.filter(t => cuantos[t] > 0);
+  let secDetras = [];
+  if (detras.length) {
+    const alto = Math.max(...detras.map(t => PIEZAS[t].hc));
+    if (MARGEN + alto <= fondoCm - MARGEN - altoFrente - SEPARA) {
+      const r = filaEspejo(detras.map(t => ({tipo: t, n: cuantos[t]})), anchoCm);
+      r.puntos.forEach(p => piezas.push({...p, y: MARGEN}));
+      secDetras = r.puntos.slice().sort((a, b) => a.x - b.x).map(p => p.tipo);
+    }
+  }
+  return {piezas, anchoCm, fondoCm, secFrente, secDetras};
+}
+
+/* --- Reparto del inventario entre los grupos ------------------------------ */
+function repartir(grupos) {
+  /* A cada grupo, lo que le corresponde POR MESAS, no por grupo.
+     Repartiendo a partes iguales, la mesa suelta de «un grupo de 3 y una
+     suelta» recibía la carga de tres mesas, no le cabía, y salía vacía en el
+     plano. Ahora un grupo de 3 lleva el triple que uno de 1, y lo que sobra
+     del redondeo va a los grupos grandes, que son los que tienen sitio. */
+  const porGrupo = grupos.map(() => ({}));
+  const mesasTotal = grupos.reduce((a, g) => a + g, 0);
+  const orden = grupos.map((g, i) => i).sort((a, b) => grupos[b] - grupos[a]);
+
+  Object.keys(PIEZAS).forEach(tipo => {
+    if (tipo === 'buffet' || tipo === 'alta' || tipo === 'papelera') return;
+    const total = INV[tipo] || 0;
+    if (!total) return;
+    let dado = 0;
+    grupos.forEach((g, i) => {
+      const toca = Math.floor(total * g / mesasTotal);
+      porGrupo[i][tipo] = toca;
+      dado += toca;
+    });
+    let resto = total - dado;
+    for (let k = 0; resto > 0; k = (k + 1) % orden.length, resto--) {
+      porGrupo[orden[k]][tipo]++;
+    }
+  });
+  return porGrupo;
+}
+
+/* --- Dibujo de una variante ---------------------------------------------- */
+const ESC = 0.62;                       // mm de papel por cm real (~1:16)
+const SEP_GRUPOS = 80;                  // cm entre grupos separados
+
+function dibujar(ag, n) {
+  const cuantos = repartir(ag.grupos);
+  const anchoTotalCm = ag.grupos.reduce((a, g) => a + g * PIEZAS.buffet.wc, 0)
+                     + (ag.grupos.length - 1) * SEP_GRUPOS;
+  const W = anchoTotalCm * ESC, H = PIEZAS.buffet.hc * ESC + 3;
+
+  let svg = '', x0 = 0, secF = [], secD = [], ejes = [];
+  ag.grupos.forEach((tam, gi) => {
+    const m = montarGrupo(tam, cuantos[gi]);
+    // las mesas del grupo
+    for (let i = 0; i < tam; i++) {
+      svg += `<rect x="${(x0 + i * PIEZAS.buffet.wc) * ESC}" y="0"
+        width="${PIEZAS.buffet.wc * ESC}" height="${PIEZAS.buffet.hc * ESC}"
+        fill="${PIEZAS.buffet.col}" stroke="${PIEZAS.buffet.bd}" stroke-width="0.5"/>`;
+    }
+    // lo que va encima, con su marca
+    m.piezas.forEach(p => {
+      const t = PIEZAS[p.tipo], w = t.wc * ESC, h = t.hc * ESC;
+      svg += `<rect x="${(x0 + p.x) * ESC}" y="${p.y * ESC}" width="${w}" height="${h}"
+        fill="${t.col}" stroke="${t.bd}" stroke-width="0.35" rx="0.5"/>`;
+      if (w >= 3.2 && h >= 2.6) {
+        svg += `<text x="${(x0 + p.x) * ESC + w / 2}" y="${p.y * ESC + h / 2 + 1}"
+          font-size="2.5" font-weight="700" text-anchor="middle" fill="#33271f">${t.mk}</text>`;
+      }
+    });
+    // La secuencia que se escribe debajo es la del grupo MÁS GRANDE, que es el
+    // que marca el montaje; los pequeños llevan lo mismo en menos cantidad.
+    if (tam >= Math.max(...ag.grupos) && !secF.length) { secF = m.secFrente; secD = m.secDetras; }
+    ejes.push((x0 + m.anchoCm / 2) * ESC);
+    x0 += tam * PIEZAS.buffet.wc + SEP_GRUPOS;
+  });
+
+  // el eje del conjunto, que es con lo que se cuadra la barra en la sala
+  const ejeX = anchoTotalCm * ESC / 2;
+  svg += `<line x1="${ejeX}" y1="-2.5" x2="${ejeX}" y2="${PIEZAS.buffet.hc * ESC + 2.5}"
+    stroke="#c0413b" stroke-width="0.45" stroke-dasharray="1.6 1.2"/>`;
+  svg += `<text x="${ejeX}" y="${PIEZAS.buffet.hc * ESC + 5.2}" font-size="2.6"
+    text-anchor="middle" fill="#c0413b" font-weight="700">eje</text>`;
+
+  const lista = (sec) => {
+    if (!sec.length) return '—';
+    const out = []; let ant = null, n2 = 0;
+    sec.forEach(t => { if (t === ant) n2++; else { if (ant) out.push({t: ant, n: n2}); ant = t; n2 = 1; } });
+    if (ant) out.push({t: ant, n: n2});
+    return out.map(o => (o.n > 1 ? o.n + '×' : '') + PIEZAS[o.t].mk).join(' · ');
+  };
+
+  return {svg: `<svg viewBox="-1 -4 ${W + 2} ${H + 8}" width="100%"
+                  style="max-height:34mm" preserveAspectRatio="xMidYMid meet">${svg}</svg>`,
+          largo: (anchoTotalCm / 100).toFixed(1),
+          secFrente: lista(secF), secDetras: lista(secD),
+          colas: ag.grupos.length};
+}
+
+/* --- La hoja -------------------------------------------------------------- */
+function pintar() {
+  const nMesas = INV.buffet || 0;
+  if (!nMesas) {
+    document.getElementById('aviso').style.display = 'block';
+    document.getElementById('aviso').innerHTML =
+      'No hay ningún evento cargado. Abre el <a href="necesidades.html">checklist</a>, '
+      + 'calcula las necesidades y vuelve a pulsar «ver plano».';
+    return;
+  }
+  const opciones = agrupaciones(nMesas);
+
+  const variantes = opciones.map((ag, i) => {
+    const d = dibujar(ag, nMesas);
+    return `<div class="variante">
+      <div class="vcab"><span class="vnum">${i + 1}</span>
+        <span class="vtit">${nombreDe(ag, nMesas)}</span>
+        <span class="vsub">${d.largo} m de barra · ${d.colas} ${d.colas === 1 ? 'cola' : 'colas'}</span></div>
+      ${d.svg}
+      <p class="vsecuencia"><b>Delante:</b> ${d.secFrente} &nbsp;·&nbsp;
+         <b>Detrás:</b> ${d.secDetras}</p>
+    </div>`;
+  }).join('');
+
+  const filas = Object.keys(PIEZAS).filter(t => t !== 'buffet' && (INV[t] || 0) > 0)
+    .map(t => {
+      const p = PIEZAS[t];
+      return `<tr>
+        <td class="mk"><div class="marca" style="background:${p.col};border-color:${p.bd}">${p.mk}</div></td>
+        <td>${p.nm}<div class="dim">${p.wc} × ${p.hc} cm</div></td>
+        <td class="ud">${INV[t]}</td></tr>`;
+    }).join('');
+
+  const REGLAS = [
+    'Los <b>logos siempre mirando hacia adelante</b>, hacia quien llega.',
+    'Los <b>vasos de cartón</b>, con el logo de frente.',
+    '<b>Todo a la misma altura</b> y con simetría exacta.',
+    '<b>Filas iguales</b>: si son 15 vasos, filas de 15, 15 y 15. Nunca una fila coja.',
+    '<b>La misma cantidad de servilletas</b> en cada platito.',
+    'El <b>logo de la servilleta vertical</b>, mirando al cliente y recto, sin colgar.',
+    'Las <b>paletinas a un lado</b>, no repartidas.',
+    'Las <b>aguas van siempre de dos en dos</b>: una normal y otra de limón con hierbabuena.',
+  ];
+
+  document.getElementById('hoja').innerHTML = `
+    <header>
+      <div>
+        <h1>Hoja de montaje</h1>
+        <div class="sub">Doña Col Catering · vista desde arriba, a escala</div>
+      </div>
+      <div class="cli">
+        <b>${META.cliente || 'Evento'}</b><br>
+        ${META.menu || ''}<br>
+        ${META.pax ? META.pax + ' personas' : ''} · ${nMesas} mesas de buffet
+      </div>
+    </header>
+
+    <div class="cuerpo">
+      <div>
+        <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--marron2);
+                   margin:0 0 7px;padding-bottom:4px;border-bottom:1.5px solid var(--linea)">
+          Las ${opciones.length} maneras de ponerlo · elige según el espacio</h2>
+        ${variantes}
+      </div>
+      <div class="leyenda">
+        <h2>Qué es cada cosa</h2>
+        <table>${filas}</table>
+        <p style="font-size:9.5px;color:var(--gris);line-height:1.45;margin-top:7px">
+          La línea roja es el <b>eje</b>: con ella se cuadra la barra en la sala.
+          Si cae sobre una mesa, ahí va el punto fuerte; si cae en una junta o en
+          un hueco, no se pone nada en medio y se reparte a los lados.</p>
+      </div>
+    </div>
+
+    <div class="reglas">
+      <h2>Reglas de montaje · esto es lo que se ve</h2>
+      <ol>${REGLAS.map(r => '<li>' + r + '</li>').join('')}</ol>
+    </div>
+
+    <div class="pie">
+      <span>Las mesas son de 180 × 70 cm (74 de alto).</span>
+      <span class="sp"></span>
+      <span>Impreso el ${new Date().toLocaleDateString('es-ES')}</span>
+    </div>`;
+}
+
+document.getElementById('bImprimir').onclick = () => window.print();
+pintar();
+</script>
+</body>
+</html>
