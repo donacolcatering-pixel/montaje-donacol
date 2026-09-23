@@ -108,13 +108,17 @@ const PIEZAS = {
   buffet:     {nm:'Mesa buffet',            wc:180, hc:70,   mk:'',   col:'#f7ecd8', bd:'#5A3B27'},
   bandeja:    {nm:'Bandeja de comida',      wc:35,  hc:26.5, mk:'B',  col:'#cda36a', bd:'#8a6a3a'},
   chafing:    {nm:'Chafing dish',           wc:53,  hc:33,   mk:'C',  col:'#b9bfc4', bd:'#6c7379'},
-  // Las bebidas, una a una: el café manda y la leche normal va con él.
-  cafe:       {nm:'Caja de CAFÉ',           wc:17,  hc:10,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f'},
-  lecheNormal:{nm:'Leche normal',           wc:17,  hc:10,   mk:'LE', col:'#f0e4cd', bd:'#b9a179'},
-  sinLactosa: {nm:'Leche sin lactosa',      wc:17,  hc:10,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8'},
-  soja:       {nm:'Leche de soja',          wc:17,  hc:10,   mk:'SO', col:'#e7f0d9', bd:'#96ae77'},
-  aguaCal:    {nm:'Agua caliente',          wc:17,  hc:10,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e'},
-  zumo:       {nm:'Caja de zumo',           wc:17,  hc:10,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044'},
+  /* Las bebidas, una a una: el café manda y la leche normal va con él.
+     OJO A LA ORIENTACIÓN: la caja se pone con el MORRO —el grifo— de frente, y
+     el cuerpo se va hacia atrás, a lo largo de la mesa. Estaban puestas de
+     ancho (17 de frente por 10 de fondo) y es al revés: ocupan poco frente y
+     mucho fondo. Por eso no cuadraban en la barra. */
+  cafe:       {nm:'Caja de CAFÉ',           wc:17,  hc:25,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f'},
+  lecheNormal:{nm:'Leche normal',           wc:17,  hc:25,   mk:'LE', col:'#f0e4cd', bd:'#b9a179'},
+  sinLactosa: {nm:'Leche sin lactosa',      wc:17,  hc:25,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8'},
+  soja:       {nm:'Leche de soja',          wc:17,  hc:25,   mk:'SO', col:'#e7f0d9', bd:'#96ae77'},
+  aguaCal:    {nm:'Agua caliente',          wc:17,  hc:25,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e'},
+  zumo:       {nm:'Caja de zumo',           wc:17,  hc:25,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044'},
   fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0'},
   vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad'},
   vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad'},
