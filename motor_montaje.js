@@ -92,158 +92,229 @@ function nombreDe(ag, n) {
        + (sobra ? ' y ' + (sobra === 1 ? 'una suelta' : sobra + ' sueltas') : '');
 }
 
-/* --- LA FILA DE DELANTE: EL CAFÉ MANDA -----------------------------------
+/* --- REPARTO ENTRE GRUPOS -------------------------------------------------
 
-   En un coffee break el café dicta el montaje. De él salen las cantidades
-   (una caja cada 10 personas) y a su alrededor se coloca lo demás:
+   Lo que va en cada grupo. Tres reglas:
 
-     · la LECHE NORMAL va pegada a su café — van de dos en dos, y hay la mitad
-       de leches que de cafés, así que no todos los cafés llevan la suya: las
-       que hay se reparten a lo largo buscando las esquinas y el centro;
-     · sin lactosa, soja y agua caliente se reparten entre los cafés restantes;
-     · las AGUAS van en pareja, una a cada lado, nunca en el centro;
-     · las SERVILLETAS van ENTRE cajas, dos por mesa, nunca en el centro;
-     · cada caja lleva su pila de vasos al lado.
+     · lo proporcional a las MESAS del grupo (un grupo de 3 lleva el triple que
+       uno de 1), que es lo que llena la mesa;
+     · las AGUAS se reparten POR PAREJAS, nunca sueltas: antes el reparto
+       partía la pareja, cada mitad caía en un grupo distinto y como una fuente
+       suelta no se puede montar, las dos acababan sin dibujarse;
+     · lo que depende del café —mini box, pila de vasos— y lo que depende de la
+       mesa —servilletas— NO se reparte: se deriva. Así no puede descuadrar.  */
+function repartir(grupos) {
+  const n = grupos.length, mesas = grupos.reduce((a, g) => a + g, 0);
+  const porGrupo = grupos.map(() => ({}));
+  const orden = grupos.map((g, i) => i).sort((a, b) => grupos[b] - grupos[a]);
 
-   Todo se construye montando MEDIA fila y reflejándola, así la simetría está
-   garantizada y no depende de cómo caigan las cuentas.                      */
-
-function bloquesDeBebida(cuantos) {
-  /* Un «bloque» es una caja con lo que la acompaña. El café es el que abre:
-     se hacen tantos bloques como cafés haya y se les va colgando la leche
-     normal primero (a los de las puntas y el centro, que es donde se ve),
-     y luego el resto de leches a los que queden libres. */
-  const nCafes = cuantos.cafe || 0;
-  if (!nCafes) {
-    // Sin café no hay coffee: se ponen las cajas que haya, sin emparejar.
-    return BEBIDAS.filter(b => cuantos[b] > 0)
-                  .flatMap(b => Array.from({length: cuantos[b]}, () => [b]));
-  }
-  const bloques = Array.from({length: nCafes}, () => ['cafe']);
-
-  // Orden en que se van ocupando los cafés: primero las puntas, luego el
-  // centro, luego lo de en medio. Es como se mira una barra.
-  const orden = [];
-  let i = 0, j = nCafes - 1;
-  while (i <= j) { orden.push(i); if (i !== j) orden.push(j); i++; j--; }
-  const centro = Math.floor((nCafes - 1) / 2);
-  orden.sort((a, b) => {
-    const rango = (x) => (x === 0 || x === nCafes - 1) ? 0 : (x === centro ? 1 : 2);
-    return rango(a) - rango(b) || a - b;
-  });
-
-  let k = 0;
-  ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo'].forEach(tipo => {
-    for (let n = 0; n < (cuantos[tipo] || 0); n++) {
-      bloques[orden[k % nCafes]].push(tipo);
-      k++;
+  // a) proporcional a las mesas, y lo que sobra del redondeo a los grupos grandes
+  const proporcional = (tipo, total) => {
+    let dado = 0;
+    grupos.forEach((g, i) => {
+      const toca = Math.floor(total * g / mesas);
+      porGrupo[i][tipo] = toca; dado += toca;
+    });
+    for (let k = 0, resto = total - dado; resto > 0; k = (k + 1) % n, resto--) {
+      porGrupo[orden[k]][tipo]++;
     }
+  };
+  ['cafe', 'lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo',
+   'bandeja', 'chafing', 'floral'].forEach(t => proporcional(t, INV[t] || 0));
+
+  // b) las aguas, por parejas
+  const parejas = Math.floor((INV.fuente || 0) / 2);
+  let dadas = 0;
+  grupos.forEach((g, i) => {
+    const toca = Math.floor(parejas * g / mesas);
+    porGrupo[i].fuente = toca * 2; dadas += toca;
   });
-  return bloques;
+  for (let k = 0, resto = parejas - dadas; resto > 0; k = (k + 1) % n, resto--) {
+    porGrupo[orden[k]].fuente += 2;
+  }
+
+  // c) lo que se deriva, que por definición cuadra
+  porGrupo.forEach((c, i) => {
+    c.minibox  = c.cafe;                 // una mini box por caja de café
+    c.vaso     = c.cafe;                 // una pila de 15 vasos por café
+    c.vasoAgua = c.fuente * 2;           // 10 + 10 a cada lado de cada fuente
+    c.servis   = grupos[i] * 2;          // dos servilleteros por mesa
+    c.miniboxCal = c.aguaCal;            // la de infusiones va con el agua caliente
+    c.floral   = Math.min(c.floral, grupos[i] * 2);   // nunca más de dos por mesa
+  });
+  return porGrupo;
 }
 
-function filaDelante(cuantos, anchoCm, nMesas) {
-  /* SE MONTA POR PUESTOS.
+/* --- LOS PUESTOS DE CAFÉ ---------------------------------------------------
 
-     Un PUESTO es un café con su leche —café + leche normal, o café + leche sin
-     lactosa— y lleva siempre dos cosas pegadas:
-       · una MINI BOX (15 azucarillos, 4-5 sacarinas y 15 paletinas), y
-       · una PILA DE 15 VASOS.
+   Un PUESTO es una caja de café con la leche que le toque al lado. Hay tantos
+   puestos como cafés, y las leches se van colgando de ellos EN PAREJAS
+   ESPEJADAS —el puesto 1 y el último, el 2 y el penúltimo…— para que la barra
+   se vea igual desde los dos lados. Si de una leche hay un número impar, la
+   suelta va al puesto del centro.                                            */
+function puestosDeCafe(cuantos) {
+  const nCafes = cuantos.cafe || 0;
+  if (!nCafes) {
+    return ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo']
+      .filter(b => cuantos[b] > 0)
+      .flatMap(b => Array.from({length: cuantos[b]}, () => [b]));
+  }
+  const puestos = Array.from({length: nCafes}, () => ['cafe']);
+  const centro = (nCafes - 1) / 2;
 
-     Y van a lados contrarios, en espejo: en la mitad izquierda de la barra la
-     mini box va a la IZQUIERDA del puesto y los vasos a la derecha; en la
-     mitad derecha, al revés. Así la mini box queda siempre por fuera y los
-     vasos por dentro, y la barra se ve simétrica desde el centro.
+  // pares de posiciones, de fuera hacia dentro: (0, n-1), (1, n-2)…
+  const pares = [];
+  for (let i = 0, j = nCafes - 1; i < j; i++, j--) pares.push([i, j]);
+  const medio = nCafes % 2 ? (nCafes - 1) / 2 : null;
 
-     Las fuentes de agua son la excepción: llevan su propia pila de 10 vasos a
-     cada lado, y esas van un poco MÁS ADELANTE que todo lo demás, que sí está
-     alineado a la misma altura. */
-  const puestos = bloquesDeBebida(cuantos);      // cada uno: [cafe, leche, …]
-  const paresAgua = Math.floor((cuantos.fuente || 0) / 2);
-
-  const mitadP = puestos.slice(0, Math.floor(puestos.length / 2));
-  const central = puestos.length % 2 ? puestos[Math.floor(puestos.length / 2)] : null;
-
-  // Media fila: puestos y, repartidas entre ellos, las fuentes de agua.
-  const mitad = [];
-  let aguas = paresAgua;
-  mitadP.forEach((pu, i) => {
-    mitad.push({puesto: pu});
-    const restan = mitadP.length - i - 1;
-    if (aguas > 0 && restan > 0
-        && (i + 1) % Math.max(1, Math.round(mitadP.length / (paresAgua + 1))) === 0) {
-      mitad.push({agua: true}); aguas--;
+  let p = 0;
+  ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo'].forEach(tipo => {
+    let quedan = cuantos[tipo] || 0;
+    while (quedan >= 2 && p < pares.length) {
+      puestos[pares[p][0]].push(tipo);
+      puestos[pares[p][1]].push(tipo);
+      quedan -= 2; p++;
+    }
+    if (quedan === 1) {
+      // la impar al centro si lo hay; si no, al primer puesto libre
+      const donde = medio !== null ? medio : (p < pares.length ? pares[p][0] : 0);
+      puestos[donde].push(tipo);
+      quedan = 0;
+    }
+    if (quedan > 0) {                      // no había pares libres: se reparten
+      for (let i = 0; i < nCafes && quedan > 0; i++) { puestos[i].push(tipo); quedan--; }
     }
   });
-  while (aguas-- > 0) mitad.push({agua: true});
-  if (!mitad.length && !central) return [];
+  return puestos;
+}
 
+/* --- LA FILA DE DELANTE ----------------------------------------------------
+
+   Se colocan TODAS las columnas de una vez, de izquierda a derecha, repartidas
+   a lo ancho. La simetría ya viene dada por cómo se repartieron las leches y
+   por dónde se meten las aguas y las servilletas, así que no hace falta
+   reflejar el dibujo — que es lo que antes duplicaba piezas.
+
+   En cada puesto: la MINI BOX por fuera y la PILA DE VASOS por dentro. En la
+   mitad derecha se invierte, para que la mini box quede siempre hacia el
+   extremo de la barra.                                                       */
+function filaDelante(cuantos, anchoCm, nMesas) {
   const W = (t) => PIEZAS[t].wc;
-  const llevaInfusiones = (pu) => pu.includes('aguaCal') && (cuantos.miniboxCal || 0) > 0;
-  const anchoPuesto = (pu) => pu.reduce((a, t) => a + W(t), 0) + (pu.length - 1) * 2
-                            + W('minibox') + 2 + W('vaso') + 2
-                            + (llevaInfusiones(pu) ? W('miniboxCal') + 2 : 0);
-  const anchoAgua = () => W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
-  const anchoDe = (c) => c.agua ? anchoAgua() : anchoPuesto(c.puesto);
+  const puestos = puestosDeCafe(cuantos);
+  const nP = puestos.length;
 
-  const columnas = [
-    ...mitad,
-    ...(central ? [{puesto: central, centro: true}] : []),
-    ...mitad.slice().reverse().map(c => ({...c, espejo: true})),
-  ];
+  /* Separadores: las aguas (en pareja) y los servilleteros.
 
-  /* SI NO CABE, NO SE CUELGA DE LA MESA.
+     Hay un hueco ANTES del primer puesto, uno entre cada dos, y otro DESPUÉS
+     del último: nP + 1 en total. Antes solo se contaban los de en medio, y en
+     una mesa con un solo café no había ningún hueco — así que una mesa de un
+     evento de 20 personas se quedaba sin agua y sin servilletas. Con los
+     extremos, el agua cae a un lado y a otro del puesto, que además es como
+     se monta. */
+  const huecos = nP + 1;
+  const ranuras = Array.from({length: huecos}, () => []);
+  const meterEnPareja = (tipo, cuantas) => {
+    // se colocan en ranuras espejadas, de fuera hacia dentro
+    const pares = [];
+    for (let i = 0, j = huecos - 1; i < j; i++, j--) pares.push([i, j]);
+    const medio = huecos % 2 ? (huecos - 1) / 2 : null;
+    let q = cuantas, p = 0;
+    while (q >= 2 && p < pares.length) {
+      ranuras[pares[p][0]].push(tipo); ranuras[pares[p][1]].push(tipo); q -= 2; p++;
+    }
+    if (q === 1 && medio !== null) { ranuras[medio].push(tipo); q--; }
+    if (q === 1 && pares.length) { ranuras[pares[0][0]].push(tipo); q--; }
+    return cuantas - q;                 // cuántas se han podido meter
+  };
+  const aguasPuestas = meterEnPareja('fuente', cuantos.fuente || 0);
+  const servisPuestos = meterEnPareja('servis', cuantos.servis || 0);
 
-     Antes se apretaba el hueco al mínimo y, si aun así no entraba, la fila
-     empezaba en negativo: las mini box de las puntas quedaban colgando fuera
-     del tablero. Eso en el plano es mentira y en el montaje es una caja en el
-     suelo. Ahora se van quitando columnas desde el centro hacia fuera —que es
-     donde menos se nota— hasta que la fila entra, y lo que sale se devuelve
-     como sobrante para que la hoja lo diga. */
+  // La fila completa: puesto, lo que haya en su ranura, puesto, …
+  const columnas = [];
+  puestos.forEach((pu, i) => {
+    (ranuras[i] || []).forEach(t => columnas.push({sep: t}));   // el hueco de antes
+    columnas.push({puesto: pu, lado: i < nP / 2 ? 'izq' : 'der'});
+  });
+  (ranuras[nP] || []).forEach(t => columnas.push({sep: t}));    // y el del final
+
+  const anchoCol = (c) => {
+    if (c.sep === 'fuente') return W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
+    if (c.sep) return W(c.sep);
+    return c.puesto.reduce((a, t) => a + W(t), 0) + (c.puesto.length - 1) * 2
+         + W('minibox') + 2 + W('vaso') + 2
+         + (c.puesto.includes('aguaCal') && (cuantos.miniboxCal || 0) ? W('miniboxCal') + 2 : 0);
+  };
+
+  /* SI NO CABE, NO SE MIENTE.
+
+     Lo que manda la mesa es el ancho: un puesto de café con su mini box y su
+     pila de vasos ocupa casi 60 cm, así que en una mesa de 180 caben tres
+     justos. Cuando el checklist pide más cajas de las que entran, antes se
+     dibujaban igual, saliéndose del tablero. Ahora se quitan de DENTRO HACIA
+     FUERA y en pareja —para no romper el espejo— y se dice cuántas mesas
+     harían falta de verdad. */
   const sitio = anchoCm - MARGEN * 2;
-  const mide = (cols) => cols.reduce((a, c) => a + anchoDe(c), 0)
+  const mide = (cols) => cols.reduce((a, c) => a + anchoCol(c), 0)
                        + SEPARA * Math.max(0, cols.length - 1);
+  const necesario = mide(columnas);
   const noCaben = [];
-  while (columnas.length > 1 && mide(columnas) > sitio) {
-    // se quita la pareja más cercana al centro: una de cada lado, para no
-    // romper la simetría
+  while (columnas.length > 0 && mide(columnas) > sitio) {
     const medio = Math.floor(columnas.length / 2);
-    const quitadas = columnas.splice(columnas.length % 2 ? medio + 1 : medio - 1, 1)
-      .concat(columnas.splice(columnas.length % 2 ? medio - 1 : medio, 1));
-    quitadas.forEach(c => (c.puesto || c.piezas || []).forEach(t => noCaben.push(t)));
+    const quita = columnas.length % 2 ? [medio] : [medio, medio - 1];
+    quita.sort((a, b) => b - a).forEach(i => {
+      const c = columnas.splice(i, 1)[0];
+      if (c.sep === 'fuente') noCaben.push('fuente', 'vasoAgua', 'vasoAgua');
+      else if (c.sep) noCaben.push(c.sep);
+      else { c.puesto.forEach(t => noCaben.push(t)); noCaben.push('minibox', 'vaso'); }
+    });
   }
 
-  const suma = columnas.reduce((a, c) => a + anchoDe(c), 0);
+  /* Al quitar columnas puede quedar una fuente sola, y una fuente sola no se
+     monta: el agua va siempre en pareja —la normal y la de limón con
+     hierbabuena—. Si ha quedado impar, se quita la que sobra. */
+  const cuentaAguas = () => columnas.filter(c => c.sep === 'fuente').length;
+  while (cuentaAguas() % 2) {
+    const i = columnas.map((c, k) => c.sep === 'fuente' ? k : -1)
+                      .filter(k => k >= 0).pop();
+    columnas.splice(i, 1);
+    noCaben.push('fuente', 'vasoAgua', 'vasoAgua');
+  }
+
+  const suma = columnas.reduce((a, c) => a + anchoCol(c), 0);
   const hueco = columnas.length > 1
     ? Math.max(SEPARA, (sitio - suma) / (columnas.length - 1)) : 0;
-  let x = (anchoCm - (suma + hueco * (columnas.length - 1))) / 2;
 
   const puntos = [];
-  puntos.noCaben = noCaben;          // lo que se ha quedado fuera por falta de mesa
+  puntos.necesario = necesario;                    // cm de barra que pedía
+  puntos.cabe = noCaben.length === 0;
+  puntos.noCaben = noCaben;
+  // cuántas mesas harían falta para que entrara entero
+  puntos.mesasQueHacenFalta = Math.ceil(necesario / (PIEZAS.buffet.wc - MARGEN * 2 / nMesas));
+  let x = (anchoCm - (suma + hueco * (columnas.length - 1))) / 2;
+
   columnas.forEach(c => {
     let dx = x;
-    if (c.agua) {
-      // Los vasos del agua, un poco más adelante: adelante = true.
+    if (c.sep === 'fuente') {
       puntos.push({tipo: 'vasoAgua', x: dx, adelante: true}); dx += W('vasoAgua') + 2;
       puntos.push({tipo: 'fuente', x: dx});                   dx += W('fuente') + 2;
       puntos.push({tipo: 'vasoAgua', x: dx, adelante: true});
+    } else if (c.sep) {
+      puntos.push({tipo: c.sep, x: dx});
     } else {
-      const cajas = c.espejo ? c.puesto.slice().reverse() : c.puesto;
-      const fuera = c.espejo ? 'der' : 'izq';                 // dónde va la mini box
-      if (fuera === 'izq') { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
+      const derecha = c.lado === 'der';
+      const cajas = derecha ? c.puesto.slice().reverse() : c.puesto;
+      if (!derecha) { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
       else { puntos.push({tipo: 'vaso', x: dx}); dx += W('vaso') + 2; }
       cajas.forEach(t => {
         puntos.push({tipo: t, x: dx}); dx += W(t) + 2;
-        // La mini box de infusiones va pegada al AGUA CALIENTE, que es lo que
-        // acompaña: descafeinados y tés. Con el café no pinta nada.
         if (t === 'aguaCal' && (cuantos.miniboxCal || 0) > 0) {
           puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
         }
       });
-      if (fuera === 'izq') puntos.push({tipo: 'vaso', x: dx});
+      if (!derecha) puntos.push({tipo: 'vaso', x: dx});
       else puntos.push({tipo: 'minibox', x: dx});
     }
-    x += anchoDe(c) + hueco;
+    x += anchoCol(c) + hueco;
   });
   return puntos;
 }
@@ -267,6 +338,7 @@ const DESVIO_V = 7;          // cm que se adelantan las del centro: la V
 
 function filaDetras(cuantos, anchoCm, nMesas, fondoDisponible) {
   const puntos = [];
+  puntos.noCaben = [];
   const anchoMesa = PIEZAS.buffet.wc;
 
   // --- la comida, repartida mesa a mesa ---
@@ -283,8 +355,14 @@ function filaDetras(cuantos, anchoCm, nMesas, fondoDisponible) {
     const x0 = m * anchoMesa, centroMesa = x0 + anchoMesa / 2;
 
     const anchoPieza = Math.max(...mias.map(t => PIEZAS[t].wc));
-    const hueco = anchoPieza * HUECO_BANDEJA;
-    const ancho = mias.reduce((a, t) => a + PIEZAS[t].wc, 0) + (mias.length - 1) * hueco;
+    // El hueco entre bandejas se aprieta si hace falta, pero la fila NUNCA se
+    // sale de su mesa: lo que no entre se queda fuera y se dice.
+    let hueco = anchoPieza * HUECO_BANDEJA;
+    const sitioMesa = anchoMesa - MARGEN * 2;
+    const anchoCon = (h) => mias.reduce((a, t) => a + PIEZAS[t].wc, 0) + (mias.length - 1) * h;
+    if (anchoCon(hueco) > sitioMesa) hueco = Math.max(2, (sitioMesa - anchoCon(0)) / Math.max(1, mias.length - 1));
+    while (mias.length > 1 && anchoCon(hueco) > sitioMesa) { puntos.noCaben.push(mias.pop()); }
+    const ancho = anchoCon(hueco);
     let x = centroMesa - ancho / 2;                 // centradas en SU mesa
     const maxDist = Math.max(1, ancho / 2);
 
@@ -346,38 +424,14 @@ function montarGrupo(tamGrupo, cuantos) {
 
   const leer = (lista) => lista.slice().sort((a, b) => a.x - b.x || (a.fila || 0) - (b.fila || 0))
                                 .map(p => p.tipo);
+  const noCaben = (delante.noCaben || []).concat(detras.noCaben || []);
   return {piezas, anchoCm, fondoCm,
-          secFrente: leer(delante), secDetras: leer(detras)};
+          secFrente: leer(delante), secDetras: leer(detras),
+          noCaben,
+          cabeTodo: noCaben.length === 0,
+          mesasQueHacenFalta: delante.mesasQueHacenFalta || nMesas};
 }
 
-/* --- Reparto del inventario entre los grupos ------------------------------ */
-function repartir(grupos) {
-  /* A cada grupo, lo que le corresponde POR MESAS, no por grupo.
-     Repartiendo a partes iguales, la mesa suelta de «un grupo de 3 y una
-     suelta» recibía la carga de tres mesas, no le cabía, y salía vacía en el
-     plano. Ahora un grupo de 3 lleva el triple que uno de 1, y lo que sobra
-     del redondeo va a los grupos grandes, que son los que tienen sitio. */
-  const porGrupo = grupos.map(() => ({}));
-  const mesasTotal = grupos.reduce((a, g) => a + g, 0);
-  const orden = grupos.map((g, i) => i).sort((a, b) => grupos[b] - grupos[a]);
-
-  Object.keys(PIEZAS).forEach(tipo => {
-    if (tipo === 'buffet' || tipo === 'alta' || tipo === 'papelera') return;
-    const total = INV[tipo] || 0;
-    if (!total) return;
-    let dado = 0;
-    grupos.forEach((g, i) => {
-      const toca = Math.floor(total * g / mesasTotal);
-      porGrupo[i][tipo] = toca;
-      dado += toca;
-    });
-    let resto = total - dado;
-    for (let k = 0; resto > 0; k = (k + 1) % orden.length, resto--) {
-      porGrupo[orden[k]][tipo]++;
-    }
-  });
-  return porGrupo;
-}
 
 /* --- Dibujo de una variante ---------------------------------------------- */
 const ESC = 1.0;                        // mm de papel por cm real; el SVG se ajusta
