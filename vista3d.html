@@ -101,6 +101,15 @@
 
 <script src="motor_montaje.js"></script>
 <script>
+/* Los tonos de las cajas, sacados de las fotos: el café oscuro y las
+   leches en madera clara. */
+PIEZAS.cafe.col = '#7a4a24';  PIEZAS.lecheNormal.col = '#e8d9b8';
+PIEZAS.sinLactosa.col = '#dfe8ef'; PIEZAS.soja.col = '#e2ecd7';
+PIEZAS.aguaCal.col = '#f0ddd4'; PIEZAS.zumo.col = '#f2dfa8';
+PIEZAS.vaso.col = '#f7f3ec'; PIEZAS.vasoAgua.col = '#f7f3ec';
+PIEZAS.fuente.col = '#dce9f0'; PIEZAS.bandeja.col = '#d8b483';
+</script>
+<script>
 /* ---------------------------------------------------------------------------
    El giro. La isometría de la hoja mira siempre desde la misma esquina; aquí
    se gira el plano de la mesa alrededor de su centro antes de proyectarlo, y
@@ -171,6 +180,132 @@ function cilindroGirado(x, y, z, diam, h, col, bd, centro) {
        + '" fill="' + tonoDe(col, 1.12) + '" ' + t + '/>';
 }
 
+
+/* ---------------------------------------------------------------------------
+   LA PINTA DE CADA COSA.
+
+   Recreadas a ojo a partir de las fotos de los montajes: la madera impresa de
+   las cajas y su grifo rojo, la tapa de madera de las garrafas, los vasos
+   apilados con su franja, la bandeja con su cuadrícula de bizcocho, la nube
+   blanca de la paniculata. No son los productos exactos —para eso hacen falta
+   las fotos del almacén, que están pendientes— pero se reconoce qué es cada
+   cosa de un vistazo, que es de lo que se trata.
+--------------------------------------------------------------------------- */
+
+/** ¿Se ve el frente de las piezas desde el ángulo actual? */
+function frenteVisible() { return Math.sin(ANG + Math.PI / 4) > 0.05; }
+
+/** Punto de la cara de delante en coordenadas de pantalla.
+ *  u va de 0 (izquierda) a 1 (derecha); v de 0 (abajo) a 1 (arriba). */
+function enFrente(p, t, z, u, v, centro) {
+  return proyectar(p.x + t.wc * u, p.y + t.hc, z + (t.zc || 10) * v, centro);
+}
+/** Punto de la cara de arriba. */
+function enTapa(p, t, z, u, w, centro) {
+  return proyectar(p.x + t.wc * u, p.y + t.hc * w, z + (t.zc || 10), centro);
+}
+
+const BEBIDA = ['cafe', 'lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo'];
+
+function adornos(p, z, centro) {
+  const t = PIEZAS[p.tipo];
+  const L = (a, b, col, gr) => '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0]
+        + '" y2="' + b[1] + '" stroke="' + col + '" stroke-width="' + gr + '"/>';
+  const Poli = (pts, col, bd) => '<polygon points="' + pts.map(q => q.join(',')).join(' ')
+        + '" fill="' + col + '"' + (bd ? ' stroke="' + bd + '" stroke-width="0.5"' : '') + '/>';
+  let o = '';
+
+  /* --- CAJAS DE BEBIDA: vetas de madera, tapa y el grifo rojo --- */
+  if (BEBIDA.indexOf(p.tipo) >= 0) {
+    if (frenteVisible()) {
+      // vetas verticales, como la madera impresa del cartón
+      for (let i = 1; i < 5; i++) {
+        o += L(enFrente(p, t, z, i / 5, 0.06, centro),
+               enFrente(p, t, z, i / 5, 0.92, centro), 'rgba(90,59,39,.22)', 0.5);
+      }
+      // la raya de la tapa
+      o += L(enFrente(p, t, z, 0.04, 0.82, centro),
+             enFrente(p, t, z, 0.96, 0.82, centro), 'rgba(60,40,22,.45)', 0.7);
+      // EL GRIFO: es lo que dice de un vistazo que esto es una caja de bebida
+      const g1 = enFrente(p, t, z, 0.42, 0.10, centro);
+      const g2 = enFrente(p, t, z, 0.58, 0.10, centro);
+      const g3 = enFrente(p, t, z, 0.58, 0.24, centro);
+      const g4 = enFrente(p, t, z, 0.42, 0.24, centro);
+      o += Poli([g1, g2, g3, g4], '#c0413b', '#7d2420');
+    }
+    // la tapa, con su hendidura
+    o += L(enTapa(p, t, z, 0.5, 0.15, centro), enTapa(p, t, z, 0.5, 0.85, centro),
+           'rgba(90,59,39,.3)', 0.6);
+  }
+
+  /* --- GARRAFA DE AGUA: tapa de madera y grifo --- */
+  else if (p.tipo === 'fuente') {
+    const r = t.wc / 2;
+    const [cx, cy] = proyectar(p.x + r, p.y + r, z + t.zc, centro);
+    const rx = r * Math.cos(Math.PI / 6) * 1.42 * 0.82, ry = r * 0.5 * 1.42 * 0.82;
+    o += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry
+       + '" fill="#c9a06a" stroke="#8a6a3a" stroke-width="0.6"/>';
+    if (frenteVisible()) {
+      const a = proyectar(p.x + r - 1.6, p.y + t.hc, z + t.zc * 0.16, centro);
+      const b = proyectar(p.x + r + 1.6, p.y + t.hc, z + t.zc * 0.16, centro);
+      const c = proyectar(p.x + r + 1.6, p.y + t.hc, z + t.zc * 0.30, centro);
+      const d = proyectar(p.x + r - 1.6, p.y + t.hc, z + t.zc * 0.30, centro);
+      o += Poli([a, b, c, d], '#9aa1a8', '#6b7177');
+    }
+  }
+
+  /* --- PILA DE VASOS: los aros de cada vaso y la franja de Doña Col --- */
+  else if (p.tipo === 'vaso' || p.tipo === 'vasoAgua') {
+    const r = t.wc / 2, h = t.zc;
+    const rx = r * Math.cos(Math.PI / 6) * 1.42, ry = r * 0.5 * 1.42;
+    for (let i = 1; i <= 4; i++) {
+      const [ax, ay] = proyectar(p.x + r, p.y + r, z + h * (i / 5), centro);
+      o += '<path d="M' + (ax - rx) + ',' + ay + ' A' + rx + ',' + ry
+         + ' 0 0 0 ' + (ax + rx) + ',' + ay + '" fill="none" stroke="rgba(90,59,39,.28)"'
+         + ' stroke-width="0.45"/>';
+    }
+    const [bx, by] = proyectar(p.x + r, p.y + r, z + h * 0.62, centro);
+    o += '<path d="M' + (bx - rx) + ',' + by + ' A' + rx + ',' + ry
+       + ' 0 0 0 ' + (bx + rx) + ',' + by + '" fill="none" stroke="#6b4423" stroke-width="1.1"/>';
+  }
+
+  /* --- BANDEJA: la cuadrícula de bizcocho, que es lo que se ve desde arriba --- */
+  else if (p.tipo === 'bandeja') {
+    for (let f = 0; f < 3; f++) {
+      for (let c = 0; c < 4; c++) {
+        if ((f + c) % 2) continue;                       // damero, como en las fotos
+        const u0 = 0.08 + c * 0.21, w0 = 0.12 + f * 0.26;
+        o += Poli([enTapa(p, t, z, u0, w0, centro),
+                   enTapa(p, t, z, u0 + 0.17, w0, centro),
+                   enTapa(p, t, z, u0 + 0.17, w0 + 0.21, centro),
+                   enTapa(p, t, z, u0, w0 + 0.21, centro)], '#6b4423', null);
+      }
+    }
+  }
+
+  /* --- FLORAL: la nube blanca de la paniculata --- */
+  else if (p.tipo === 'floral') {
+    const r = t.wc / 2;
+    const [cx, cy] = proyectar(p.x + r, p.y + r, z + t.zc * 0.86, centro);
+    o += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15)
+       + '" fill="#eef5e6" stroke="#9ec284" stroke-width="0.5"/>';
+    const puntos = [[-.5,-.3],[.4,-.45],[0,0],[-.35,.35],[.45,.3],[.15,-.15]];
+    puntos.forEach(([a, b]) => {
+      o += '<circle cx="' + (cx + a * r * 1.1) + '" cy="' + (cy + b * r * .8)
+         + '" r="' + (r * .22) + '" fill="#fff"/>';
+    });
+  }
+
+  /* --- MINI BOX: los sobres asomando --- */
+  else if (p.tipo === 'minibox' || p.tipo === 'miniboxCal') {
+    for (let i = 1; i < 6; i++) {
+      o += L(enTapa(p, t, z, i / 6, 0.2, centro), enTapa(p, t, z, i / 6, 0.8, centro),
+             'rgba(120,95,50,.5)', 0.5);
+    }
+  }
+  return o;
+}
+
 function pintarEscena() {
   if (!GRUPO) return;
   const {tam, cuantos} = GRUPO;
@@ -199,6 +334,7 @@ function pintarEscena() {
     cuerpo += redondo
       ? cilindroGirado(p.x, p.y, ALTO, t.wc, h, t.col, t.bd, centro)
       : cajaGirada(p.x, p.y, ALTO, t.wc, t.hc, h, t.col, t.bd, centro, t.mk);
+    cuerpo += adornos(p, ALTO, centro);
   });
 
   // Encuadre fijo: el mismo para todos los ángulos, para que no dé saltos al girar.
