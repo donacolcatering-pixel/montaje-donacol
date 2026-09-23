@@ -56,7 +56,12 @@ const DELANTE = [...BEBIDAS, 'fuente', 'vaso', 'servis', 'minibox'];
 const DETRAS  = ['chafing','bandeja','floral'];
 const EN_PAREJA = ['fuente'];        // las aguas van de dos en dos, nunca impar
 
-const MARGEN = 4, SEPARA = 3, MAX_JUNTAS = 3;
+/* MARGEN: centímetros libres en el filo de la mesa. Estaba en 4 y las piezas
+   de las puntas quedaban al ras: en el dibujo en 3D, con el mantel cayendo
+   justo debajo, parecían colgando fuera aunque estuvieran dentro. Y en la mesa
+   de verdad, una mini box al filo se cae. Con 6 sigue cabiendo todo de fondo:
+   6 + 25 de caja + 3 + 26,5 de bandeja + 6 son 66,5 de los 70. */
+const MARGEN = 6, SEPARA = 3, MAX_JUNTAS = 3;
 
 /* --- Inventario que viene del checklist ---------------------------------- */
 let INV = {}, META = {};
@@ -187,12 +192,34 @@ function filaDelante(cuantos, anchoCm, nMesas) {
     ...mitad.slice().reverse().map(c => ({...c, espejo: true})),
   ];
 
+  /* SI NO CABE, NO SE CUELGA DE LA MESA.
+
+     Antes se apretaba el hueco al mínimo y, si aun así no entraba, la fila
+     empezaba en negativo: las mini box de las puntas quedaban colgando fuera
+     del tablero. Eso en el plano es mentira y en el montaje es una caja en el
+     suelo. Ahora se van quitando columnas desde el centro hacia fuera —que es
+     donde menos se nota— hasta que la fila entra, y lo que sale se devuelve
+     como sobrante para que la hoja lo diga. */
+  const sitio = anchoCm - MARGEN * 2;
+  const mide = (cols) => cols.reduce((a, c) => a + anchoDe(c), 0)
+                       + SEPARA * Math.max(0, cols.length - 1);
+  const noCaben = [];
+  while (columnas.length > 1 && mide(columnas) > sitio) {
+    // se quita la pareja más cercana al centro: una de cada lado, para no
+    // romper la simetría
+    const medio = Math.floor(columnas.length / 2);
+    const quitadas = columnas.splice(columnas.length % 2 ? medio + 1 : medio - 1, 1)
+      .concat(columnas.splice(columnas.length % 2 ? medio - 1 : medio, 1));
+    quitadas.forEach(c => (c.puesto || c.piezas || []).forEach(t => noCaben.push(t)));
+  }
+
   const suma = columnas.reduce((a, c) => a + anchoDe(c), 0);
   const hueco = columnas.length > 1
-    ? Math.max(SEPARA, (anchoCm - MARGEN * 2 - suma) / (columnas.length - 1)) : 0;
+    ? Math.max(SEPARA, (sitio - suma) / (columnas.length - 1)) : 0;
   let x = (anchoCm - (suma + hueco * (columnas.length - 1))) / 2;
 
   const puntos = [];
+  puntos.noCaben = noCaben;          // lo que se ha quedado fuera por falta de mesa
   columnas.forEach(c => {
     let dx = x;
     if (c.agua) {
