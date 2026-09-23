@@ -412,7 +412,7 @@ const GEN = {
   SEPARA: 4,        // cm entre dos cosas encima de la mesa
   PASILLO: 250,     // cm entre dos barras enfrentadas: pasa un carro y gente
   HUECO_SIM: 180,   // cm de hueco en el centro de la simétrica: por ahí se entra
-  MAX_JUNTAS: 4,    // mesas seguidas como mucho: 4 × 1,80 = 7,2 m ya es mucha barra
+  MAX_JUNTAS: 3,    // solo hay tres formas base: 1 suelta, 2 juntas, 3 juntas
   ORIGEN_X: 600, ORIGEN_Y: 500,
 };
 
@@ -429,7 +429,7 @@ const FORMAS = {
 };
 let genForma = 'linea';
 
-let genGrupos = null;        // la agrupación elegida, p. ej. [2,1]
+let genPatron = null;        // el patrón elegido: {k, grupos, sobra}
 
 /** Dibujito de una agrupación: rectángulos pegados o con hueco. */
 function genMiniatura(grupos) {
@@ -452,7 +452,8 @@ function genMiniatura(grupos) {
 }
 
 /** Qué implica cada agrupación, dicho en una línea. */
-function genQueImplica(grupos) {
+function genQueImplica(ag) {
+  const grupos = ag.grupos;
   const ancho = genOffsets(grupos).total / 100;
   const colas = grupos.length === 1 ? '1 cola' : grupos.length + ' colas a la vez';
   // El centro se calcula de verdad, con la misma cuenta que el plano: decirlo
@@ -468,17 +469,17 @@ function genQueImplica(grupos) {
 function genPintarVariantes() {
   const n = genCuantasMesas();
   const opciones = genAgrupaciones(n);
-  if (!genGrupos || genGrupos.reduce((a, b) => a + b, 0) !== n) genGrupos = opciones[0];
+  if (!genPatron || genPatron.grupos.reduce((a, b) => a + b, 0) !== n) genPatron = opciones[0];
   $('#gTitVar').textContent = '¿Cómo se agrupan las ' + n + ' mesas?';
   $('#gVariantes').innerHTML = opciones.map((g, i) => {
-    const puesto = JSON.stringify(g) === JSON.stringify(genGrupos);
+    const puesto = g.k === genPatron.k;
     return `<div class="gVar${puesto ? ' on' : ''}" data-i="${i}">
       ${genMiniatura(g)}
       <div><span class="vt">${genNombreAgrup(g)}</span>
            <span class="vs">${genQueImplica(g)}</span></div></div>`;
   }).join('');
   document.querySelectorAll('.gVar').forEach(v => v.onclick = () => {
-    genGrupos = opciones[+v.dataset.i];
+    genPatron = opciones[+v.dataset.i];
     genPintarVariantes();
     genMontar();                       // se ve al momento, sin dar a nada más
   });
@@ -533,37 +534,31 @@ function genSeparacion() {
    que su gemelo y no hay que mirar dos veces. */
 function genAgrupaciones(n) {
   const salida = [];
-  for (let g = 1; g <= n; g++) {
-    const base = Math.floor(n / g), sobran = n % g;
+  for (let k = 1; k <= Math.min(n, GEN.MAX_JUNTAS); k++) {
     const grupos = [];
-    for (let i = 0; i < g; i++) grupos.push(base + (i < sobran ? 1 : 0));
-    // Una barra demasiado larga no es una opción: la gente no va a recorrer
-    // 18 metros detrás de la mesa. Con mesas de 1,80 el tope son 4 seguidas
-    // (7,2 m); a partir de ahí SIEMPRE se corta, cada dos, cada tres o cada
-    // cuatro. Por eso con 10 mesas no aparece «10 juntas»: no existe.
-    if (Math.max(...grupos) > GEN.MAX_JUNTAS) continue;
-    salida.push(grupos);
+    let quedan = n;
+    while (quedan > 0) { grupos.push(Math.min(k, quedan)); quedan -= k; }
+    salida.push({k, grupos, sobra: n % k === 0 ? 0 : n % k});
   }
-  // Las más limpias primero: primero las de grupos todos iguales, que se montan
-  // una igual que otra y no hay que mirar dos veces.
-  return salida.sort((a, b) => {
-    const iguales = (g) => (new Set(g).size === 1 ? 0 : 1);
-    return iguales(a) - iguales(b) || b[0] - a[0];
-  });
+  return salida;
 }
 
-/** Cómo se lee una agrupación en voz alta. */
-function genNombreAgrup(grupos) {
+/** Cómo se lee un patrón en voz alta: «de dos en dos», «3 juntas»… */
+function genNombreAgrup(ag) {
+  const grupos = ag.grupos || ag;                 // acepta patrón o lista suelta
+  const k = ag.k || Math.max(...grupos);
   const n = grupos.reduce((a, b) => a + b, 0);
-  if (grupos.length === 1) return n === 1 ? '1 mesa' : n + ' mesas juntas';
-  if (grupos.every(g => g === 1)) return n + ' mesas sueltas';
-  const partes = {};
-  grupos.forEach(g => partes[g] = (partes[g] || 0) + 1);
-  return Object.keys(partes).sort((a, b) => b - a).map(tam => {
-    const veces = partes[tam];
-    const qué = tam === '1' ? 'suelta' : 'juntas';
-    return veces > 1 ? veces + ' de ' + tam + ' ' + qué : tam + ' ' + qué;
-  }).join(' + ');
+  const enteros = grupos.filter(g => g === k).length;
+  if (n === k) return n === 1 ? '1 mesa sola' : n + ' mesas juntas';
+  const base = k === 1 ? 'De una en una'
+             : k === 2 ? 'De dos en dos'
+             : 'De tres en tres';
+  const sobra = n - enteros * k;
+  const cuantos = k === 1 ? enteros + ' mesas'
+                : enteros === 1 ? 'un grupo de ' + k
+                : enteros + ' grupos de ' + k;
+  return base + ' · ' + cuantos
+       + (sobra ? ' y ' + (sobra === 1 ? 'una mesa suelta' : sobra + ' sueltas') : '');
 }
 
 /** Desplazamiento en cm de cada mesa desde el inicio de la barra. */
@@ -705,29 +700,118 @@ function genHuecos(mesa, wc, hc) {
   return huecos;
 }
 
-/** Coloca encima de las mesas todo lo que dice el inventario. */
-function genEncima(mesas) {
-  const puestos = [];
-  const ocupado = mesas.map(() => []);   // rectángulos ya usados por mesa
-  const choca = (mi, r) => ocupado[mi].some(o =>
-    r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y);
+/* LO DE ENCIMA, REPLICADO IGUAL EN CADA GRUPO.
 
+   La regla del dueño: un grupo de dos mesas tiene UNA forma, y esa forma se
+   repite en todos los grupos de dos. Si hay cinco grupos de dos, los cinco se
+   montan idénticos y no hay que mirar dos veces. Lo que se ve disparejo —una
+   barra con cuatro bandejas y la de al lado con tres— es lo que hace que un
+   montaje parezca chapucero aunque lleve la misma comida.
+
+   Por eso NO se va llenando mesa por mesa hasta que se acaban las cosas. Se
+   reparte a partes iguales entre los grupos, se calcula la plantilla de un
+   grupo, y esa plantilla se estampa en todos. Lo que no da para repartir
+   igual SOBRA, y se dice: es mejor que sobren dos bandejas en cocina a que
+   una barra vaya más servida que otra. */
+
+/** Las mesas de cada grupo, en el orden en que se montaron. */
+function genGruposDeMesas(mesas, grupos) {
+  const salida = [];
+  let i = 0;
+  grupos.forEach(tam => { salida.push(mesas.slice(i, i + tam)); i += tam; });
+  return salida;
+}
+
+/** El rectángulo que ocupa un grupo entero (sus mesas pegadas). */
+function genRectGrupo(grupo) {
+  const rs = grupo.map(genRect);
+  const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
+  return {x, y,
+          w: Math.max(...rs.map(r => r.x + r.w)) - x,
+          h: Math.max(...rs.map(r => r.y + r.h)) - y};
+}
+
+/** Huecos en rejilla dentro de un rectángulo, para piezas de wc×hc cm. */
+function genHuecosEn(rect, wc, hc) {
+  const anchoUtil = rect.w / SCALE - GEN.MARGEN * 2;
+  const fondoUtil = rect.h / SCALE - GEN.MARGEN * 2;
+  const cols = Math.max(0, Math.floor((anchoUtil + GEN.SEPARA) / (wc + GEN.SEPARA)));
+  const filas = Math.max(0, Math.floor((fondoUtil + GEN.SEPARA) / (hc + GEN.SEPARA)));
+  // Centrado: lo que sobra se reparte a los dos lados, que es lo que hace que
+  // se vea simétrico en vez de apelotonado a la izquierda.
+  const usadoX = cols * wc + Math.max(0, cols - 1) * GEN.SEPARA;
+  const usadoY = filas * hc + Math.max(0, filas - 1) * GEN.SEPARA;
+  const x0 = (rect.w / SCALE - usadoX) / 2, y0 = (rect.h / SCALE - usadoY) / 2;
+  const huecos = [];
+  for (let f = 0; f < filas; f++)
+    for (let c = 0; c < cols; c++)
+      huecos.push({dx: cm(x0 + c * (wc + GEN.SEPARA)),
+                   dy: cm(y0 + f * (hc + GEN.SEPARA))});
+  return huecos;
+}
+
+/** La plantilla de UN grupo: qué lleva y dónde, en coordenadas relativas. */
+function genPlantilla(rect, porGrupo) {
+  const plantilla = [], ocupado = [];
+  const choca = (r) => ocupado.some(o =>
+    r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y);
+  const colocadas = {};
   GEN_ENCIMA.forEach(tipo => {
-    let quedan = (INV && INV[tipo]) || 0;
+    let quedan = porGrupo[tipo] || 0;
     if (!quedan) return;
     const t = TIPOS[tipo], w = cm(t.wc), h = cm(t.hc);
-    for (let mi = 0; mi < mesas.length && quedan > 0; mi++) {
-      for (const hueco of genHuecos(mesas[mi], t.wc, t.hc)) {
-        if (quedan <= 0) break;
-        const r = {x: hueco.x, y: hueco.y, w, h};
-        if (choca(mi, r)) continue;
-        ocupado[mi].push(r);
-        puestos.push({tipo, x: hueco.x, y: hueco.y, rot: 0});
-        quedan--;
-      }
+    colocadas[tipo] = 0;
+    for (const hueco of genHuecosEn(rect, t.wc, t.hc)) {
+      if (quedan <= 0) break;
+      const r = {x: hueco.dx, y: hueco.dy, w, h};
+      if (choca(r)) continue;
+      ocupado.push(r);
+      plantilla.push({tipo, dx: hueco.dx, dy: hueco.dy});
+      colocadas[tipo]++;
+      quedan--;
     }
   });
-  return puestos;
+  return {plantilla, colocadas};
+}
+
+/** Reparte lo del inventario entre los grupos y estampa la misma plantilla. */
+function genEncima(mesas, grupos) {
+  const gruposMesas = genGruposDeMesas(mesas, grupos);
+  const puestos = [], sobras = {};
+  // Los grupos del mismo tamaño comparten plantilla; los de tamaño distinto
+  // (el resto que no cuadra) llevan la suya, proporcional a lo que ocupan.
+  const porTam = {};
+  gruposMesas.forEach(g => { porTam[g.length] = (porTam[g.length] || 0) + 1; });
+  const mesasTotales = mesas.length;
+
+  // El reparto es POR GRUPO, no por mesa: 3 chafings en 3 grupos son uno por
+  // grupo. (Haciéndolo por mesa, 3 chafings entre 6 mesas daban cero y se iban
+  // todos a «sobra», que era justo lo contrario de lo que hace falta.)
+  const nGrupos = gruposMesas.length;
+  const reparto = {};
+  GEN_ENCIMA.forEach(tipo => {
+    const total = (INV && INV[tipo]) || 0;
+    if (!total) return;
+    reparto[tipo] = Math.floor(total / nGrupos);
+  });
+
+  const plantillas = {};
+  gruposMesas.forEach(g => {
+    const tam = g.length, rect = genRectGrupo(g);
+    if (!plantillas[tam]) plantillas[tam] = genPlantilla(rect, reparto).plantilla;
+    plantillas[tam].forEach(pz =>
+      puestos.push({tipo: pz.tipo, rot: 0, x: rect.x + pz.dx, y: rect.y + pz.dy}));
+  });
+
+  // Lo que queda fuera: o no daba para uno por grupo, o no cabía en la mesa.
+  const colocado = {};
+  puestos.forEach(p => colocado[p.tipo] = (colocado[p.tipo] || 0) + 1);
+  GEN_ENCIMA.forEach(tipo => {
+    const total = (INV && INV[tipo]) || 0;
+    const resto = total - (colocado[tipo] || 0);
+    if (resto > 0) sobras[tipo] = resto;
+  });
+  return {puestos, sobras};
 }
 
 /** Mesas altas repartidas por delante de la barra, en rejilla suelta. */
@@ -773,11 +857,17 @@ function genExtremos(mesas) {
 function genMontar() {
   const largoSala = Math.max(200, (parseFloat($('#gLargo').value) || 12) * 100);
   const nMesas = genCuantasMesas();
-  if (!genGrupos || genGrupos.reduce((a, b) => a + b, 0) !== nMesas) genGrupos = [nMesas];
-  const mesas = genMesas(genGrupos, largoSala);
+  const _ops = genAgrupaciones(nMesas);
+  if (!genPatron || genPatron.grupos.reduce((a, b) => a + b, 0) !== nMesas)
+    genPatron = _ops[_ops.length - 1];          // por defecto, lo más juntas posible
+  const mesas = genMesas(genPatron.grupos, largoSala);
 
-  let nuevos = [...mesas];
-  if ($('#gEncima').checked) nuevos = nuevos.concat(genEncima(mesas));
+  let nuevos = [...mesas], sobras = {};
+  if ($('#gEncima').checked) {
+    const r = genEncima(mesas, genPatron.grupos);
+    nuevos = nuevos.concat(r.puestos);
+    sobras = r.sobras;
+  }
   if ($('#gAltas').checked)  nuevos = nuevos.concat(genAltas(mesas));
   nuevos = nuevos.concat(genExtremos(mesas));
 
@@ -804,11 +894,15 @@ function genMontar() {
                              : 'Lo que vaya al centro queda partido entre dos tableros, '
                                + 'así que se reparte a un lado y a otro.'))
     : '';
-  $('#gNota').innerHTML = (fuera.length
-    ? '⚠️ No ha cabido todo: falta colocar <b>' + fuera.join(', ') + '</b>. '
-      + 'Añade una mesa más o prueba otra forma.'
-    : '✅ Montado con ' + nMesas + ' mesa(s). Todo lo del checklist está colocado.')
-    + (sobreEje ? '<br><br>' + sobreEje : '');
+  const nGrupos = genPatron.grupos.length;
+  const cabecera = '✅ ' + nMesas + ' mesas en ' + nGrupos + ' grupo(s), '
+    + 'todos montados igual.';
+  const txtSobras = fuera.length
+    ? '<br><br>📦 Sobran <b>' + fuera.join(', ') + '</b>: no dan para repartir '
+      + 'lo mismo en cada grupo. Mejor que sobre en cocina a que una barra vaya '
+      + 'más servida que otra.'
+    : '';
+  $('#gNota').innerHTML = cabecera + txtSobras + (sobreEje ? '<br><br>' + sobreEje : '');
   $('#lienzo').scrollTo(Math.max(0, GEN.ORIGEN_X * 0.5 - 100), Math.max(0, GEN.ORIGEN_Y * 0.5 - 100));
 }
 
