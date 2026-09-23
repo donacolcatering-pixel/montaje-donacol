@@ -177,8 +177,11 @@ mundo.style.width=WORLD_W+'px'; mundo.style.height=WORLD_H+'px';
 svg.setAttribute('width',WORLD_W); svg.setAttribute('height',WORLD_H);
 
 const TIPOS={
-  buffet:  {nm:'Mesa buffet',  wc:180, hc:74,  shape:'rect',  fill:'#f3e2c4',bd:'#5A3B27',ic:'🍴'},
-  baja:    {nm:'Mesa baja',    wc:120, hc:74,  shape:'rect',  fill:'#f3e2c4',bd:'#5A3B27',ic:'▭'},
+  // 180 x 70 es la PLANTA, que es lo que se ve desde arriba. Los 74 cm son la
+  // altura de la mesa y aquí no pintan nada: antes se usaban como fondo y eso
+  // daba 4 cm de mesa que no existen.
+  buffet:  {nm:'Mesa buffet',  wc:180, hc:70,  shape:'rect',  fill:'#f3e2c4',bd:'#5A3B27',ic:'🍴'},
+  baja:    {nm:'Mesa baja',    wc:120, hc:70,  shape:'rect',  fill:'#f3e2c4',bd:'#5A3B27',ic:'▭'},
   alta:    {nm:'Mesa alta',    wc:70,  hc:70,  shape:'circle',fill:'#e9d3ad',bd:'#5A3B27',ic:''},
   chafing: {nm:'Chafing',      wc:53,  hc:33,  shape:'rect',  fill:'#c8c0b2',bd:'#555',   ic:'🔥'},
   bandeja: {nm:'Bandeja comida',wc:35, hc:26.5,shape:'rect',  fill:'#cda36a',bd:'#8a6a3a',ic:''},
@@ -757,37 +760,132 @@ function genFilasParejas(n, maxPorFila) {
   return salida;
 }
 
-/* La plantilla de UN grupo: qué lleva y dónde, en coordenadas relativas.
+/* LA PLANTILLA DE UN GRUPO — copiada de cómo se monta de verdad.
 
-   Todo va CENTRADO sobre el eje del grupo, fila a fila. Eso es lo que hace
-   que un grupo con dos chafings los ponga uno a cada lado y otro con uno solo
-   lo ponga en medio: los dos se ven intencionados, aunque no lleven lo mismo. */
-function genPlantilla(rect, cuantos) {
-  const plantilla = [];
-  let cursorY = GEN.MARGEN;                     // se va bajando por la mesa
-  const fondoTotal = rect.h / SCALE;
+   Las fotos de los montajes reales (Ibercaja, el patio de azulejos, la sala
+   azul) repiten todas la misma estructura, y no es la que yo tenía:
 
-  GEN_ENCIMA.forEach(tipo => {
-    const n = cuantos[tipo] || 0;
-    if (!n) return;
-    const t = TIPOS[tipo];
-    const cap = genCapacidad(rect, t.wc, t.hc);
-    const filas = genFilasParejas(n, cap.cols);
-    // ¿Queda fondo para estas filas? Si no, no se fuerza: se deja fuera y se avisa.
-    const alto = filas.length * t.hc + (filas.length - 1) * GEN.SEPARA;
-    if (cursorY + alto > fondoTotal - GEN.MARGEN) return;
+     · FRANJA DE DELANTE, al borde de la mesa: las cajas de bebida, con el
+       grifo asomando por el canto para que se pueda servir, y JUNTO A CADA
+       CAJA su pila de vasos. Las servilletas, en sus platitos, entre medias.
+     · FRANJA DE DETRÁS, contra la pared: las bandejas de comida.
+     · EL CENTRO: la fuente de agua delante y el floral detrás. Es el punto al
+       que se mira al entrar.
+     · Y todo EN ESPEJO respecto a ese centro.
 
-    filas.forEach((cuantasEnFila, fi) => {
-      const anchoFila = cuantasEnFila * t.wc + (cuantasEnFila - 1) * GEN.SEPARA;
-      const x0 = (rect.w / SCALE - anchoFila) / 2;      // centrada en el grupo
-      const y = cursorY + fi * (t.hc + GEN.SEPARA);
-      for (let i = 0; i < cuantasEnFila; i++) {
-        plantilla.push({tipo, dx: cm(x0 + i * (t.wc + GEN.SEPARA)), dy: cm(y)});
-      }
-    });
-    cursorY += alto + GEN.SEPARA;
+   Antes se iba llenando el fondo por capas —chafing, luego bandejas— y las
+   cajas no llegaban a caber. Al revés: la bebida manda en el frente, porque
+   es lo que tiene que quedar al alcance. */
+
+const BANDA_FRENTE = ['cajaCafe', 'vaso', 'servis', 'minibox'];
+const BANDA_FONDO  = ['chafing', 'bandeja'];
+// La fuente entra en la franja de delante y el floral en la de detrás como
+// una pieza más: si su cantidad es impar, el centro es suyo por la regla de
+// arriba. No hace falta tratarlos como caso especial.
+const BANDA_FRENTE_TODO = ['cajaCafe', 'fuente', 'vaso', 'servis', 'minibox'];
+const BANDA_FONDO_TODO  = ['chafing', 'bandeja', 'floral'];
+
+/* UNA FILA ALTERNADA Y EN ESPEJO.
+
+   No hay un elemento «del centro» fijo: el centro es LO QUE CAIGA EN MEDIO al
+   alternar. Lo explicó el dueño con un ejemplo: con dos de agua y tres de café
+   la fila es café · agua · café · agua · café, y entonces el centro es un café.
+   Si hubiera dos aguas y dos cafés, el centro sería el hueco entre los dos del
+   medio. Cambian las cantidades, cambia el centro.
+
+   Cómo se construye, para que la simetría no dependa de la suerte:
+     · de cada tipo, la mitad va a un lado y la otra mitad al otro;
+     · el que tenga cantidad IMPAR se queda con el centro;
+     · si hay varios impares, el centro se lo lleva el más numeroso y de los
+       otros sobra una pieza — romper el espejo por una pieza se ve más que
+       dejar una en la caja.
+   La mitad se reparte a lo ancho y la otra mitad es su reflejo exacto. */
+function genFilaEspejo(piezas, anchoCm, _hueco) {
+  const vivos = piezas.filter(p => p.n > 0)
+                      .sort((a, b) => b.n - a.n || TIPOS[b.tipo].wc - TIPOS[a.tipo].wc);
+  if (!vivos.length) return {puntos: [], sobra: []};
+
+  const impares = vivos.filter(p => p.n % 2);
+  const centro = impares.length ? impares[0].tipo : null;
+  const sobra = impares.slice(1).map(p => p.tipo);   // los demás impares pierden una
+
+  // Media fila, alternando: se va cogiendo del tipo al que más le queda, así
+  // no salen cuatro cajas seguidas y luego cuatro pilas de vasos.
+  const quedan = {};
+  vivos.forEach(p => quedan[p.tipo] = Math.floor(p.n / 2));
+  const mitad = [];
+  let total = Object.values(quedan).reduce((a, b) => a + b, 0);
+  while (total > 0) {
+    const tipo = Object.keys(quedan).sort((a, b) => quedan[b] - quedan[a])[0];
+    if (!quedan[tipo]) break;
+    mitad.push(tipo); quedan[tipo]--; total--;
+  }
+
+  const anchoCentro = centro ? TIPOS[centro].wc : 0;
+  const desde = GEN.MARGEN;
+  const hasta = anchoCm / 2 - anchoCentro / 2 - (centro ? GEN.SEPARA : 0);
+  const sitio = hasta - desde;
+  const suma = mitad.reduce((a, t) => a + TIPOS[t].wc, 0);
+  if (suma > sitio) return {puntos: [], sobra: vivos.map(p => p.tipo)};
+  const gap = mitad.length > 1 ? (sitio - suma) / (mitad.length - 1) : 0;
+
+  const puntos = [];
+  if (centro) puntos.push({tipo: centro, x: (anchoCm - anchoCentro) / 2});
+  let x = desde;
+  mitad.forEach(tipo => {
+    const w = TIPOS[tipo].wc;
+    puntos.push({tipo, x});
+    puntos.push({tipo, x: anchoCm - x - w});       // el reflejo
+    x += w + gap;
   });
-  return {plantilla};
+  return {puntos, sobra};
+}
+
+function genPlantilla(rect, cuantos) {
+  const plantilla = [], sobrantes = {};
+  const anchoCm = rect.w / SCALE, fondoCm = rect.h / SCALE;
+  const poner = (tipo, x, y) => plantilla.push({tipo, dx: cm(x), dy: cm(y)});
+  const anotarSobra = (t) => sobrantes[t] = (sobrantes[t] || 0) + 1;
+
+  // --- franja de delante: bebida al borde, con sus vasos, y la fuente ---
+  const frente = BANDA_FRENTE_TODO.filter(t => cuantos[t]);
+  const altoFrente = frente.length ? Math.max(...frente.map(t => TIPOS[t].hc)) : 0;
+  if (frente.length) {
+    const yBase = fondoCm - GEN.MARGEN - altoFrente;
+    const r = genFilaEspejo(frente.map(t => ({tipo: t, n: cuantos[t]})), anchoCm);
+    r.puntos.forEach(pt =>
+      poner(pt.tipo, pt.x, yBase + (altoFrente - TIPOS[pt.tipo].hc)));  // alineadas al borde
+    r.sobra.forEach(anotarSobra);
+    frente.forEach(t => {
+      const puestas = r.puntos.filter(p => p.tipo === t).length;
+      const resto = cuantos[t] - puestas - (r.sobra.includes(t) ? 1 : 0);
+      if (resto > 0) sobrantes[t] = (sobrantes[t] || 0) + resto;
+    });
+  }
+
+  // --- franja de detrás: la comida y el floral, en filas parejas ---
+  let yFondo = GEN.MARGEN;
+  const tope = fondoCm - GEN.MARGEN - altoFrente - (altoFrente ? GEN.SEPARA : 0);
+  const fondo = BANDA_FONDO_TODO.filter(t => cuantos[t]);
+  if (fondo.length) {
+    // Todo el fondo va en la MISMA fila alternada mientras quepa: así el floral
+    // cae en medio de las bandejas, como en los montajes de verdad.
+    const altoFila = Math.max(...fondo.map(t => TIPOS[t].hc));
+    if (yFondo + altoFila <= tope) {
+      const r = genFilaEspejo(fondo.map(t => ({tipo: t, n: cuantos[t]})), anchoCm);
+      r.puntos.forEach(pt => poner(pt.tipo, pt.x, yFondo));
+      r.sobra.forEach(anotarSobra);
+      fondo.forEach(t => {
+        const puestas = r.puntos.filter(p => p.tipo === t).length;
+        const resto = cuantos[t] - puestas - (r.sobra.includes(t) ? 1 : 0);
+        if (resto > 0) sobrantes[t] = (sobrantes[t] || 0) + resto;
+      });
+    } else {
+      fondo.forEach(t => sobrantes[t] = (sobrantes[t] || 0) + cuantos[t]);
+    }
+  }
+
+  return {plantilla, sobrantes};
 }
 
 /** Reparte lo del inventario entre los grupos y estampa la misma plantilla. */
