@@ -54,7 +54,8 @@ const BEBIDAS = ['cafe','lecheNormal','sinLactosa','soja','aguaCal','zumo'];
    de los montajes reales, no de una idea mía. */
 const DELANTE = [...BEBIDAS, 'fuente', 'vaso', 'servis', 'minibox'];
 const DETRAS  = ['chafing','bandeja','floral'];
-const EN_PAREJA = ['fuente'];        // las aguas van de dos en dos, nunca impar
+// Las aguas se COMPRAN de dos en dos (una normal y otra de limón con
+// hierbabuena), pero en una barra puede ir una sola marcando el centro.
 
 /* MARGEN: centímetros libres en el filo de la mesa. Estaba en 4 y las piezas
    de las puntas quedaban al ras: en el dibujo en 3D, con el mantel cayendo
@@ -122,21 +123,25 @@ function repartir(grupos) {
   ['cafe', 'lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo',
    'bandeja', 'chafing', 'floral'].forEach(t => proporcional(t, INV[t] || 0));
 
-  // b) las aguas, por parejas
-  const parejas = Math.floor((INV.fuente || 0) / 2);
-  let dadas = 0;
-  grupos.forEach((g, i) => {
-    const toca = Math.floor(parejas * g / mesas);
-    porGrupo[i].fuente = toca * 2; dadas += toca;
-  });
-  for (let k = 0, resto = parejas - dadas; resto > 0; k = (k + 1) % n, resto--) {
-    porGrupo[orden[k]].fuente += 2;
-  }
+  /* b) EL AGUA. Se compran de dos en dos —una normal y otra de limón con
+     hierbabuena— pero eso es del pedido, no de la barra: en un grupo puede
+     caer UNA SOLA, y cuando cae sola va al centro, marcándolo. Así está
+     montada la foto de La Romareda. Antes se forzaba la pareja dentro de cada
+     grupo y salían dos garrafas donde va una. */
+  proporcional('fuente', INV.fuente || 0);
 
   // c) lo que se deriva, que por definición cuadra
   porGrupo.forEach((c, i) => {
     c.minibox  = c.cafe;                 // una mini box por caja de café
-    c.vaso     = c.cafe;                 // una pila de 15 vasos por café
+    /* UNA PILA POR PUESTO DE CAFÉ. En la foto de La Romareda hay 8 cajas y
+       cuatro pilas, y por un momento pareció que los vasos se compartían de
+       dos en dos. No: son DOS de los dos puestos de café y DOS flanqueando la
+       garrafa de agua. Cada puesto de café lleva la suya.
+
+       El ZUMO es el caso aparte: lleva vasos pero no mini box, y cuando cae
+       junto a la garrafa se sirve de la pila del agua en vez de llevar otra.
+       Por eso se coloca pegado al agua siempre que haya agua. */
+    c.vaso = c.cafe;
     c.vasoAgua = c.fuente * 2;           // 10 + 10 a cada lado de cada fuente
     c.servis   = grupos[i] * 2;          // dos servilleteros por mesa
     c.miniboxCal = c.aguaCal;            // la de infusiones va con el agua caliente
@@ -168,7 +173,9 @@ function puestosDeCafe(cuantos) {
   const medio = nCafes % 2 ? (nCafes - 1) / 2 : null;
 
   let p = 0;
-  ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo'].forEach(tipo => {
+  // El zumo NO se cuelga de un café: va junto a la garrafa, compartiendo su
+  // pila de vasos, y además no lleva mini box.
+  ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal'].forEach(tipo => {
     let quedan = cuantos[tipo] || 0;
     while (quedan >= 2 && p < pares.length) {
       puestos[pares[p][0]].push(tipo);
@@ -227,6 +234,17 @@ function filaDelante(cuantos, anchoCm, nMesas) {
     return cuantas - q;                 // cuántas se han podido meter
   };
   const aguasPuestas = meterEnPareja('fuente', cuantos.fuente || 0);
+
+  /* EL ZUMO, PEGADO A LA GARRAFA. Lleva vasos pero no mini box, y cuando cae
+     junto al agua se sirve de la pila de la garrafa en vez de pedir otra. Así
+     se montó en La Romareda: la caja de zumo justo después de la pila del
+     agua. Si no hay garrafa, el zumo va a un hueco cualquiera. */
+  let zumosPorPoner = cuantos.zumo || 0;
+  ranuras.forEach(r => {
+    if (zumosPorPoner > 0 && r.includes('fuente')) { r.push('zumo'); zumosPorPoner--; }
+  });
+  if (zumosPorPoner > 0) meterEnPareja('zumo', zumosPorPoner);
+
   const servisPuestos = meterEnPareja('servis', cuantos.servis || 0);
 
   // La fila completa: puesto, lo que haya en su ranura, puesto, …
@@ -269,17 +287,6 @@ function filaDelante(cuantos, anchoCm, nMesas) {
     });
   }
 
-  /* Al quitar columnas puede quedar una fuente sola, y una fuente sola no se
-     monta: el agua va siempre en pareja —la normal y la de limón con
-     hierbabuena—. Si ha quedado impar, se quita la que sobra. */
-  const cuentaAguas = () => columnas.filter(c => c.sep === 'fuente').length;
-  while (cuentaAguas() % 2) {
-    const i = columnas.map((c, k) => c.sep === 'fuente' ? k : -1)
-                      .filter(k => k >= 0).pop();
-    columnas.splice(i, 1);
-    noCaben.push('fuente', 'vasoAgua', 'vasoAgua');
-  }
-
   const suma = columnas.reduce((a, c) => a + anchoCol(c), 0);
   const hueco = columnas.length > 1
     ? Math.max(SEPARA, (sitio - suma) / (columnas.length - 1)) : 0;
@@ -301,6 +308,9 @@ function filaDelante(cuantos, anchoCm, nMesas) {
     } else if (c.sep) {
       puntos.push({tipo: c.sep, x: dx});
     } else {
+      /* La MINI BOX por fuera del puesto y la PILA DE VASOS por dentro: a la
+         izquierda en la mitad izquierda de la barra y al revés en la otra,
+         para que la mini box quede siempre hacia el extremo. */
       const derecha = c.lado === 'der';
       const cajas = derecha ? c.puesto.slice().reverse() : c.puesto;
       if (!derecha) { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }

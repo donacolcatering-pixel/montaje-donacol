@@ -823,10 +823,10 @@ function calcular(){
       // infusiones va con el agua caliente.
       minibox:     servicio==='coffee'?cafeBricks:0,
       miniboxCal:  servicio==='coffee'?miniboxCal:0,
-      // VASOS: se cuentan por puestos, no por cajas. Cada PUESTO de café (un
-      // café con su leche) lleva una pila de 15 vasos; y cada fuente de agua,
-      // 10 vasos a cada lado. Es la regla de montaje, no una estimación.
-      vaso:servicio==='coffee'?cafeBricks:0,          // una pila por puesto
+      // VASOS: una pila de 15 por cada PUESTO DE CAFÉ, más 10 vasos a cada
+      // lado de cada garrafa de agua. El zumo se sirve de la pila del agua,
+      // porque va pegado a ella.
+      vaso:servicio==='coffee'?cafeBricks:0,
       vasoAgua:servicio==='coffee'?dispensadores*2:0, // 10 + 10 por fuente
       vasosTotal:servicio==='coffee'?(cafeBricks*15+dispensadores*2*10):0,
       // Servilletas: DOS POR MESA, y van entre las cajas.
