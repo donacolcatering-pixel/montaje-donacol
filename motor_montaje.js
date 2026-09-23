@@ -29,14 +29,18 @@ const PIEZAS = {
      OJO A LA ORIENTACIÓN: la caja se pone con el MORRO —el grifo— de frente, y
      el cuerpo se va hacia atrás, a lo largo de la mesa. Estaban puestas de
      ancho (17 de frente por 10 de fondo) y es al revés: ocupan poco frente y
-     mucho fondo. Por eso no cuadraban en la barra. */
-  cafe:       {nm:'Caja de CAFÉ',           wc:17,  hc:25,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f', zc:28},
-  lecheNormal:{nm:'Leche normal',           wc:17,  hc:25,   mk:'LE', col:'#f0e4cd', bd:'#b9a179', zc:28},
-  sinLactosa: {nm:'Leche sin lactosa',      wc:17,  hc:25,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8', zc:28},
-  soja:       {nm:'Leche de soja',          wc:17,  hc:25,   mk:'SO', col:'#e7f0d9', bd:'#96ae77', zc:28},
-  aguaCal:    {nm:'Agua caliente',          wc:17,  hc:25,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:28},
-  zumo:       {nm:'Caja de zumo',           wc:17,  hc:25,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:28},
-  fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0', zc:36},
+     mucho fondo. Por eso no cuadraban en la barra.
+
+     El ancho, 20 cm, lo dio el dueño mirando una caja: «un poquito menos de
+     20, 20 pondría». Es la medida de la que cuelga todo el cálculo de mesas,
+     así que cuando la mida exacta hay que cambiarla AQUÍ y solo aquí. */
+  cafe:       {nm:'Caja de CAFÉ',           wc:20,  hc:25,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f', zc:28},
+  lecheNormal:{nm:'Leche normal',           wc:20,  hc:25,   mk:'LE', col:'#f0e4cd', bd:'#b9a179', zc:28},
+  sinLactosa: {nm:'Leche sin lactosa',      wc:20,  hc:25,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8', zc:28},
+  soja:       {nm:'Leche de soja',          wc:20,  hc:25,   mk:'SO', col:'#e7f0d9', bd:'#96ae77', zc:28},
+  aguaCal:    {nm:'Agua caliente',          wc:20,  hc:25,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:28},
+  zumo:       {nm:'Caja de zumo',           wc:20,  hc:25,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:28},
+  fuente:     {nm:'Garrafa de agua 8 L',    wc:28,  hc:28,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0', zc:36},
   vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad', zc:24},
   vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad', zc:16},
   minibox:    {nm:'Mini box de café',        wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a', zc:9},
