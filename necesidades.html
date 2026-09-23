@@ -819,9 +819,12 @@ function calcular(){
       aguaCal:     servicio==='coffee'?aguaCaliente:0,
       zumo:        servicio==='coffee'?zumoBricks  :0,
       minibox:     servicio==='coffee'?(miniboxCafe+miniboxCal):0,
-      // Una pila de vasos por cada caja de bebida, como en las fotos.
-      vaso:servicio==='coffee'?(cafeBricks+lecheBricks+lecheSinLac+lecheSoja
-                                +aguaCaliente+zumoBricks):0,
+      // VASOS: se cuentan por puestos, no por cajas. Cada PUESTO de café (un
+      // café con su leche) lleva una pila de 15 vasos; y cada fuente de agua,
+      // 10 vasos a cada lado. Es la regla de montaje, no una estimación.
+      vaso:servicio==='coffee'?cafeBricks:0,          // una pila por puesto
+      vasoAgua:servicio==='coffee'?dispensadores*2:0, // 10 + 10 por fuente
+      vasosTotal:servicio==='coffee'?(cafeBricks*15+dispensadores*2*10):0,
       // Servilletas: DOS POR MESA, y van entre las cajas.
       servis:mesas*2,
       // Florales: como mucho DOS POR MESA. Aunque el cálculo dé más, en la mesa

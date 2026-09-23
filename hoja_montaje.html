@@ -116,7 +116,8 @@ const PIEZAS = {
   aguaCal:    {nm:'Agua caliente',          wc:17,  hc:10,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e'},
   zumo:       {nm:'Caja de zumo',           wc:17,  hc:10,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044'},
   fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0'},
-  vaso:       {nm:'Pila de vasos',          wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad'},
+  vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad'},
+  vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad'},
   minibox:    {nm:'Mini box',               wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a'},
   servis:     {nm:'Servilletas (platito)',  wc:10,  hc:10,   mk:'S',  col:'#eadfca', bd:'#b09a72'},
   floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a'},
@@ -215,76 +216,76 @@ function bloquesDeBebida(cuantos) {
 }
 
 function filaDelante(cuantos, anchoCm, nMesas) {
-  /* Se monta por COLUMNAS. Una columna es una caja con lo que lleva encima
-     (el café delante y su leche justo detrás) más su pila de vasos al lado;
-     o, si es un separador, una fuente de agua o un platito de servilletas.
+  /* SE MONTA POR PUESTOS.
 
-     Se construye media fila, se pone en medio lo que sobre, y se refleja. Así
-     la simetría es exacta por construcción. Antes se intercalaba sobre la
-     marcha y, cuando había pocas cajas, se amontonaba todo a la izquierda. */
-  const bloques = bloquesDeBebida(cuantos);
-  const conVaso = (cuantos.vaso || 0) > 0;
+     Un PUESTO es un café con su leche —café + leche normal, o café + leche sin
+     lactosa— y lleva siempre dos cosas pegadas:
+       · una MINI BOX (15 azucarillos, 4-5 sacarinas y 15 paletinas), y
+       · una PILA DE 15 VASOS.
 
-  // Separadores: van ENTRE cajas. Las aguas siempre en pareja; las
-  // servilletas, dos por mesa.
-  const separadores = [];
+     Y van a lados contrarios, en espejo: en la mitad izquierda de la barra la
+     mini box va a la IZQUIERDA del puesto y los vasos a la derecha; en la
+     mitad derecha, al revés. Así la mini box queda siempre por fuera y los
+     vasos por dentro, y la barra se ve simétrica desde el centro.
+
+     Las fuentes de agua son la excepción: llevan su propia pila de 10 vasos a
+     cada lado, y esas van un poco MÁS ADELANTE que todo lo demás, que sí está
+     alineado a la misma altura. */
+  const puestos = bloquesDeBebida(cuantos);      // cada uno: [cafe, leche, …]
   const paresAgua = Math.floor((cuantos.fuente || 0) / 2);
-  for (let i = 0; i < paresAgua; i++) separadores.push('fuente');
-  const servis = Math.min(cuantos.servis || 0, nMesas * 2);
-  for (let i = 0; i < Math.floor(servis / 2); i++) separadores.push('servis');
 
-  const mitadB = bloques.slice(0, Math.floor(bloques.length / 2));
-  const central = bloques.length % 2 ? bloques[Math.floor(bloques.length / 2)] : null;
+  const mitadP = puestos.slice(0, Math.floor(puestos.length / 2));
+  const central = puestos.length % 2 ? puestos[Math.floor(puestos.length / 2)] : null;
 
-  // Media fila: caja, separador, caja, separador… los separadores se reparten
-  // entre las cajas, que es donde tienen que ir.
+  // Media fila: puestos y, repartidas entre ellos, las fuentes de agua.
   const mitad = [];
-  let si = 0;
-  mitadB.forEach((bl, i) => {
-    mitad.push({piezas: bl, bloque: true});
-    const tocaSep = Math.round((i + 1) * separadores.length / Math.max(1, mitadB.length));
-    while (si < tocaSep && si < separadores.length && i < mitadB.length - 1) {
-      mitad.push({piezas: [separadores[si++]], bloque: false});
+  let aguas = paresAgua;
+  mitadP.forEach((pu, i) => {
+    mitad.push({puesto: pu});
+    const restan = mitadP.length - i - 1;
+    if (aguas > 0 && restan > 0
+        && (i + 1) % Math.max(1, Math.round(mitadP.length / (paresAgua + 1))) === 0) {
+      mitad.push({agua: true}); aguas--;
     }
   });
-  while (si < separadores.length) mitad.push({piezas: [separadores[si++]], bloque: false});
+  while (aguas-- > 0) mitad.push({agua: true});
   if (!mitad.length && !central) return [];
 
-  // Las cajas de una columna van EN FILA, una al lado de otra: café y su leche
-  // juntos, como en las fotos. Apiladas hacia atrás se comían el fondo de la
-  // mesa y luego no cabían las bandejas.
-  const anchoCajas = (c) => c.piezas.reduce((a, t) => a + PIEZAS[t].wc, 0)
-                          + (c.piezas.length - 1) * 2;
-  const anchoCol = (c) => anchoCajas(c) + (conVaso && c.bloque ? PIEZAS.vaso.wc + 2 : 0);
+  const W = (t) => PIEZAS[t].wc;
+  const anchoPuesto = (pu) => pu.reduce((a, t) => a + W(t), 0) + (pu.length - 1) * 2
+                            + W('minibox') + 2 + W('vaso') + 2;
+  const anchoAgua = () => W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
+  const anchoDe = (c) => c.agua ? anchoAgua() : anchoPuesto(c.puesto);
 
-  // La fila completa: media, el centro, y media reflejada.
   const columnas = [
     ...mitad,
-    ...(central ? [{piezas: central, bloque: true, centro: true}] : []),
+    ...(central ? [{puesto: central, centro: true}] : []),
     ...mitad.slice().reverse().map(c => ({...c, espejo: true})),
   ];
 
-  const suma = columnas.reduce((a, c) => a + anchoCol(c), 0);
+  const suma = columnas.reduce((a, c) => a + anchoDe(c), 0);
   const hueco = columnas.length > 1
     ? Math.max(SEPARA, (anchoCm - MARGEN * 2 - suma) / (columnas.length - 1)) : 0;
-  const anchoReal = suma + hueco * (columnas.length - 1);
-  let x = (anchoCm - anchoReal) / 2;            // centrada en el grupo
+  let x = (anchoCm - (suma + hueco * (columnas.length - 1))) / 2;
 
   const puntos = [];
   columnas.forEach(c => {
-    const w = anchoCol(c), wc = anchoCajas(c);
-    // El vaso va por fuera: a la derecha en la mitad izquierda y a la izquierda
-    // en la reflejada, para que el dibujo sea espejo de verdad.
-    const xCajas = (conVaso && c.bloque && c.espejo) ? x + PIEZAS.vaso.wc + 2 : x;
-    // En la mitad reflejada el orden de las cajas también se invierte.
-    const orden = c.espejo ? c.piezas.slice().reverse() : c.piezas;
-    let dx = 0;
-    orden.forEach(t => { puntos.push({tipo: t, x: xCajas + dx, fila: 0});
-                         dx += PIEZAS[t].wc + 2; });
-    if (conVaso && c.bloque && !c.centro) {
-      puntos.push({tipo: 'vaso', fila: 0, x: c.espejo ? x : xCajas + wc + 2});
+    let dx = x;
+    if (c.agua) {
+      // Los vasos del agua, un poco más adelante: adelante = true.
+      puntos.push({tipo: 'vasoAgua', x: dx, adelante: true}); dx += W('vasoAgua') + 2;
+      puntos.push({tipo: 'fuente', x: dx});                   dx += W('fuente') + 2;
+      puntos.push({tipo: 'vasoAgua', x: dx, adelante: true});
+    } else {
+      const cajas = c.espejo ? c.puesto.slice().reverse() : c.puesto;
+      const fuera = c.espejo ? 'der' : 'izq';                 // dónde va la mini box
+      if (fuera === 'izq') { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
+      else { puntos.push({tipo: 'vaso', x: dx}); dx += W('vaso') + 2; }
+      cajas.forEach(t => { puntos.push({tipo: t, x: dx}); dx += W(t) + 2; });
+      if (fuera === 'izq') puntos.push({tipo: 'vaso', x: dx});
+      else puntos.push({tipo: 'minibox', x: dx});
     }
-    x += w + hueco;
+    x += anchoDe(c) + hueco;
   });
   return puntos;
 }
@@ -340,15 +341,18 @@ function montarGrupo(tamGrupo, cuantos) {
   // DELANTE: las cajas al borde. Cada bloque puede llevar dos alturas (el café
   // delante y su leche justo detrás), y por eso se mira la «fila» de cada una.
   const delante = filaDelante(cuantos, anchoCm, tamGrupo);
-  const altoBloque = PIEZAS.cafe.hc;
+  /* TODO ALINEADO A LA MISMA ALTURA: el borde de delante de cada pieza cae en
+     la misma línea, que es lo que hace que la barra se vea recta. La única
+     excepción son los vasos de las fuentes de agua, que van un poco más
+     adelantados —salen 2 cm del resto— porque se cogen de pie sin acercarse. */
+  const LINEA = fondoCm - MARGEN;
   delante.forEach(p => {
     const t = PIEZAS[p.tipo];
-    const y = fondoCm - MARGEN - t.hc - (p.fila || 0) * (altoBloque + 1.5);
-    piezas.push({tipo: p.tipo, x: p.x, y});
+    const adelanto = p.adelante ? 2 : 0;
+    piezas.push({tipo: p.tipo, x: p.x, y: LINEA - t.hc + adelanto});
   });
   const fondoOcupadoDelante = delante.length
-    ? Math.max(...delante.map(p => PIEZAS[p.tipo].hc + (p.fila || 0) * (altoBloque + 1.5)))
-    : 0;
+    ? Math.max(...delante.map(p => PIEZAS[p.tipo].hc)) : 0;
 
   // DETRÁS: la comida y las flores.
   const detras = filaDetras(cuantos, anchoCm, tamGrupo);
@@ -475,13 +479,19 @@ function pintar() {
     </div>`;
   }).join('');
 
+  const detalle = {
+    vaso:     n => n + ' pilas · ' + (n * 15) + ' vasos',
+    vasoAgua: n => n + ' pilas · ' + (n * 10) + ' vasos',
+    minibox:  n => n + ' · 15 azucarillos, 4 sacarinas y 15 paletinas cada una',
+  };
   const filas = Object.keys(PIEZAS).filter(t => t !== 'buffet' && (INV[t] || 0) > 0)
     .map(t => {
-      const p = PIEZAS[t];
+      const p = PIEZAS[t], n = INV[t];
+      const extra = detalle[t] ? '<div class="dim">' + detalle[t](n) + '</div>' : '';
       return `<tr>
         <td class="mk"><div class="marca" style="background:${p.col};border-color:${p.bd}">${p.mk}</div></td>
-        <td>${p.nm}<div class="dim">${p.wc} × ${p.hc} cm</div></td>
-        <td class="ud">${INV[t]}</td></tr>`;
+        <td>${p.nm}<div class="dim">${p.wc} × ${p.hc} cm</div>${extra}</td>
+        <td class="ud">${n}</td></tr>`;
     }).join('');
 
   const REGLAS = [
@@ -493,6 +503,10 @@ function pintar() {
     'El <b>logo de la servilleta vertical</b>, mirando al cliente y recto, sin colgar.',
     'Las <b>paletinas a un lado</b>, no repartidas.',
     'Las <b>aguas van siempre de dos en dos</b>: una normal y otra de limón con hierbabuena.',
+    'Cada <b>puesto de café</b> (café con su leche) lleva <b>una mini box y una pila de 15 vasos</b>.',
+    'La <b>mini box por fuera y los vasos por dentro</b>: en la mitad izquierda la caja va a la izquierda del puesto; en la derecha, al revés.',
+    'Cada <b>fuente de agua</b> lleva <b>10 vasos a cada lado</b>, y esos van un poco más adelantados que el resto.',
+    '<b>Todo alineado a la misma altura</b> por el borde de delante. Solo se adelantan los vasos del agua.',
   ];
 
   document.getElementById('hoja').innerHTML = `
