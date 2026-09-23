@@ -43,9 +43,14 @@
     background:var(--oro);color:#fff}
   .gBtns button.sec{background:#ecdcc4;color:var(--marron2)}
   .gNota{font-size:11.5px;color:var(--gris);margin:9px 0 0;line-height:1.35}
-  .gJunta{display:flex;flex-direction:column;gap:5px;margin-bottom:4px}
-  .gJunta label{font-size:12px;color:var(--tinta);display:flex;align-items:center;gap:6px}
-  .gJunta input[type=number]{width:62px;padding:4px 6px;border:1px solid var(--linea);border-radius:6px;font-size:12px}
+  /* Variantes de agrupación: se ven todas y se elige, sin pensar */
+  .gVariantes{display:flex;flex-direction:column;gap:6px}
+  .gVar{display:flex;align-items:center;gap:9px;border:1.5px solid var(--linea);background:#fff;
+    border-radius:10px;padding:7px 9px;cursor:pointer}
+  .gVar.on{border-color:var(--oro);background:#fdf3e3}
+  .gVar svg{flex:none}
+  .gVar .vt{font-size:12px;font-weight:700;color:var(--marron2);line-height:1.2}
+  .gVar .vs{font-size:10.5px;color:var(--gris);line-height:1.25;margin-top:2px;display:block}
   /* Eje central: la referencia con la que el montador cuadra la barra */
   #ejeLinea{position:absolute;top:0;width:0;border-left:2px dashed #c0413b;z-index:3;pointer-events:none;display:none}
   #ejeLinea span{position:absolute;top:4px;left:6px;font-size:11px;font-weight:800;color:#c0413b;
@@ -130,16 +135,14 @@
 </div>
 
 <div id="genPanel">
-  <div class="gTit">¿Cómo van las mesas?</div>
+  <div class="gTit" id="gTitVar">¿Cómo se agrupan las mesas?</div>
+  <div class="gVariantes" id="gVariantes"></div>
+  <div class="gTit" style="margin-top:10px">Y la barra, ¿cómo se pone en la sala?</div>
   <div class="gForma" id="gForma"></div>
   <label class="gLab">Largo de la sala (m)
     <input id="gLargo" type="number" value="12" min="2" step="0.5"></label>
-  <div class="gTit" style="margin-top:4px">¿Las mesas van juntas o separadas?</div>
-  <div class="gJunta">
-    <label><input type="radio" name="gJ" value="juntas" checked> Juntas (barra corrida)</label>
-    <label><input type="radio" name="gJ" value="separadas"> Separadas
-      <input id="gSep" type="number" value="80" min="20" step="10"> cm</label>
-  </div>
+  <label class="gLab">Separación entre grupos
+    <input id="gSep" type="number" value="80" min="20" step="10"> cm</label>
   <label class="gChk"><input type="checkbox" id="gEncima" checked>
     Colocar también lo de encima (bandejas, chafing, cajas…)</label>
   <label class="gChk"><input type="checkbox" id="gAltas" checked>
@@ -425,6 +428,61 @@ const FORMAS = {
 };
 let genForma = 'linea';
 
+let genGrupos = null;        // la agrupación elegida, p. ej. [2,1]
+
+/** Dibujito de una agrupación: rectángulos pegados o con hueco. */
+function genMiniatura(grupos) {
+  const W = 92, H = 20, sep = 5, n = grupos.reduce((a, b) => a + b, 0);
+  const anchoMesa = (W - sep * (grupos.length - 1)) / n;
+  let x = 0, piezas = '';
+  grupos.forEach((g, gi) => {
+    for (let i = 0; i < g; i++) {
+      piezas += `<rect x="${x.toFixed(1)}" y="5" width="${anchoMesa.toFixed(1)}" height="10"
+                 fill="#f3e2c4" stroke="#5A3B27" stroke-width="1.1"/>`;
+      x += anchoMesa;
+    }
+    if (gi < grupos.length - 1) x += sep;
+  });
+  // el eje, que es lo que hay que ver de un vistazo
+  const eje = x / 2;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${piezas}
+    <line x1="${eje.toFixed(1)}" y1="0" x2="${eje.toFixed(1)}" y2="${H}"
+      stroke="#c0413b" stroke-width="1.3" stroke-dasharray="3 2"/></svg>`;
+}
+
+/** Qué implica cada agrupación, dicho en una línea. */
+function genQueImplica(grupos) {
+  const ancho = genOffsets(grupos).total / 100;
+  const colas = grupos.length === 1 ? '1 cola' : grupos.length + ' colas a la vez';
+  // El centro se calcula de verdad, con la misma cuenta que el plano: decirlo
+  // «a ojo» aquí y otra cosa allí sería peor que no decirlo.
+  const eje = genEje(genMesas(grupos, ancho * 100));
+  const centro = !eje ? '' : eje.sobreMesa
+    ? ' · centro sobre mesa: ahí va el punto fuerte'
+    : ' · centro en ' + (eje.hueco > 1 ? 'el hueco' : 'la junta') + ': nada en medio';
+  return `${ancho.toFixed(1)} m de largo · ${colas}${centro}`;
+}
+
+/** Pinta todas las variantes posibles para las mesas que hay. */
+function genPintarVariantes() {
+  const n = genCuantasMesas();
+  const opciones = genAgrupaciones(n);
+  if (!genGrupos || genGrupos.reduce((a, b) => a + b, 0) !== n) genGrupos = opciones[0];
+  $('#gTitVar').textContent = '¿Cómo se agrupan las ' + n + ' mesas?';
+  $('#gVariantes').innerHTML = opciones.map((g, i) => {
+    const puesto = JSON.stringify(g) === JSON.stringify(genGrupos);
+    return `<div class="gVar${puesto ? ' on' : ''}" data-i="${i}">
+      ${genMiniatura(g)}
+      <div><span class="vt">${genNombreAgrup(g)}</span>
+           <span class="vs">${genQueImplica(g)}</span></div></div>`;
+  }).join('');
+  document.querySelectorAll('.gVar').forEach(v => v.onclick = () => {
+    genGrupos = opciones[+v.dataset.i];
+    genPintarVariantes();
+    genMontar();                       // se ve al momento, sin dar a nada más
+  });
+}
+
 $('#gForma').innerHTML = Object.entries(FORMAS).map(([k, f]) =>
   `<div class="gOp${k === genForma ? ' on' : ''}" data-f="${k}">
      <svg width="48" height="26" viewBox="0 0 48 26"><path d="${f.dib}"
@@ -433,6 +491,7 @@ $('#gForma').innerHTML = Object.entries(FORMAS).map(([k, f]) =>
 document.querySelectorAll('.gOp').forEach(o => o.onclick = () => {
   genForma = o.dataset.f;
   document.querySelectorAll('.gOp').forEach(x => x.classList.toggle('on', x === o));
+  if (items.length) genMontar();
 });
 
 /** Cuántas mesas buffet hay. Manda el checklist; si no hay, se estima por las
@@ -457,25 +516,73 @@ function genRect(mesa) {
     : {x: mesa.x, y: mesa.y, w: w, h: h};
 }
 
-/** Separación entre mesas: 0 si van juntas (barra corrida), o los cm pedidos. */
+/** Cuántos cm se dejan ENTRE grupos. Dentro de un grupo las mesas van pegadas. */
 function genSeparacion() {
-  const juntas = document.querySelector('input[name="gJ"]:checked');
-  if (!juntas || juntas.value === 'juntas') return 0;
-  return Math.max(0, parseInt($('#gSep').value, 10) || 0);
+  return Math.max(0, parseInt(($('#gSep') || {}).value, 10) || 0);
 }
 
-/** El paso de una mesa a la siguiente, en píxeles. */
-function genPaso() { return cm(TIPOS.buffet.wc + genSeparacion()); }
+/* LAS VARIANTES DE AGRUPACIÓN.
+   Con 3 mesas no hay una sola manera de ponerlas: pueden ir las tres juntas,
+   dos juntas y una suelta, o las tres sueltas. Cada una se monta distinto y
+   reparte la cola de otra forma. En vez de que el montador lo piense, se le
+   enseñan todas y elige.
 
-/** Barra recta de n mesas, empezando en la esquina VISIBLE (xv, yv). */
-function genBarra(n, xv, yv, vertical) {
-  const paso = genPaso(), off = genDesfase(), fila = [];
-  for (let i = 0; i < n; i++) {
-    fila.push(vertical
-      ? {tipo: 'buffet', rot: 90, x: xv - off, y: yv + paso * i + off}
-      : {tipo: 'buffet', rot: 0,  x: xv + paso * i, y: yv});
+   Se generan repartos EQUILIBRADOS: con g grupos, los grupos salen lo más
+   iguales posible (5 mesas en 2 grupos -> 3+2). Así cada grupo se monta igual
+   que su gemelo y no hay que mirar dos veces. */
+function genAgrupaciones(n) {
+  const salida = [];
+  for (let g = 1; g <= n; g++) {
+    const base = Math.floor(n / g), sobran = n % g;
+    const grupos = [];
+    for (let i = 0; i < g; i++) grupos.push(base + (i < sobran ? 1 : 0));
+    salida.push(grupos);
   }
-  return fila;
+  return salida;
+}
+
+/** Cómo se lee una agrupación en voz alta. */
+function genNombreAgrup(grupos) {
+  const n = grupos.reduce((a, b) => a + b, 0);
+  if (grupos.length === 1) return n === 1 ? '1 mesa' : n + ' mesas juntas';
+  if (grupos.every(g => g === 1)) return n + ' mesas sueltas';
+  const partes = {};
+  grupos.forEach(g => partes[g] = (partes[g] || 0) + 1);
+  return Object.keys(partes).sort((a, b) => b - a).map(tam => {
+    const veces = partes[tam];
+    const qué = tam === '1' ? 'suelta' : 'juntas';
+    return veces > 1 ? veces + ' de ' + tam + ' ' + qué : tam + ' ' + qué;
+  }).join(' + ');
+}
+
+/** Desplazamiento en cm de cada mesa desde el inicio de la barra. */
+function genOffsets(grupos) {
+  const ancho = TIPOS.buffet.wc, sep = genSeparacion();
+  const offs = [];
+  let x = 0;
+  grupos.forEach((g, gi) => {
+    for (let i = 0; i < g; i++) { offs.push(x); x += ancho; }
+    if (gi < grupos.length - 1) x += sep;
+  });
+  return {offs, total: x};
+}
+
+/** Barra a partir de una agrupación, desde la esquina VISIBLE (xv, yv). */
+function genBarra(grupos, xv, yv, vertical) {
+  const {offs} = genOffsets(grupos), off = genDesfase();
+  return offs.map(o => vertical
+    ? {tipo: 'buffet', rot: 90, x: xv - off, y: yv + cm(o) + off}
+    : {tipo: 'buffet', rot: 0,  x: xv + cm(o), y: yv});
+}
+
+/** Parte una agrupación en dos mitades, para las formas de dos barras. */
+function genPartir(grupos) {
+  const n = grupos.reduce((a, b) => a + b, 0);
+  const mitad = Math.ceil(n / 2);
+  const a = [], b = [];
+  let suma = 0;
+  grupos.forEach(g => { if (suma < mitad) { a.push(g); suma += g; } else b.push(g); });
+  return [a.length ? a : [n], b.length ? b : []];
 }
 
 /* EL EJE CENTRAL. Es lo que el montador usa para cuadrar la barra con la sala,
@@ -495,17 +602,32 @@ function genEje(mesas) {
   const rects = mesas.map(genRect).sort((a, b) => a.x - b.x);
   if (!rects.length) return null;
   const n = rects.length;
-  if (n % 2 === 1) {
-    const m = rects[(n - 1) / 2];
-    return {x: m.x + m.w / 2, sobreMesa: true, n,
-            texto: 'Eje · centro de la mesa ' + ((n - 1) / 2 + 1) + ' de ' + n};
+  // El eje es el centro REAL de lo montado, no el de la mesa del medio: con
+  // grupos desiguales (2 juntas + 1 suelta) no es lo mismo.
+  const izqTodo = Math.min(...rects.map(r => r.x));
+  const derTodo = Math.max(...rects.map(r => r.x + r.w));
+  const x = (izqTodo + derTodo) / 2;
+
+  // Estrictamente dentro: si el centro cae justo en el canto, eso es la JUNTA
+  // entre dos mesas, no una mesa. Con 2 o 4 juntas es exactamente lo que pasa,
+  // y es la diferencia entre poder poner algo en el centro o no poder.
+  const dentro = rects.findIndex(r => x > r.x + 1 && x < r.x + r.w - 1);
+  if (dentro >= 0) {
+    const r = rects[dentro];
+    const enMedio = Math.abs(x - (r.x + r.w / 2)) < 2;
+    return {x, sobreMesa: true, n, mesa: dentro + 1,
+            texto: 'Eje · ' + (enMedio ? 'centro de la mesa ' : 'sobre la mesa ')
+                   + (dentro + 1) + ' de ' + n};
   }
-  const izq = rects[n / 2 - 1], der = rects[n / 2];
-  const hueco = (der.x - (izq.x + izq.w)) / SCALE;
-  return {x: (izq.x + izq.w + der.x) / 2, sobreMesa: false, n,
-          texto: hueco > 1 ? 'Eje · en el hueco entre la mesa ' + (n / 2) + ' y la ' + (n / 2 + 1)
-                             + ' (' + Math.round(hueco) + ' cm)'
-                           : 'Eje · en la junta de las mesas ' + (n / 2) + ' y ' + (n / 2 + 1)};
+  // Cae en un hueco: entre qué dos mesas, y de cuánto es ese hueco.
+  let i = 0;
+  while (i < n - 1 && rects[i + 1].x < x) i++;
+  const hueco = (rects[i + 1].x - (rects[i].x + rects[i].w)) / SCALE;
+  return {x, sobreMesa: false, n, hueco: Math.round(hueco),
+          texto: hueco > 1
+            ? 'Eje · en el hueco entre la mesa ' + (i + 1) + ' y la ' + (i + 2)
+              + ' (' + Math.round(hueco) + ' cm)'
+            : 'Eje · en la junta de las mesas ' + (i + 1) + ' y ' + (i + 2)};
 }
 
 /** Pinta el eje en el plano, que es media explicación por sí solo. */
@@ -519,39 +641,38 @@ function genPintarEje(eje) {
 }
 
 /** Reparte las mesas según la forma elegida. Devuelve posiciones, aún sin id. */
-function genMesas(n, largoSalaCm) {
+function genMesas(grupos, largoSalaCm) {
   const t = TIPOS.buffet;
-  // Lo que ocupa una barra de k mesas: k mesas más los huecos que hay ENTRE ellas.
-  const ocupa = (k) => k * t.wc + Math.max(0, k - 1) * genSeparacion();
-  const centrar = (k) => GEN.ORIGEN_X + Math.max(0, cm(largoSalaCm - ocupa(k)) / 2);
+  const anchoDe = (gs) => genOffsets(gs).total;
+  const centrar = (gs) => GEN.ORIGEN_X + Math.max(0, cm(largoSalaCm - anchoDe(gs)) / 2);
 
-  if (genForma === 'linea') return genBarra(n, centrar(n), GEN.ORIGEN_Y, false);
+  if (genForma === 'linea') return genBarra(grupos, centrar(grupos), GEN.ORIGEN_Y, false);
 
   if (genForma === 'dos') {
-    const a = Math.ceil(n / 2), b = n - a;
+    const [a, b] = genPartir(grupos);
     return [...genBarra(a, centrar(a), GEN.ORIGEN_Y, false),
-            ...genBarra(b, centrar(b), GEN.ORIGEN_Y + cm(t.hc + GEN.PASILLO), false)];
+            ...(b.length ? genBarra(b, centrar(b), GEN.ORIGEN_Y + cm(t.hc + GEN.PASILLO), false) : [])];
   }
   if (genForma === 'simetrica') {
-    // Dos mitades iguales con un hueco en medio: por ahí entra la gente y se
-    // sirve por los dos lados a la vez, que es lo que descongestiona la cola.
-    const a = Math.ceil(n / 2), b = n - a;
-    const anchoTotal = cm(ocupa(a) + GEN.HUECO_SIM + ocupa(b));
-    const x0 = GEN.ORIGEN_X + Math.max(0, (cm(largoSalaCm) - anchoTotal) / 2);
+    // Dos mitades con un hueco en medio: por ahí entra la gente y se sirve por
+    // los dos lados a la vez, que es lo que parte la cola.
+    const [a, b] = genPartir(grupos);
+    const total = cm(anchoDe(a) + GEN.HUECO_SIM + (b.length ? anchoDe(b) : 0));
+    const x0 = GEN.ORIGEN_X + Math.max(0, (cm(largoSalaCm) - total) / 2);
     return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
-            ...genBarra(b, x0 + cm(ocupa(a) + GEN.HUECO_SIM), GEN.ORIGEN_Y, false)];
+            ...(b.length ? genBarra(b, x0 + cm(anchoDe(a) + GEN.HUECO_SIM), GEN.ORIGEN_Y, false) : [])];
   }
   if (genForma === 'ele') {
-    const a = Math.ceil(n / 2), b = n - a;
+    const [a, b] = genPartir(grupos);
     const x0 = centrar(a);
     return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
-            ...genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), true)];
+            ...(b.length ? genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), true) : [])];
   }
   // isla: dos filas espalda con espalda, se sirve por los dos lados
-  const a = Math.ceil(n / 2), b = n - a;
+  const [a, b] = genPartir(grupos);
   const x0 = centrar(a);
   return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
-          ...genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), false)];
+          ...(b.length ? genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), false) : [])];
 }
 
 /** Huecos libres encima de una mesa para piezas de wc×hc cm, en rejilla. */
@@ -639,11 +760,10 @@ function genExtremos(mesas) {
 }
 
 function genMontar() {
-  if (items.length && !confirm('Esto vuelve a montar el plano desde cero. '
-                               + '¿Seguro? Lo que hayas colocado a mano se pierde.')) return;
   const largoSala = Math.max(200, (parseFloat($('#gLargo').value) || 12) * 100);
   const nMesas = genCuantasMesas();
-  const mesas = genMesas(nMesas, largoSala);
+  if (!genGrupos || genGrupos.reduce((a, b) => a + b, 0) !== nMesas) genGrupos = [nMesas];
+  const mesas = genMesas(genGrupos, largoSala);
 
   let nuevos = [...mesas];
   if ($('#gEncima').checked) nuevos = nuevos.concat(genEncima(mesas));
@@ -684,11 +804,13 @@ function genMontar() {
 $('#bGen').onclick = () => {
   const p = $('#genPanel');
   p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  if (p.style.display === 'block') genPintarVariantes();
   if (p.style.display === 'block' && INV && INVmeta && INVmeta.pax) {
     $('#gNota').textContent = 'Para ' + INVmeta.pax + ' pax · '
       + genCuantasMesas() + ' mesa(s) buffet según el checklist.';
   }
 };
+$('#gSep').addEventListener('change', () => { genPintarVariantes(); if (items.length) genMontar(); });
 $('#gCerrar').onclick = () => { $('#genPanel').style.display = 'none'; };
 $('#gHacer').onclick = genMontar;
 
@@ -700,8 +822,9 @@ $('#gHacer').onclick = genMontar;
   if (!INV || items.length) return;
   const hayAlgo = Object.values(INV).some(v => v > 0);
   if (!hayAlgo) return;
+  genPintarVariantes();
   genMontar();
-  $('#genPanel').style.display = 'block';   // abierto, por si quiere otra forma
+  $('#genPanel').style.display = 'block';   // abierto, con todas las variantes
 })();
 
 renderEls();renderWalls();setZoom(0.6);lienzo.scrollTo(0,0);
