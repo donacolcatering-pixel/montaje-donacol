@@ -664,8 +664,15 @@ function calcular(){
   const lecheSoja   = Math.max(1, ceil(pax/50)); // soja: 1 cada 50
   const aguaCaliente= Math.max(1, ceil(pax/50)); // agua caliente: 1 cada 50
   const zumoBricks=ceil((pax/20*2)/2);
+  /* AGUA. Se compran de dos en dos —una normal y otra de limón con
+     hierbabuena— pero en un evento pequeño eso es pasarse: para 15 personas
+     dos garrafas son 10 litros, casi a litro por cabeza. Hasta 30 personas va
+     UNA SOLA, y va al centro de la barra marcándolo.
+
+     Con una garrafa de 5 L: 30 personas salen a 165 ml cada una, que es un
+     vaso corto — el agua se repone, no se calcula para que sobre. */
   const deCada=pax<=80?1:pax<=200?2:2+ceil((pax-200)/100);
-  const dispensadores=deCada*2;
+  const dispensadores = pax<=30 ? 1 : deCada*2;
   // Totales sueltos: ya no se cargan asi, pero se enseñan como comprobacion.
   const azucar=miniboxCafe*MINIBOX.azucarillos, sacarina=miniboxCafe*MINIBOX.sacarinas,
         paletinas=miniboxCafe*MINIBOX.paletinas,
