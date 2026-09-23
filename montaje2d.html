@@ -408,8 +408,11 @@ function guardar(){try{localStorage.setItem('montaje2d',JSON.stringify({items,wa
    se calcula para que la barra quede centrada en la sala que se indique.
    ============================================================================ */
 const GEN = {
-  MARGEN: 6,        // cm libres en el borde de la mesa: nada cuelga
-  SEPARA: 4,        // cm entre dos cosas encima de la mesa
+  // Márgenes ajustados a la realidad: en una mesa de 74 cm de fondo tienen que
+  // caber un chafing (33) DELANTE de una bandeja (26,5). Con 6 y 4 se pasaba
+  // por centímetro y medio y la bandeja se quedaba en cocina.
+  MARGEN: 4,        // cm libres en el borde de la mesa: nada cuelga
+  SEPARA: 3,        // cm entre dos cosas encima de la mesa
   PASILLO: 250,     // cm entre dos barras enfrentadas: pasa un carro y gente
   HUECO_SIM: 180,   // cm de hueco en el centro de la simétrica: por ahí se entra
   MAX_JUNTAS: 3,    // solo hay tres formas base: 1 suelta, 2 juntas, 3 juntas
@@ -731,47 +734,60 @@ function genRectGrupo(grupo) {
           h: Math.max(...rs.map(r => r.y + r.h)) - y};
 }
 
-/** Huecos en rejilla dentro de un rectángulo, para piezas de wc×hc cm. */
-function genHuecosEn(rect, wc, hc) {
+/* CUÁNTAS CABEN de frente en un rectángulo, y en cuántas filas. */
+function genCapacidad(rect, wc, hc) {
   const anchoUtil = rect.w / SCALE - GEN.MARGEN * 2;
   const fondoUtil = rect.h / SCALE - GEN.MARGEN * 2;
-  const cols = Math.max(0, Math.floor((anchoUtil + GEN.SEPARA) / (wc + GEN.SEPARA)));
-  const filas = Math.max(0, Math.floor((fondoUtil + GEN.SEPARA) / (hc + GEN.SEPARA)));
-  // Centrado: lo que sobra se reparte a los dos lados, que es lo que hace que
-  // se vea simétrico en vez de apelotonado a la izquierda.
-  const usadoX = cols * wc + Math.max(0, cols - 1) * GEN.SEPARA;
-  const usadoY = filas * hc + Math.max(0, filas - 1) * GEN.SEPARA;
-  const x0 = (rect.w / SCALE - usadoX) / 2, y0 = (rect.h / SCALE - usadoY) / 2;
-  const huecos = [];
-  for (let f = 0; f < filas; f++)
-    for (let c = 0; c < cols; c++)
-      huecos.push({dx: cm(x0 + c * (wc + GEN.SEPARA)),
-                   dy: cm(y0 + f * (hc + GEN.SEPARA))});
-  return huecos;
+  return {
+    cols: Math.max(1, Math.floor((anchoUtil + GEN.SEPARA) / (wc + GEN.SEPARA))),
+    filas: Math.max(1, Math.floor((fondoUtil + GEN.SEPARA) / (hc + GEN.SEPARA))),
+  };
 }
 
-/** La plantilla de UN grupo: qué lleva y dónde, en coordenadas relativas. */
-function genPlantilla(rect, porGrupo) {
-  const plantilla = [], ocupado = [];
-  const choca = (r) => ocupado.some(o =>
-    r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y);
-  const colocadas = {};
+/* CÓMO SE PARTEN n PIEZAS EN FILAS PAREJAS.
+   La regla del dueño: si son 15 vasos, filas de 15, 15, 15 — todas iguales,
+   que no se vean dispares. Así que 32 piezas en filas de 15 no son 15+15+2,
+   sino 11+11+10: se reparten entre las filas que hagan falta lo más parejas
+   posible. Una fila coja canta más que una fila corta. */
+function genFilasParejas(n, maxPorFila) {
+  const filas = Math.max(1, Math.ceil(n / maxPorFila));
+  const base = Math.floor(n / filas), resto = n % filas;
+  const salida = [];
+  for (let i = 0; i < filas; i++) salida.push(base + (i < resto ? 1 : 0));
+  return salida;
+}
+
+/* La plantilla de UN grupo: qué lleva y dónde, en coordenadas relativas.
+
+   Todo va CENTRADO sobre el eje del grupo, fila a fila. Eso es lo que hace
+   que un grupo con dos chafings los ponga uno a cada lado y otro con uno solo
+   lo ponga en medio: los dos se ven intencionados, aunque no lleven lo mismo. */
+function genPlantilla(rect, cuantos) {
+  const plantilla = [];
+  let cursorY = GEN.MARGEN;                     // se va bajando por la mesa
+  const fondoTotal = rect.h / SCALE;
+
   GEN_ENCIMA.forEach(tipo => {
-    let quedan = porGrupo[tipo] || 0;
-    if (!quedan) return;
-    const t = TIPOS[tipo], w = cm(t.wc), h = cm(t.hc);
-    colocadas[tipo] = 0;
-    for (const hueco of genHuecosEn(rect, t.wc, t.hc)) {
-      if (quedan <= 0) break;
-      const r = {x: hueco.dx, y: hueco.dy, w, h};
-      if (choca(r)) continue;
-      ocupado.push(r);
-      plantilla.push({tipo, dx: hueco.dx, dy: hueco.dy});
-      colocadas[tipo]++;
-      quedan--;
-    }
+    const n = cuantos[tipo] || 0;
+    if (!n) return;
+    const t = TIPOS[tipo];
+    const cap = genCapacidad(rect, t.wc, t.hc);
+    const filas = genFilasParejas(n, cap.cols);
+    // ¿Queda fondo para estas filas? Si no, no se fuerza: se deja fuera y se avisa.
+    const alto = filas.length * t.hc + (filas.length - 1) * GEN.SEPARA;
+    if (cursorY + alto > fondoTotal - GEN.MARGEN) return;
+
+    filas.forEach((cuantasEnFila, fi) => {
+      const anchoFila = cuantasEnFila * t.wc + (cuantasEnFila - 1) * GEN.SEPARA;
+      const x0 = (rect.w / SCALE - anchoFila) / 2;      // centrada en el grupo
+      const y = cursorY + fi * (t.hc + GEN.SEPARA);
+      for (let i = 0; i < cuantasEnFila; i++) {
+        plantilla.push({tipo, dx: cm(x0 + i * (t.wc + GEN.SEPARA)), dy: cm(y)});
+      }
+    });
+    cursorY += alto + GEN.SEPARA;
   });
-  return {plantilla, colocadas};
+  return {plantilla};
 }
 
 /** Reparte lo del inventario entre los grupos y estampa la misma plantilla. */
@@ -784,22 +800,26 @@ function genEncima(mesas, grupos) {
   gruposMesas.forEach(g => { porTam[g.length] = (porTam[g.length] || 0) + 1; });
   const mesasTotales = mesas.length;
 
-  // El reparto es POR GRUPO, no por mesa: 3 chafings en 3 grupos son uno por
-  // grupo. (Haciéndolo por mesa, 3 chafings entre 6 mesas daban cero y se iban
-  // todos a «sobra», que era justo lo contrario de lo que hace falta.)
+  /* EL REPARTO. Por grupo, no por mesa: 3 chafings en 3 grupos van uno por
+     grupo. Y lo que no cuadra NO se queda en cocina: se reparte entre los
+     primeros grupos, uno más a cada uno.
+
+     La simetría se respeta mientras se pueda, y cuando no se puede, cada grupo
+     sigue viéndose intencionado por dentro: con 2 grupos y 3 chafings, uno
+     lleva dos —uno a cada lado— y el otro lleva uno en el centro. Que no todos
+     lleven lo mismo se ve menos que dejar un chafing sin sacar. */
   const nGrupos = gruposMesas.length;
-  const reparto = {};
+  const cuantosPorGrupo = gruposMesas.map(() => ({}));
   GEN_ENCIMA.forEach(tipo => {
     const total = (INV && INV[tipo]) || 0;
     if (!total) return;
-    reparto[tipo] = Math.floor(total / nGrupos);
+    const base = Math.floor(total / nGrupos), resto = total % nGrupos;
+    cuantosPorGrupo.forEach((c, i) => { c[tipo] = base + (i < resto ? 1 : 0); });
   });
 
-  const plantillas = {};
-  gruposMesas.forEach(g => {
-    const tam = g.length, rect = genRectGrupo(g);
-    if (!plantillas[tam]) plantillas[tam] = genPlantilla(rect, reparto).plantilla;
-    plantillas[tam].forEach(pz =>
+  gruposMesas.forEach((g, i) => {
+    const rect = genRectGrupo(g);
+    genPlantilla(rect, cuantosPorGrupo[i]).plantilla.forEach(pz =>
       puestos.push({tipo: pz.tipo, rot: 0, x: rect.x + pz.dx, y: rect.y + pz.dy}));
   });
 
