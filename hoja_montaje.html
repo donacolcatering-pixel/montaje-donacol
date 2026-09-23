@@ -65,6 +65,14 @@
   .vsub{margin-left:auto;font-size:10.5px;color:var(--gris);font-variant-numeric:tabular-nums}
   .vsub b{color:var(--marron2)}
   .vdib{margin:1px 0 3px}
+  .cara3d{break-before:page;page-break-before:always;padding-top:4mm}
+  .nota3d{font-size:9.5px;color:var(--gris);line-height:1.5;margin:0 0 5mm;max-width:150mm}
+  .iso3d{margin-bottom:5mm;padding:4mm 3mm 2mm;background:#fbf7ef;border:1px solid var(--linea);
+         border-radius:8px;break-inside:avoid}
+  .iso3d .isoEt{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
+                color:var(--marron2);margin-bottom:2mm}
+  .iso3d .vnum{width:18px;height:18px;font-size:10.5px}
+  .iso3d svg{max-height:62mm;display:block;margin:0 auto}
   .vsecuencia{font-size:9.5px;color:var(--gris);line-height:1.9;display:flex;
               flex-wrap:wrap;gap:4px;align-items:center}
   .vsecuencia .et{font-weight:800;color:var(--marron2);text-transform:uppercase;
@@ -123,30 +131,33 @@
    planta (los 74 cm son la altura y aquí no pintan nada).
    La marca es la letra que sale dibujada en la pieza y en el listado lateral.
 --------------------------------------------------------------------------- */
+/* zc = ALTURA en cm, la que hace falta para el dibujo en 3D. Estas alturas
+   son estimadas: la caja de bebida, la fuente y la pila de vasos habria que
+   medirlas como el resto. En planta no influyen; en la isometrica, si. */
 const PIEZAS = {
-  buffet:     {nm:'Mesa buffet',            wc:180, hc:70,   mk:'',   col:'#f7ecd8', bd:'#5A3B27'},
-  bandeja:    {nm:'Bandeja de comida',      wc:35,  hc:26.5, mk:'B',  col:'#cda36a', bd:'#8a6a3a'},
-  chafing:    {nm:'Chafing dish',           wc:53,  hc:33,   mk:'C',  col:'#b9bfc4', bd:'#6c7379'},
+  buffet:     {nm:'Mesa buffet',            wc:180, hc:70,   mk:'',   col:'#f7ecd8', bd:'#5A3B27', zc:74},
+  bandeja:    {nm:'Bandeja de comida',      wc:35,  hc:26.5, mk:'B',  col:'#cda36a', bd:'#8a6a3a', zc:6},
+  chafing:    {nm:'Chafing dish',           wc:53,  hc:33,   mk:'C',  col:'#b9bfc4', bd:'#6c7379', zc:22},
   /* Las bebidas, una a una: el café manda y la leche normal va con él.
      OJO A LA ORIENTACIÓN: la caja se pone con el MORRO —el grifo— de frente, y
      el cuerpo se va hacia atrás, a lo largo de la mesa. Estaban puestas de
      ancho (17 de frente por 10 de fondo) y es al revés: ocupan poco frente y
      mucho fondo. Por eso no cuadraban en la barra. */
-  cafe:       {nm:'Caja de CAFÉ',           wc:17,  hc:25,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f'},
-  lecheNormal:{nm:'Leche normal',           wc:17,  hc:25,   mk:'LE', col:'#f0e4cd', bd:'#b9a179'},
-  sinLactosa: {nm:'Leche sin lactosa',      wc:17,  hc:25,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8'},
-  soja:       {nm:'Leche de soja',          wc:17,  hc:25,   mk:'SO', col:'#e7f0d9', bd:'#96ae77'},
-  aguaCal:    {nm:'Agua caliente',          wc:17,  hc:25,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e'},
-  zumo:       {nm:'Caja de zumo',           wc:17,  hc:25,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044'},
-  fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0'},
-  vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad'},
-  vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad'},
-  minibox:    {nm:'Mini box de café',        wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a'},
-  miniboxCal: {nm:'Mini box de infusiones',  wc:12,  hc:6.5,  mk:'MI', col:'#e9dcc4', bd:'#a07f3a'},
-  servis:     {nm:'Servilletas (platito)',  wc:10,  hc:10,   mk:'S',  col:'#eadfca', bd:'#b09a72'},
-  floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a'},
-  alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27'},
-  papelera:   {nm:'Papelera',               wc:10,  hc:10,   mk:'P',  col:'#c9c9c9', bd:'#666'},
+  cafe:       {nm:'Caja de CAFÉ',           wc:17,  hc:25,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f', zc:28},
+  lecheNormal:{nm:'Leche normal',           wc:17,  hc:25,   mk:'LE', col:'#f0e4cd', bd:'#b9a179', zc:28},
+  sinLactosa: {nm:'Leche sin lactosa',      wc:17,  hc:25,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8', zc:28},
+  soja:       {nm:'Leche de soja',          wc:17,  hc:25,   mk:'SO', col:'#e7f0d9', bd:'#96ae77', zc:28},
+  aguaCal:    {nm:'Agua caliente',          wc:17,  hc:25,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:28},
+  zumo:       {nm:'Caja de zumo',           wc:17,  hc:25,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:28},
+  fuente:     {nm:'Fuente de agua 5 L',     wc:25,  hc:25,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0', zc:36},
+  vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad', zc:24},
+  vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad', zc:16},
+  minibox:    {nm:'Mini box de café',        wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a', zc:9},
+  miniboxCal: {nm:'Mini box de infusiones',  wc:12,  hc:6.5,  mk:'MI', col:'#e9dcc4', bd:'#a07f3a', zc:9},
+  servis:     {nm:'Servilletas (platito)',  wc:10,  hc:10,   mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2},
+  floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a', zc:26},
+  alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27', zc:110},
+  papelera:   {nm:'Papelera',               wc:10,  hc:10,   mk:'P',  col:'#c9c9c9', bd:'#666', zc:60},
 };
 
 // Las bebidas que van en caja, por orden de mando: el café primero.
@@ -562,6 +573,89 @@ function dibujar(ag, n) {
   };
 }
 
+
+/* ===========================================================================
+   VISTA ISOMÉTRICA — para verlo, no para medirlo.
+
+   No hace falta renderizar nada ni pasar imágenes por ningún filtro: todo lo
+   que hay en una barra son cajas y cilindros, así que el 3D se dibuja con las
+   MISMAS coordenadas de la planta, en vectorial. Pesa lo mismo que el plano,
+   se imprime nítido a cualquier tamaño y, cuando cambian las cantidades, se
+   actualiza solo. Con imágenes renderizadas habría que rehacerlas cada vez.
+
+   La proyección es isométrica de manual: un punto (x, y, z) en centímetros
+   —x a lo ancho de la barra, y hacia el fondo, z hacia arriba— cae en
+     sx = (x - y) · cos30
+     sy = (x + y) · sen30 - z
+   Y se pinta de atrás hacia delante (mayor x+y = más cerca del que mira), que
+   es lo que hace que unas cosas tapen a otras como en la realidad.
+=========================================================================== */
+const COS30 = Math.cos(Math.PI / 6), SEN30 = 0.5;
+const iso = (x, y, z) => [(x - y) * COS30, (x + y) * SEN30 - z];
+
+/** Aclara u oscurece un color para las caras: la luz viene de arriba. */
+function tono(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map(v => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1)))));
+  return 'rgb(' + c.join(',') + ')';
+}
+
+/** Una caja en 3D: la tapa, el frente y el costado. */
+function caja3d(x, y, z, w, d, h, col, bd) {
+  const p = (X, Y, Z) => iso(X, Y, Z).join(',');
+  const tapa   = [p(x,y,z+h), p(x+w,y,z+h), p(x+w,y+d,z+h), p(x,y+d,z+h)].join(' ');
+  const frente = [p(x,y+d,z+h), p(x+w,y+d,z+h), p(x+w,y+d,z), p(x,y+d,z)].join(' ');
+  const lado   = [p(x+w,y,z+h), p(x+w,y+d,z+h), p(x+w,y+d,z), p(x+w,y,z)].join(' ');
+  const t = 'stroke="' + bd + '" stroke-width="0.7" stroke-linejoin="round"';
+  return '<polygon points="' + lado   + '" fill="' + tono(col, .78) + '" ' + t + '/>'
+       + '<polygon points="' + frente + '" fill="' + tono(col, .92) + '" ' + t + '/>'
+       + '<polygon points="' + tapa   + '" fill="' + tono(col, 1.12) + '" ' + t + '/>';
+}
+
+/** Un cilindro (pila de vasos, floral): elipse arriba, cuerpo y elipse abajo. */
+function cil3d(x, y, z, diam, h, col, bd) {
+  const r = diam / 2, cx = x + r, cy = y + r;
+  const [ax, ay] = iso(cx, cy, z + h), [bx, by] = iso(cx, cy, z);
+  const rx = r * COS30 * 1.42, ry = r * SEN30 * 1.42;
+  const t = 'stroke="' + bd + '" stroke-width="0.7"';
+  return '<path d="M' + (ax - rx) + ',' + ay + ' L' + (bx - rx) + ',' + by
+       + ' A' + rx + ',' + ry + ' 0 0 0 ' + (bx + rx) + ',' + by
+       + ' L' + (ax + rx) + ',' + ay + ' Z" fill="' + tono(col, .88) + '" ' + t + '/>'
+       + '<ellipse cx="' + ax + '" cy="' + ay + '" rx="' + rx + '" ry="' + ry
+       + '" fill="' + tono(col, 1.12) + '" ' + t + '/>';
+}
+
+/** UN grupo en isométrica: como todos los grupos se montan igual, con ver
+ *  uno se ve la barra entera. */
+function dibujarIso(tamGrupo, cuantos) {
+  const m = montarGrupo(tamGrupo, cuantos);
+  const W = tamGrupo * PIEZAS.buffet.wc, D = PIEZAS.buffet.hc, ALTO = PIEZAS.buffet.zc;
+
+  // la mesa, con el mantel cayendo
+  let cuerpo = caja3d(0, 0, 0, W, D, ALTO, '#fdfbf6', '#b9a888');
+
+  // lo de encima, de atrás hacia delante para que se tapen bien
+  const orden = m.piezas.slice().sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  orden.forEach(p => {
+    const t = PIEZAS[p.tipo], h = t.zc || 10;
+    const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral');
+    cuerpo += redondo
+      ? cil3d(p.x, p.y, ALTO, t.wc, h, t.col, t.bd)
+      : caja3d(p.x, p.y, ALTO, t.wc, t.hc, h, t.col, t.bd);
+  });
+
+  // encuadre: se calculan las cuatro esquinas de la caja que lo contiene todo
+  const xs = [], ys = [];
+  [[0,0,0],[W,0,0],[0,D,0],[W,D,0],[0,0,ALTO+40],[W,0,ALTO+40],[0,D,ALTO+40],[W,D,ALTO+40]]
+    .forEach(([a,b,c]) => { const [u,v] = iso(a,b,c); xs.push(u); ys.push(v); });
+  const x0 = Math.min(...xs) - 6, y0 = Math.min(...ys) - 6;
+  const anc = Math.max(...xs) - x0 + 12, alt = Math.max(...ys) - y0 + 12;
+
+  return '<svg viewBox="' + x0 + ' ' + y0 + ' ' + anc + ' ' + alt + '" width="100%"'
+       + ' preserveAspectRatio="xMidYMid meet">' + cuerpo + '</svg>';
+}
+
 function pintar() {
   const nMesas = INV.buffet || 0;
   if (!nMesas) {
@@ -581,6 +675,7 @@ function pintar() {
       + '<span class="vsub"><b>' + d.largo + ' m</b> de barra · ' + d.colas
       + (d.colas === 1 ? ' cola' : ' colas') + '</span></div>'
       + '<div class="vdib">' + d.svg + '</div>'
+
       + '<div class="vsecuencia"><span class="et">Delante</span>' + d.secFrente
       + '<span class="et" style="margin-left:7px">Detrás</span>' + d.secDetras + '</div>'
       + '</div>';
@@ -637,6 +732,19 @@ function pintar() {
     + 'no se pone nada en medio y se reparte a los lados.</p></div>'
     + '<div class="reglas"><h2 class="sec">Reglas de montaje</h2><ol>'
     + REGLAS.map(r => '<li>' + r + '</li>').join('') + '</ol></div></div>'
+    + '<section class="cara3d"><h2 class="sec">Así tiene que quedar</h2>'
+    + '<p class="nota3d">Un grupo de cada manera, visto desde arriba en perspectiva. '
+    + 'Como todos los grupos se montan igual, con ver uno se ve la barra entera. '
+    + 'Esta cara es para mirar; la de delante, para medir.</p>'
+    + opciones.map((ag, i) => {
+        const tam = Math.max.apply(null, ag.grupos);
+        const cual = repartir(ag.grupos)[ag.grupos.indexOf(tam)];
+        return '<div class="iso3d"><div class="isoEt"><span class="vnum">' + (i + 1)
+          + '</span> Grupo de ' + tam + (tam === 1 ? ' mesa' : ' mesas')
+          + ' · ' + nombreDe(ag, nMesas) + '</div>'
+          + dibujarIso(tam, cual) + '</div>';
+      }).join('')
+    + '</section>'
     + '<div class="firma"><span>Mesas de 180 × 70 cm · 74 de alto</span>'
     + '<span class="sp"></span><span>' + fecha + '</span></div>';
 }
