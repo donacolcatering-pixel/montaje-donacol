@@ -412,6 +412,7 @@ const GEN = {
   SEPARA: 4,        // cm entre dos cosas encima de la mesa
   PASILLO: 250,     // cm entre dos barras enfrentadas: pasa un carro y gente
   HUECO_SIM: 180,   // cm de hueco en el centro de la simétrica: por ahí se entra
+  MAX_JUNTAS: 4,    // mesas seguidas como mucho: 4 × 1,80 = 7,2 m ya es mucha barra
   ORIGEN_X: 600, ORIGEN_Y: 500,
 };
 
@@ -536,9 +537,19 @@ function genAgrupaciones(n) {
     const base = Math.floor(n / g), sobran = n % g;
     const grupos = [];
     for (let i = 0; i < g; i++) grupos.push(base + (i < sobran ? 1 : 0));
+    // Una barra demasiado larga no es una opción: la gente no va a recorrer
+    // 18 metros detrás de la mesa. Con mesas de 1,80 el tope son 4 seguidas
+    // (7,2 m); a partir de ahí SIEMPRE se corta, cada dos, cada tres o cada
+    // cuatro. Por eso con 10 mesas no aparece «10 juntas»: no existe.
+    if (Math.max(...grupos) > GEN.MAX_JUNTAS) continue;
     salida.push(grupos);
   }
-  return salida;
+  // Las más limpias primero: primero las de grupos todos iguales, que se montan
+  // una igual que otra y no hay que mirar dos veces.
+  return salida.sort((a, b) => {
+    const iguales = (g) => (new Set(g).size === 1 ? 0 : 1);
+    return iguales(a) - iguales(b) || b[0] - a[0];
+  });
 }
 
 /** Cómo se lee una agrupación en voz alta. */
