@@ -185,24 +185,28 @@ function puestosDeCafe(cuantos) {
   for (let i = 0, j = nCafes - 1; i < j; i++, j--) pares.push([i, j]);
   const medio = nCafes % 2 ? (nCafes - 1) / 2 : null;
 
+  /* Las leches se cuelgan de los cafés EN PAREJAS ESPEJADAS. Las parejas se
+     recorren en círculo: antes el contador se agotaba y las últimas leches se
+     repartían a dedo, así que a un puesto le caían soja y agua caliente y a su
+     gemelo no. Dando la vuelta, cada leche entra siempre en una pareja y la
+     barra se ve igual desde los dos lados.
+
+     El zumo no se cuelga de ningún café: va junto a la garrafa, compartiendo
+     su pila de vasos, y no lleva mini box. */
   let p = 0;
-  // El zumo NO se cuelga de un café: va junto a la garrafa, compartiendo su
-  // pila de vasos, y además no lleva mini box.
   ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal'].forEach(tipo => {
     let quedan = cuantos[tipo] || 0;
-    while (quedan >= 2 && p < pares.length) {
-      puestos[pares[p][0]].push(tipo);
-      puestos[pares[p][1]].push(tipo);
+    while (quedan >= 2 && pares.length) {
+      const [a, b] = pares[p % pares.length];
+      puestos[a].push(tipo);
+      puestos[b].push(tipo);
       quedan -= 2; p++;
     }
     if (quedan === 1) {
-      // la impar al centro si lo hay; si no, al primer puesto libre
-      const donde = medio !== null ? medio : (p < pares.length ? pares[p][0] : 0);
+      // La impar al centro si lo hay; si no, a la pareja que toque —una sola
+      // pieza descolocada se ve menos que dejarla en la caja.
+      const donde = medio !== null ? medio : pares[p % Math.max(1, pares.length)][0];
       puestos[donde].push(tipo);
-      quedan = 0;
-    }
-    if (quedan > 0) {                      // no había pares libres: se reparten
-      for (let i = 0; i < nCafes && quedan > 0; i++) { puestos[i].push(tipo); quedan--; }
     }
   });
   return puestos;
@@ -261,12 +265,21 @@ function filaDelante(cuantos, anchoCm, nMesas) {
   const servisPuestos = meterEnPareja('servis', cuantos.servis || 0);
 
   // La fila completa: puesto, lo que haya en su ranura, puesto, …
+  /* Las ranuras de la mitad DERECHA se vuelcan al revés. Si a la izquierda la
+     ranura lleva [garrafa, servilletas], a la derecha tiene que salir
+     [servilletas, garrafa] para que sea el reflejo. Sin esto la barra salía
+     con el agua a 28 cm del borde izquierdo y a 57 del derecho: parecida,
+     pero no simétrica. */
+  const vuelca = (i) => {
+    const r = ranuras[i] || [];
+    return i > nP / 2 ? r.slice().reverse() : r;
+  };
   const columnas = [];
   puestos.forEach((pu, i) => {
-    (ranuras[i] || []).forEach(t => columnas.push({sep: t}));   // el hueco de antes
+    vuelca(i).forEach(t => columnas.push({sep: t}));            // el hueco de antes
     columnas.push({puesto: pu, lado: i < nP / 2 ? 'izq' : 'der'});
   });
-  (ranuras[nP] || []).forEach(t => columnas.push({sep: t}));    // y el del final
+  vuelca(nP).forEach(t => columnas.push({sep: t}));             // y el del final
 
   const anchoCol = (c) => {
     if (c.sep === 'fuente') return W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
@@ -329,8 +342,15 @@ function filaDelante(cuantos, anchoCm, nMesas) {
       if (!derecha) { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
       else { puntos.push({tipo: 'vaso', x: dx}); dx += W('vaso') + 2; }
       cajas.forEach(t => {
+        // La mini box de infusiones va pegada al agua caliente, y en la mitad
+        // derecha DELANTE en vez de detrás: si no, las dos mitades no son
+        // espejo y se nota justo al lado del eje.
+        const conInfusiones = (t === 'aguaCal' && (cuantos.miniboxCal || 0) > 0);
+        if (conInfusiones && derecha) {
+          puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
+        }
         puntos.push({tipo: t, x: dx}); dx += W(t) + 2;
-        if (t === 'aguaCal' && (cuantos.miniboxCal || 0) > 0) {
+        if (conInfusiones && !derecha) {
           puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
         }
       });
@@ -362,56 +382,74 @@ const DESVIO_V = 7;          // cm que se adelantan las del centro: la V
 function filaDetras(cuantos, anchoCm, nMesas, fondoDisponible) {
   const puntos = [];
   puntos.noCaben = [];
-  const anchoMesa = PIEZAS.buffet.wc;
+  const anchoMesa = PIEZAS.buffet.wc, Wf = PIEZAS.floral.wc;
 
-  // --- la comida, repartida mesa a mesa ---
+  // Lo que va detrás, repartido mesa a mesa
   const comida = [];
   for (let i = 0; i < (cuantos.chafing || 0); i++) comida.push('chafing');
   for (let i = 0; i < (cuantos.bandeja || 0); i++) comida.push('bandeja');
+  const flores = Math.min(cuantos.floral || 0, nMesas * 2);
 
-  const base = Math.floor(comida.length / nMesas), resto = comida.length % nMesas;
+  const repartoDe = (total) => {
+    const base = Math.floor(total / nMesas), resto = total % nMesas;
+    return Array.from({length: nMesas}, (_, i) => base + (i < resto ? 1 : 0));
+  };
+  const comidaPorMesa = repartoDe(comida.length);
+  const floresPorMesa = repartoDe(flores);
+
   let k = 0;
   for (let m = 0; m < nMesas; m++) {
-    const cuantas = base + (m < resto ? 1 : 0);
-    if (!cuantas) continue;
-    const mias = comida.slice(k, k + cuantas); k += cuantas;
     const x0 = m * anchoMesa, centroMesa = x0 + anchoMesa / 2;
+    const mias = comida.slice(k, k + comidaPorMesa[m]); k += comidaPorMesa[m];
+    const nFlores = floresPorMesa[m];
 
-    const anchoPieza = Math.max(...mias.map(t => PIEZAS[t].wc));
-    // El hueco entre bandejas se aprieta si hace falta, pero la fila NUNCA se
-    // sale de su mesa: lo que no entre se queda fuera y se dice.
-    let hueco = anchoPieza * HUECO_BANDEJA;
-    const sitioMesa = anchoMesa - MARGEN * 2;
-    const anchoCon = (h) => mias.reduce((a, t) => a + PIEZAS[t].wc, 0) + (mias.length - 1) * h;
-    if (anchoCon(hueco) > sitioMesa) hueco = Math.max(2, (sitioMesa - anchoCon(0)) / Math.max(1, mias.length - 1));
-    while (mias.length > 1 && anchoCon(hueco) > sitioMesa) { puntos.noCaben.push(mias.pop()); }
-    const ancho = anchoCon(hueco);
-    let x = centroMesa - ancho / 2;                 // centradas en SU mesa
+    /* LAS FLORES PRIMERO, QUE MARCAN. Dos por mesa como mucho: una a cada
+       punta, o una sola al centro. Se colocan antes que la comida y se
+       reserva su hueco — antes se ponían encima y una bandeja acababa
+       pisando el floral. */
+    let desde = x0 + MARGEN, hasta = x0 + anchoMesa - MARGEN;
+    let centroOcupado = 0;
+    if (nFlores >= 2) {
+      puntos.push({tipo: 'floral', x: desde, desv: 0});
+      puntos.push({tipo: 'floral', x: hasta - Wf, desv: 0});
+      desde += Wf + SEPARA;
+      hasta -= Wf + SEPARA;
+      if (nFlores > 2) puntos.noCaben.push(...Array(nFlores - 2).fill('floral'));
+    } else if (nFlores === 1) {
+      puntos.push({tipo: 'floral', x: centroMesa - Wf / 2, desv: 0});
+      centroOcupado = Wf + SEPARA * 2;
+    }
+
+    if (!mias.length) continue;
+
+    /* LA COMIDA, repartida en el hueco que queda y escalonada en V: las del
+       centro de la mesa se adelantan y las de los lados quedan atrás. Como el
+       adelanto depende de la DISTANCIA al centro, las parejas de un lado y
+       otro caen a la misma altura y la mesa se ve simétrica. */
+    const sitio = (hasta - desde) - centroOcupado;
+    const anchoPiezas = mias.reduce((a, t) => a + PIEZAS[t].wc, 0);
+    while (mias.length > 1 && anchoPiezas > sitio) {
+      puntos.noCaben.push(mias.pop());
+    }
+    const suma = mias.reduce((a, t) => a + PIEZAS[t].wc, 0);
+    const hueco = mias.length > 1
+      ? Math.min(PIEZAS.bandeja.wc * HUECO_BANDEJA, (sitio - suma) / (mias.length - 1))
+      : 0;
+    const ancho = suma + Math.max(0, hueco) * (mias.length - 1);
     const maxDist = Math.max(1, ancho / 2);
 
-    mias.forEach(t => {
-      const w = PIEZAS[t].wc, centroPieza = x + w / 2;
-      // La V: las del centro de la mesa se adelantan, las de los lados quedan
-      // atrás. Como depende de la DISTANCIA al centro, las parejas de un lado
-      // y otro caen a la misma altura y la mesa se ve simétrica.
-      const dist = Math.abs(centroPieza - centroMesa) / maxDist;
-      puntos.push({tipo: t, x, desv: (1 - dist) * DESVIO_V});
-      x += w + hueco;
+    // Si hay floral en el centro, la comida se parte en dos mitades
+    const mitad = centroOcupado ? Math.ceil(mias.length / 2) : mias.length;
+    let x = centroOcupado
+      ? centroMesa - centroOcupado / 2 - (ancho / 2)     // empieza a la izquierda
+      : centroMesa - ancho / 2;
+    mias.forEach((t, i) => {
+      if (centroOcupado && i === mitad) x += centroOcupado;   // saltar el floral
+      const w = PIEZAS[t].wc, c = x + w / 2;
+      const dist = Math.abs(c - centroMesa) / Math.max(maxDist, 1);
+      puntos.push({tipo: t, x, desv: Math.max(0, 1 - dist) * DESVIO_V});
+      x += w + Math.max(0, hueco);
     });
-  }
-
-  // --- las flores: una al centro del grupo, las demás a los lados ---
-  const flores = Math.min(cuantos.floral || 0, nMesas * 2);
-  if (flores) {
-    const w = PIEZAS.floral.wc;
-    let puestas = 0;
-    if (flores % 2 === 1) { puntos.push({tipo: 'floral', x: (anchoCm - w) / 2, desv: 0}); puestas = 1; }
-    for (let i = 0; puestas + 2 <= flores; i++, puestas += 2) {
-      // van a los extremos de cada mesa, de fuera hacia dentro
-      const x = MARGEN + i * anchoMesa;
-      puntos.push({tipo: 'floral', x, desv: 0});
-      puntos.push({tipo: 'floral', x: anchoCm - x - w, desv: 0});
-    }
   }
   return puntos;
 }
