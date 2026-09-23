@@ -22,6 +22,27 @@
   .bPared{background:#fff;border:1px solid var(--marron2);color:var(--marron2)}
   .bPared.on{background:#222;color:#fff;border-color:#222}
   .bGuardar{background:var(--oro);color:#fff}.bLimpiar{background:#ecdcc4;color:var(--marron2)}
+  .bGen{background:var(--marron2);color:#f7ecdc}
+  /* Panel de montaje automatico */
+  #genPanel{display:none;position:fixed;inset:auto 0 0 0;z-index:40;background:var(--crema);
+    border-top:3px solid var(--oro);box-shadow:0 -8px 24px rgba(0,0,0,.22);padding:14px 16px 18px;
+    max-height:78vh;overflow:auto}
+  @media(min-width:760px){#genPanel{inset:auto auto 18px 18px;width:390px;border:1px solid var(--linea);
+    border-top:3px solid var(--oro);border-radius:14px}}
+  #genPanel .gTit{font-weight:800;color:var(--marron);margin-bottom:9px;font-size:14px}
+  .gForma{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px;margin-bottom:11px}
+  .gOp{border:1.5px solid var(--linea);background:#fff;border-radius:10px;padding:7px 5px;cursor:pointer;text-align:center}
+  .gOp.on{border-color:var(--oro);background:#fdf3e3}
+  .gOp svg{display:block;margin:0 auto 4px}
+  .gOp span{font-size:10.5px;font-weight:700;color:var(--marron2);line-height:1.15;display:block}
+  .gLab{display:block;font-size:12px;font-weight:600;color:var(--marron2);margin:9px 0}
+  .gLab input{width:78px;margin-left:7px;padding:5px 7px;border:1px solid var(--linea);border-radius:7px;font-size:13px}
+  .gChk{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--tinta);margin:7px 0;line-height:1.3}
+  .gBtns{display:flex;gap:8px;margin-top:12px}
+  .gBtns button{flex:1;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;
+    background:var(--oro);color:#fff}
+  .gBtns button.sec{background:#ecdcc4;color:var(--marron2)}
+  .gNota{font-size:11.5px;color:var(--gris);margin:9px 0 0;line-height:1.35}
 
   .paleta{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#f1e4cf;border-bottom:1px solid var(--linea)}
   .pBtn{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid var(--linea);border-radius:10px;padding:6px 7px;min-width:54px;cursor:pointer}
@@ -95,9 +116,26 @@
 <div class="barra">
   <label>Personas</label><input id="pax" type="number" inputmode="numeric" value="100" min="1">
   <button class="bPared" id="bPared">✏️ Pared</button>
+  <button class="bGen" id="bGen">✨ Montar solo</button>
   <span class="sp"></span>
   <button class="bGuardar" id="bGuardar">✔ Guardar</button>
   <button class="bLimpiar" id="bLimpiar">🗑 Limpiar</button>
+</div>
+
+<div id="genPanel">
+  <div class="gTit">¿Cómo van las mesas?</div>
+  <div class="gForma" id="gForma"></div>
+  <label class="gLab">Largo de la sala (m)
+    <input id="gLargo" type="number" value="12" min="2" step="0.5"></label>
+  <label class="gChk"><input type="checkbox" id="gEncima" checked>
+    Colocar también lo de encima (bandejas, chafing, cajas…)</label>
+  <label class="gChk"><input type="checkbox" id="gAltas" checked>
+    Repartir las mesas altas por la sala</label>
+  <div class="gBtns">
+    <button id="gHacer">Montar</button>
+    <button id="gCerrar" class="sec">Cancelar</button>
+  </div>
+  <p class="gNota" id="gNota"></p>
 </div>
 
 <div id="invBanner"></div>
@@ -341,6 +379,240 @@ window.addEventListener('resize',()=>{renderEls();renderWalls();tbPos();});
 lienzo.addEventListener('scroll',()=>{if(selEls.size||selWall!=null)tbPos();});
 
 function guardar(){try{localStorage.setItem('montaje2d',JSON.stringify({items,walls,nextId,pax:$('#pax').value}));}catch(e){}}
+
+/* ============================================================================
+   MONTAR SOLO — coloca las mesas y lo que va encima, sin arrastrar nada.
+
+   El montador no empieza de cero: ya sabe cuántas mesas y cuántas bandejas
+   lleva (se lo dice el checklist). Lo que le cuesta es repartirlo bien. Aquí
+   se elige la forma —una línea, dos, simétrica, en L, isla— y se coloca todo
+   a escala, dejando los pasillos y los bordes que hacen falta.
+
+   Las medidas están en CENTÍMETROS y se pasan a píxeles con cm(). El origen
+   se calcula para que la barra quede centrada en la sala que se indique.
+   ============================================================================ */
+const GEN = {
+  MARGEN: 6,        // cm libres en el borde de la mesa: nada cuelga
+  SEPARA: 4,        // cm entre dos cosas encima de la mesa
+  PASILLO: 250,     // cm entre dos barras enfrentadas: pasa un carro y gente
+  HUECO_SIM: 180,   // cm de hueco en el centro de la simétrica: por ahí se entra
+  ORIGEN_X: 600, ORIGEN_Y: 500,
+};
+
+// Qué se pone encima de las mesas, por orden de importancia. El chafing va
+// primero porque es lo más grande y lo que no se puede mover una vez encendido.
+const GEN_ENCIMA = ['chafing', 'bandeja', 'cajaCafe', 'minibox', 'servis', 'floral', 'vaso'];
+
+const FORMAS = {
+  linea:     {nm: 'Una línea',      dib: 'M4,14 H44'},
+  dos:       {nm: 'Dos líneas',     dib: 'M4,8 H44 M4,20 H44'},
+  simetrica: {nm: 'Simétrica',      dib: 'M4,14 H20 M28,14 H44'},
+  ele:       {nm: 'En L',           dib: 'M6,4 V22 H44'},
+  isla:      {nm: 'Isla central',   dib: 'M10,9 H38 M10,19 H38 M10,9 V19 M38,9 V19'},
+};
+let genForma = 'linea';
+
+$('#gForma').innerHTML = Object.entries(FORMAS).map(([k, f]) =>
+  `<div class="gOp${k === genForma ? ' on' : ''}" data-f="${k}">
+     <svg width="48" height="26" viewBox="0 0 48 26"><path d="${f.dib}"
+       stroke="#5A3B27" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>
+     <span>${f.nm}</span></div>`).join('');
+document.querySelectorAll('.gOp').forEach(o => o.onclick = () => {
+  genForma = o.dataset.f;
+  document.querySelectorAll('.gOp').forEach(x => x.classList.toggle('on', x === o));
+});
+
+/** Cuántas mesas buffet hay. Manda el checklist; si no hay, se estima por las
+ *  bandejas y el chafing, que es lo que ocupa sitio de verdad. */
+function genCuantasMesas() {
+  if (INV && INV.buffet) return Math.max(1, INV.buffet);
+  const carga = ((INV && INV.bandeja) || 0) + ((INV && INV.chafing) || 0) * 2;
+  return Math.max(2, Math.ceil(carga / 8));
+}
+
+/* CSS rotate() gira sobre el CENTRO del elemento. Una mesa de pie (rot 90) se
+   dibuja, por tanto, desplazada respecto a su x/y: hay que corregir con la
+   mitad de la diferencia entre el largo y el fondo. Sin esto, la barra en L
+   sale descolocada y las bandejas se posan fuera de la mesa. */
+function genDesfase() { return (cm(TIPOS.buffet.wc) - cm(TIPOS.buffet.hc)) / 2; }
+
+/** El rectángulo que de verdad se ve de una mesa: {x, y, w, h} en píxeles. */
+function genRect(mesa) {
+  const w = cm(TIPOS.buffet.wc), h = cm(TIPOS.buffet.hc), off = genDesfase();
+  return mesa.rot === 90
+    ? {x: mesa.x + off, y: mesa.y - off, w: h, h: w}
+    : {x: mesa.x, y: mesa.y, w: w, h: h};
+}
+
+/** Barra recta de n mesas pegadas, empezando en la esquina VISIBLE (xv, yv). */
+function genBarra(n, xv, yv, vertical) {
+  const w = cm(TIPOS.buffet.wc), off = genDesfase(), fila = [];
+  for (let i = 0; i < n; i++) {
+    fila.push(vertical
+      ? {tipo: 'buffet', rot: 90, x: xv - off, y: yv + w * i + off}
+      : {tipo: 'buffet', rot: 0,  x: xv + w * i, y: yv});
+  }
+  return fila;
+}
+
+/** Reparte las mesas según la forma elegida. Devuelve posiciones, aún sin id. */
+function genMesas(n, largoSalaCm) {
+  const t = TIPOS.buffet, anchoMesa = t.wc;
+  const centrar = (cuantas) => GEN.ORIGEN_X + Math.max(0, cm(largoSalaCm - cuantas * anchoMesa) / 2);
+
+  if (genForma === 'linea') return genBarra(n, centrar(n), GEN.ORIGEN_Y, false);
+
+  if (genForma === 'dos') {
+    const a = Math.ceil(n / 2), b = n - a;
+    return [...genBarra(a, centrar(a), GEN.ORIGEN_Y, false),
+            ...genBarra(b, centrar(b), GEN.ORIGEN_Y + cm(t.hc + GEN.PASILLO), false)];
+  }
+  if (genForma === 'simetrica') {
+    // Dos mitades iguales con un hueco en medio: por ahí entra la gente y se
+    // sirve por los dos lados a la vez, que es lo que descongestiona la cola.
+    const a = Math.ceil(n / 2), b = n - a;
+    const anchoTotal = cm((a + b) * anchoMesa + GEN.HUECO_SIM);
+    const x0 = GEN.ORIGEN_X + Math.max(0, (cm(largoSalaCm) - anchoTotal) / 2);
+    return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
+            ...genBarra(b, x0 + cm(a * anchoMesa + GEN.HUECO_SIM), GEN.ORIGEN_Y, false)];
+  }
+  if (genForma === 'ele') {
+    const a = Math.ceil(n / 2), b = n - a;
+    const x0 = centrar(a);
+    return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
+            ...genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), true)];
+  }
+  // isla: dos filas espalda con espalda, se sirve por los dos lados
+  const a = Math.ceil(n / 2), b = n - a;
+  const x0 = centrar(a);
+  return [...genBarra(a, x0, GEN.ORIGEN_Y, false),
+          ...genBarra(b, x0, GEN.ORIGEN_Y + cm(t.hc), false)];
+}
+
+/** Huecos libres encima de una mesa para piezas de wc×hc cm, en rejilla. */
+function genHuecos(mesa, wc, hc) {
+  const r = genRect(mesa);
+  const anchoUtil = r.w / SCALE - GEN.MARGEN * 2;   // de píxeles a cm
+  const fondoUtil = r.h / SCALE - GEN.MARGEN * 2;
+  const cols = Math.max(0, Math.floor((anchoUtil + GEN.SEPARA) / (wc + GEN.SEPARA)));
+  const filas = Math.max(0, Math.floor((fondoUtil + GEN.SEPARA) / (hc + GEN.SEPARA)));
+  const huecos = [];
+  for (let f = 0; f < filas; f++) {
+    for (let c = 0; c < cols; c++) {
+      huecos.push({
+        x: r.x + cm(GEN.MARGEN + c * (wc + GEN.SEPARA)),
+        y: r.y + cm(GEN.MARGEN + f * (hc + GEN.SEPARA)),
+      });
+    }
+  }
+  return huecos;
+}
+
+/** Coloca encima de las mesas todo lo que dice el inventario. */
+function genEncima(mesas) {
+  const puestos = [];
+  const ocupado = mesas.map(() => []);   // rectángulos ya usados por mesa
+  const choca = (mi, r) => ocupado[mi].some(o =>
+    r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y);
+
+  GEN_ENCIMA.forEach(tipo => {
+    let quedan = (INV && INV[tipo]) || 0;
+    if (!quedan) return;
+    const t = TIPOS[tipo], w = cm(t.wc), h = cm(t.hc);
+    for (let mi = 0; mi < mesas.length && quedan > 0; mi++) {
+      for (const hueco of genHuecos(mesas[mi], t.wc, t.hc)) {
+        if (quedan <= 0) break;
+        const r = {x: hueco.x, y: hueco.y, w, h};
+        if (choca(mi, r)) continue;
+        ocupado[mi].push(r);
+        puestos.push({tipo, x: hueco.x, y: hueco.y, rot: 0});
+        quedan--;
+      }
+    }
+  });
+  return puestos;
+}
+
+/** Mesas altas repartidas por delante de la barra, en rejilla suelta. */
+function genAltas(mesas) {
+  const n = (INV && INV.alta) || 0;
+  if (!n) return [];
+  const t = TIPOS.alta, sep = cm(t.wc + 150);     // 1,5 m entre altas: se circula
+  const rects = mesas.map(genRect);
+  const abajo = Math.max(...rects.map(r => r.y + r.h)) + cm(GEN.PASILLO);
+  const izq = Math.min(...rects.map(r => r.x));
+  const porFila = Math.max(1, Math.ceil(Math.sqrt(n)));
+  const salida = [];
+  for (let i = 0; i < n; i++) {
+    salida.push({tipo: 'alta', rot: 0,
+                 x: izq + (i % porFila) * sep,
+                 y: abajo + Math.floor(i / porFila) * sep});
+  }
+  return salida;
+}
+
+/** Fuentes de agua y papeleras: a los extremos, que es donde estorban menos. */
+function genExtremos(mesas) {
+  const rects = mesas.map(genRect);
+  const salida = [], izq = Math.min(...rects.map(r => r.x)),
+        der = Math.max(...rects.map(r => r.x + r.w)),
+        y = Math.min(...rects.map(r => r.y));
+  const fuentes = (INV && INV.fuente) || 0, papeleras = (INV && INV.papelera) || 0;
+  for (let i = 0; i < fuentes; i++) {
+    const aIzq = i % 2 === 0;
+    salida.push({tipo: 'fuente', rot: 0,
+                 x: (aIzq ? izq - cm(TIPOS.fuente.wc + 40) : der + cm(40)),
+                 y: y + cm(Math.floor(i / 2) * (TIPOS.fuente.hc + 25))});
+  }
+  for (let i = 0; i < papeleras; i++) {
+    const aIzq = i % 2 === 0;
+    salida.push({tipo: 'papelera', rot: 0,
+                 x: (aIzq ? izq - cm(TIPOS.papelera.wc + 40) : der + cm(40)),
+                 y: y + cm(200 + Math.floor(i / 2) * (TIPOS.papelera.hc + 25))});
+  }
+  return salida;
+}
+
+function genMontar() {
+  if (items.length && !confirm('Esto vuelve a montar el plano desde cero. '
+                               + '¿Seguro? Lo que hayas colocado a mano se pierde.')) return;
+  const largoSala = Math.max(200, (parseFloat($('#gLargo').value) || 12) * 100);
+  const nMesas = genCuantasMesas();
+  const mesas = genMesas(nMesas, largoSala);
+
+  let nuevos = [...mesas];
+  if ($('#gEncima').checked) nuevos = nuevos.concat(genEncima(mesas));
+  if ($('#gAltas').checked)  nuevos = nuevos.concat(genAltas(mesas));
+  nuevos = nuevos.concat(genExtremos(mesas));
+
+  items = nuevos.map(o => ({...o, id: nextId++}));
+  selEls = new Set(); selWall = null;
+  renderEls(); marcarSel(); actualizarInv(); guardar();
+
+  // Qué ha entrado y qué no: si algo no cabe, hay que decirlo, no esconderlo.
+  const puesto = {}; items.forEach(i => puesto[i.tipo] = (puesto[i.tipo] || 0) + 1);
+  const fuera = [];
+  if (INV) Object.keys(INV).forEach(k => {
+    const falta = (INV[k] || 0) - (puesto[k] || 0);
+    if (falta > 0 && TIPOS[k]) fuera.push(falta + ' ' + TIPOS[k].nm.toLowerCase());
+  });
+  $('#gNota').innerHTML = fuera.length
+    ? '⚠️ No ha cabido todo: falta colocar <b>' + fuera.join(', ') + '</b>. '
+      + 'Añade una mesa más o prueba otra forma.'
+    : '✅ Montado con ' + nMesas + ' mesa(s). Todo lo del checklist está colocado.';
+  $('#lienzo').scrollTo(Math.max(0, GEN.ORIGEN_X * 0.5 - 100), Math.max(0, GEN.ORIGEN_Y * 0.5 - 100));
+}
+
+$('#bGen').onclick = () => {
+  const p = $('#genPanel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  if (p.style.display === 'block' && INV && INVmeta && INVmeta.pax) {
+    $('#gNota').textContent = 'Para ' + INVmeta.pax + ' pax · '
+      + genCuantasMesas() + ' mesa(s) buffet según el checklist.';
+  }
+};
+$('#gCerrar').onclick = () => { $('#genPanel').style.display = 'none'; };
+$('#gHacer').onclick = genMontar;
 
 renderEls();renderWalls();setZoom(0.6);lienzo.scrollTo(0,0);
 </script>
