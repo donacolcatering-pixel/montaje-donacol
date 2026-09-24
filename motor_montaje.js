@@ -193,7 +193,7 @@ function puestosDeCafe(cuantos) {
 
      El zumo no se cuelga de ningún café: va junto a la garrafa, compartiendo
      su pila de vasos, y no lleva mini box. */
-  let p = 0;
+  let p = 0, impares = 0;
   ['lecheNormal', 'sinLactosa', 'soja', 'aguaCal'].forEach(tipo => {
     let quedan = cuantos[tipo] || 0;
     while (quedan >= 2 && pares.length) {
@@ -203,9 +203,22 @@ function puestosDeCafe(cuantos) {
       quedan -= 2; p++;
     }
     if (quedan === 1) {
-      // La impar al centro si lo hay; si no, a la pareja que toque —una sola
-      // pieza descolocada se ve menos que dejarla en la caja.
-      const donde = medio !== null ? medio : pares[p % Math.max(1, pares.length)][0];
+      /* LA IMPAR, AL PUESTO MÁS VACÍO. Si hay puesto central, ahí. Si no, al
+         que menos cajas lleve — y en empate, alternando lado.
+
+         Antes iban TODAS las impares al mismo puesto y salía un montaje
+         cojo: con dos cafés, uno se quedaba con café, leche, sin lactosa,
+         soja y agua caliente, y el otro con el café pelado. Con seis cajas
+         entre dos puestos tienen que quedar tres y tres. */
+      let donde;
+      if (medio !== null) {
+        donde = medio;
+      } else {
+        const menos = Math.min(...puestos.map(x => x.length));
+        const libres = puestos.map((x, i) => x.length === menos ? i : -1).filter(i => i >= 0);
+        donde = libres[impares % libres.length];
+        impares++;
+      }
       puestos[donde].push(tipo);
     }
   });
