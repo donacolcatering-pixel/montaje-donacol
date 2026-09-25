@@ -511,18 +511,36 @@ function montarGrupo(tamGrupo, cuantos) {
   const fondoOcupadoDelante = delante.length
     ? Math.max(...delante.map(p => PIEZAS[p.tipo].hc)) : 0;
 
-  // DETRÁS: la comida y las flores.
+  /* DETRÁS: la comida y las flores.
+
+     ANTES ERA TODO O NADA. Si la fila de detrás no entraba en el fondo que
+     queda, no se dibujaba ni una bandeja ni una flor, y además en silencio.
+     Bastaba que esa mesa tuviera una garrafa delante —28 cm de fondo— para
+     que las bandejas no entraran con su escalonado en V: el Colegio de
+     Trabajo Social pedía 8 bandejas y el plano enseñaba 3 en una alternativa
+     y ninguna en las otras dos.
+
+     Ahora se cede por orden: primero se intenta con la V; si no cabe, las
+     bandejas van rectas (26,5 cm entran donde 33,5 no); y lo que siga sin
+     caber se queda fuera PERO SE DICE en la lista de la hoja. */
   const detras = filaDetras(cuantos, anchoCm, tamGrupo);
-  const altoDetras = detras.length
-    ? Math.max(...detras.map(p => PIEZAS[p.tipo].hc + (p.desv || 0))) : 0;
   const sitio = fondoCm - MARGEN * 2 - fondoOcupadoDelante - SEPARA;
-  if (altoDetras <= sitio) {
-    detras.forEach(p => piezas.push({tipo: p.tipo, x: p.x, y: MARGEN + (p.desv || 0)}));
-  }
+  const alto = (p, conV) => PIEZAS[p.tipo].hc + (conV ? (p.desv || 0) : 0);
+  const cabeConV = !detras.length
+    || Math.max(...detras.map(p => alto(p, true))) <= sitio;
+  const fueraDetras = [];
+  detras.forEach(p => {
+    if (alto(p, cabeConV) <= sitio) {
+      piezas.push({tipo: p.tipo, x: p.x, y: MARGEN + (cabeConV ? (p.desv || 0) : 0)});
+    } else {
+      fueraDetras.push(p.tipo);
+    }
+  });
 
   const leer = (lista) => lista.slice().sort((a, b) => a.x - b.x || (a.fila || 0) - (b.fila || 0))
                                 .map(p => p.tipo);
-  const noCaben = (delante.noCaben || []).concat(detras.noCaben || []);
+  const noCaben = (delante.noCaben || []).concat(detras.noCaben || [])
+                    .concat(fueraDetras);
   return {piezas, anchoCm, fondoCm,
           secFrente: leer(delante), secDetras: leer(detras),
           noCaben,
