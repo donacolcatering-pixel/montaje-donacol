@@ -340,11 +340,25 @@ function filaDelante(cuantos, anchoCm, nMesas) {
   const necesario = mide(bloques);
 
   // si no cabe, se quitan bloques DEL CENTRO y EN PAREJA, para no romper el espejo
+  /* EL AGUA, LA ULTIMA EN CAER. Se quita del centro hacia fuera, pero
+     saltandose los bloques de agua mientras quede cualquier otra cosa. Al
+     armar la barra por mitades, un agua impar queda justo en el centro, que
+     es por donde empieza el recorte: sin esta regla la barra del Colegio se
+     quedaba sin agua. Sin agua no se monta; una caja de cafe de menos se
+     aguanta. */
   const fuera = [];
-  while (bloques.length > 2 && mide(bloques) > sitio) {
-    const medio = Math.floor(bloques.length / 2);
-    const quita = bloques.length % 2 ? [medio] : [medio, medio - 1];
-    quita.sort((a, b) => b - a).forEach(i => {
+  const aQuitar = (bs) => {
+    const medio = Math.floor(bs.length / 2);
+    const porDistancia = bs.map((b, i) => i)
+      .sort((a, b) => Math.abs(a - medio) - Math.abs(b - medio) || a - b);
+    const otros = porDistancia.filter(i => bs[i].clase !== 'agua');
+    const lista = otros.length ? otros : porDistancia;
+    const i = lista[0];
+    const espejo = bs.length - 1 - i;
+    return (espejo !== i && lista.includes(espejo)) ? [i, espejo] : [i];
+  };
+  while (bloques.length > 1 && mide(bloques) > sitio) {
+    aQuitar(bloques).sort((a, b) => b - a).forEach(i => {
       const b = bloques.splice(i, 1)[0];
       piezasDe(b).forEach(t => fuera.push(t));
     });
