@@ -560,31 +560,57 @@ const TRAMA = {cafe: 't-cafe', lecheNormal: 't-leche', sinLactosa: 't-otra',
 
 /* Una barra dibujada: mesas, lo que va encima, el eje, la escala y el lado
    por el que llega la gente. */
+/* MESAS POR FILA. Una barra de seis mesas mide once metros: dibujada de una
+   tirada en un A4 cada caja de cafe queda en dos milimetros y no se distingue
+   nada. Se parte en filas de dos mesas y cada trozo sale al doble de grande.
+   Las filas son solo del dibujo: en el salon la barra sigue siendo seguida, y
+   por eso cada fila lleva escrito de que tramo es. */
+const MESAS_POR_FILA = 2;
+
+function repartirEnFilas(grupos) {
+  const filas = [];
+  let fila = [], mesas = 0;
+  grupos.forEach(g => {
+    if (mesas > 0 && mesas + g > MESAS_POR_FILA) { filas.push(fila); fila = []; mesas = 0; }
+    fila.push(g); mesas += g;
+  });
+  if (fila.length) filas.push(fila);
+  return filas;
+}
+
 function dibujar(ag, n) {
   const cuantos = repartir(ag.grupos);
-  const anchoCm = ag.grupos.reduce((a, g) => a + g * PIEZAS.buffet.wc, 0)
-                + (ag.grupos.length - 1) * SEP_GRUPOS;
   const fondoCm = PIEZAS.buffet.hc;
   const E = ESC;
+  const filas = repartirEnFilas(ag.grupos);
+  const SALTO = fondoCm + 34;          // lo que baja de una fila a la siguiente
+  const anchoCm = Math.max(...filas.map(f =>
+    f.reduce((a, g) => a + g * PIEZAS.buffet.wc, 0) + (f.length - 1) * SEP_GRUPOS));
   let cuerpo = '', x0 = 0, secF = [], secD = [];
 
+  let iFila = 0, mesasPuestas = 0, yFila = 0;
   ag.grupos.forEach((tam, gi) => {
+    // si este grupo no cabe en la fila, se baja a la siguiente
+    if (mesasPuestas > 0 && mesasPuestas + tam > MESAS_POR_FILA) {
+      iFila++; mesasPuestas = 0; x0 = 0; yFila = iFila * SALTO;
+    }
+    mesasPuestas += tam;
     const m = montarGrupo(tam, cuantos[gi]);
     const X = x0 * E, W = tam * PIEZAS.buffet.wc * E, H = fondoCm * E;
 
     // el mantel del grupo, con sombra suave
-    cuerpo += `<rect x="${X}" y="0" width="${W}" height="${H}" rx="1.5"
+    cuerpo += `<rect x="${X}" y="${yFila}" width="${W}" height="${H}" rx="1.5"
       fill="#fffdf9" stroke="#5A3B27" stroke-width="0.9"/>`;
     // las juntas entre mesas, en fino
     for (let i = 1; i < tam; i++) {
       const jx = X + i * PIEZAS.buffet.wc * E;
-      cuerpo += `<line x1="${jx}" y1="1.5" x2="${jx}" y2="${H - 1.5}"
+      cuerpo += `<line x1="${jx}" y1="${yFila + 1.5}" x2="${jx}" y2="${yFila + H - 1.5}"
         stroke="#cdbb9d" stroke-width="0.5" stroke-dasharray="2 2"/>`;
     }
 
     m.piezas.forEach(p => {
       const t = PIEZAS[p.tipo], w = t.wc * E, h = t.hc * E;
-      const x = X + p.x * E, y = p.y * E;
+      const x = X + p.x * E, y = yFila + p.y * E;
       const relleno = TRAMA[p.tipo] ? `url(#${TRAMA[p.tipo]})` : t.col;
       const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral' || p.tipo === 'servis');
       cuerpo += redondo
@@ -603,7 +629,7 @@ function dibujar(ag, n) {
     x0 += tam * PIEZAS.buffet.wc + SEP_GRUPOS;
   });
 
-  const W = anchoCm * E, H = fondoCm * E;
+  const W = anchoCm * E, H = (fondoCm + (filas.length - 1) * SALTO) * E;
 
   // --- el eje, que es con lo que se cuadra la barra ---
   const ejeX = W / 2;
