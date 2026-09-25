@@ -668,8 +668,10 @@ function calcular(){
                       .map(x=>x.trim().toLowerCase()).filter(Boolean);
   const finPrincipal = lineasMenu.findIndex(l=>/[\u2013-]\s*\d+\s*pax\s*:/.test(l));
   const delPrincipal = finPrincipal >= 0 ? lineasMenu.slice(0, finPrincipal) : lineasMenu;
-  const ES_LIQUIDO = /chupito|vasito|botellita|salmorejo|gazpacho|vichyssoise|consom|\bsopa\b|bloody mary|crema fr[ií]a/;
-  const NO_LIQUIDO = /canap|montadito|tosta|bocat|lingote|brocheta|croqueta|empanada|mousse/;
+  const ES_LIQUIDO = /chupito|vasito|salmorejo|gazpacho|vichyssoise|consom|\bsopa\b|bloody mary|crema fr[ií]a/;
+  /* La BOTELLITA no pide chupito: ya viene servida en su botella.
+     El gazpacho de Jesus son dos botellitas, no dos chupitos. */
+  const NO_LIQUIDO = /canap|montadito|tosta|bocat|lingote|brocheta|croqueta|empanada|mousse|botellita|botella/;
   const platosLiquidos = delPrincipal.filter(l => ES_LIQUIDO.test(l) && !NO_LIQUIDO.test(l));
   const nLiquidos = platosLiquidos.length;
   /* Cucharita solo para el postre QUE SE COME CON CUCHARA. Un cake o unas
@@ -684,6 +686,7 @@ function calcular(){
   const cucharitas = hayPostre ? ceil(pax*1.1) : 0;
   const abridores = llevaVino ? Math.max(2, ceil(mesas/2)) : 0;
   const carros = Math.max(1, ceil((mesas+mesasAltas)/3));
+  const cucharones = hayRisotto ? 3 : 0;   // para servir el risotto
   const copas=llevaVino?ceil(pax*1.25):0;
   const tenedores=$('tenedorCroq').checked?ceil(fritosTot*0.75):0;
 
@@ -764,6 +767,7 @@ function calcular(){
        platosLiquidos.map(l=>l.split(/[,(]/)[0].trim()).join(' · ')+' · 1 por persona'),
     cucharitas>0&&it('Cucharitas de postre',cucharitas,'1,1/pax'),
     tenedores>0&&it('Tenedores pequeños',tenedores,'0,75/pieza'),
+    cucharones>0&&it('Cucharones',cucharones,'para servir el risotto'),
     abridores>0&&it('Abridores / sacacorchos',abridores,'hay vino'),
   ]);
 
@@ -849,6 +853,7 @@ function calcular(){
     mesas>0         && it('Recoger · Mesas bajas', mesas, 'devolver al obrador'),
     mesasAltas>0    && it('Recoger · Mesas altas de cóctel', mesasAltas, 'devolver al obrador'),
     carros>0        && it('Recoger · Carro de transporte', carros, 'vuelve al almacén'),
+    cucharones>0    && it('Recoger · Cucharones', cucharones, 'vuelven al almacén'),
     abridores>0     && it('Recoger · Abridores', abridores, 'vuelven al almacén'),
     manteles>0      && it('Recoger · Manteles (mesas bajas)', manteles, 'a lavandería'),
     mantelesAltas>0 && it('Recoger · Manteles (mesas altas)', mantelesAltas, 'a lavandería'),
