@@ -18,10 +18,18 @@
    planta (los 74 cm son la altura y aquí no pintan nada).
    La marca es la letra que sale dibujada en la pieza y en el listado lateral.
 --------------------------------------------------------------------------- */
-/* MEDIDAS TOMADAS EN EL ALMACEN el 25/9/2026, pieza a pieza: la caja de
-   bebida, el mini box, el vaso, la bandeja, el dispensador de agua y la mini
-   papelera. Solo quedan estimadas la ALTURA de las pilas de vasos (un vaso
-   mide 8 cm, pero apilados se encajan y no son 15 x 8) y el arreglo floral.
+/* MEDIDAS TOMADAS EN EL ALMACEN el 25/9/2026, pieza a pieza. Del COFFEE
+   BREAK no queda ni una medida inventada: mesa, caja de bebida, mini box,
+   vaso, bandeja, dispensador, platito con servilletas, arreglo floral y mini
+   papelera.
+
+   La altura de las pilas de vasos sale de dos medidas: un vaso suelto mide 8
+   cm y una pila de 10 mide 13,5, asi que cada vaso de mas anade 0,61 cm. De
+   ahi los 16,6 de la pila de 15. Una regla de tres daria 20,2 y seria falso:
+   el primer vaso ya pone 8 cm el solo.
+
+   SIGUEN SIN MEDIR el chafing dish y la mesa alta de coctel, que son del
+   montaje de coctel y del elegante. Se miden cuando se llegue a ellos.
    zc = altura, que solo influye en el dibujo isometrico. */
 const PIEZAS = {
   buffet:     {nm:'Mesa buffet',            wc:180, hc:70,   mk:'',   col:'#f7ecd8', bd:'#5A3B27', zc:74},
@@ -49,15 +57,15 @@ const PIEZAS = {
   aguaCal:    {nm:'Agua caliente',          wc:10  , hc:16.6,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:22.4},
   zumo:       {nm:'Caja de zumo',           wc:10  , hc:16.6,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:22.4},
   fuente:     {nm:'Dispensador de agua con grifo',    wc:18,  hc:18,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0', zc:19.5},
-  vaso:       {nm:'Pila de 15 vasos',       wc:7, hc:7,  mk:'V',  col:'#e4eef5', bd:'#7a98ad', zc:24},
-  vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:7, hc:7,  mk:'V',  col:'#dce9f2', bd:'#7a98ad', zc:16},
+  vaso:       {nm:'Pila de 15 vasos',       wc:7, hc:7,  mk:'V',  col:'#e4eef5', bd:'#7a98ad', zc:16.6},
+  vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:7, hc:7,  mk:'V',  col:'#dce9f2', bd:'#7a98ad', zc:13.5},
   minibox:    {nm:'Mini box de café',        wc:12.3,  hc:6.4,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a', zc:5.3},
   miniboxCal: {nm:'Mini box de infusiones',  wc:12.3,  hc:6.4,  mk:'MI', col:'#e9dcc4', bd:'#a07f3a', zc:5.3},
   /* MEDIDO el 25/9/2026: la servilleta es de 10 x 10, pero va SOBRE UN PLATO
      de 15,5 cm de diámetro, y lo que se apoya en la mesa es el plato. Antes
      estaba la medida de la servilleta sola y cada puesto ocupaba 5,5 cm menos
      de lo real. */
-  servis:     {nm:'Platito con servilletas', wc:15.5, hc:15.5, mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2},
+  servis:     {nm:'Platito con servilletas', wc:15.5, hc:15.5, mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2.5},
   floral:     {nm:'Arreglo floral',         wc:10,  hc:10,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a', zc:30},
   alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27', zc:110},
   papelera:   {nm:'Mini papelera metalica',               wc:10.4,  hc:10.4,   mk:'P',  col:'#c9c9c9', bd:'#666', zc:9.5},
