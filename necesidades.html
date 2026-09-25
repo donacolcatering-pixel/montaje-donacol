@@ -658,8 +658,10 @@ function calcular(){
   const nLiquidos = LIQUIDOS.filter(r=>r.test(txtMenu)).length;
   /* Cucharita solo para el postre QUE SE COME CON CUCHARA. Un cake o unas
      pastas de un coffee break se cogen con la mano: pedir 69 cucharitas
-     para el coffee del Colegio era pedirlas para nada. */
-  const hayPostre = /mousse|helado|natillas|tiramis|leche frita|profiterol|crema catalana|cuajada|yogur|arroz con leche|flan|sorbete|copa de/.test(txtMenu);
+     para el coffee del Colegio era pedirlas para nada. La leche frita
+     tampoco la necesita, aunque salga en el postre de Ainzon: alli la
+     cucharita la pide la mousse de melocoton. */
+  const hayPostre = /mousse|helado|natillas|tiramis|crema catalana|cuajada|yogur|arroz con leche|flan|sorbete|copa de/.test(txtMenu);
 
   const platos=ceil(pax*1.5)*(hayRisotto?2:1),servilletas=ceil(pax*1.5),vasos=pax*2;
   const chupitos = nLiquidos * pax;
