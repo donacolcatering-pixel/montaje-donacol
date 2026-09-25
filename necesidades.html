@@ -653,9 +653,25 @@ function calcular(){
   const txtMenu = ((DESC_ESCRITA||'') + ' ' +
     (CATALOGO[menuSel] ? CATALOGO[menuSel].items.map(x=>x[0]).join(' ') : '')).toLowerCase();
   const hayRisotto = /risotto|arroz meloso|showcooking/.test(txtMenu);
-  const LIQUIDOS = [/crema de /, /salmorejo/, /gazpacho/, /sopa/, /vichyssoise/,
-                    /bloody mary/, /chupito/, /vasito/, /consom/];
-  const nLiquidos = LIQUIDOS.filter(r=>r.test(txtMenu)).length;
+  /* UNA LINEA, UN PLATO. Contar palabras sueltas daba disparates: en Ainzon
+     el «vasito de Bloody Mary» disparaba a la vez «vasito» y «bloody mary»,
+     el «chupito de sopa» disparaba «chupito» y «sopa», el canape de CREMA DE
+     queso contaba como liquido, y el gazpacho del menu vegano --que es de UNA
+     persona-- se multiplicaba por las 88. Salian 528 chupitos donde hacen
+     falta 176.
+
+     Ahora se miran las LINEAS del menu principal: cada linea cuenta una vez, y
+     una linea que es un canape o un montadito no es liquida aunque lleve la
+     palabra crema. Los menus especiales --los que van detras de un «- 6 PAX:»--
+     quedan fuera: esos van en su caja, no en la barra. */
+  const lineasMenu = (DESC_ESCRITA||'').split(/\n/)
+                      .map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const finPrincipal = lineasMenu.findIndex(l=>/[\u2013-]\s*\d+\s*pax\s*:/.test(l));
+  const delPrincipal = finPrincipal >= 0 ? lineasMenu.slice(0, finPrincipal) : lineasMenu;
+  const ES_LIQUIDO = /chupito|vasito|botellita|salmorejo|gazpacho|vichyssoise|consom|\bsopa\b|bloody mary|crema fr[ií]a/;
+  const NO_LIQUIDO = /canap|montadito|tosta|bocat|lingote|brocheta|croqueta|empanada|mousse/;
+  const platosLiquidos = delPrincipal.filter(l => ES_LIQUIDO.test(l) && !NO_LIQUIDO.test(l));
+  const nLiquidos = platosLiquidos.length;
   /* Cucharita solo para el postre QUE SE COME CON CUCHARA. Un cake o unas
      pastas de un coffee break se cogen con la mano: pedir 69 cucharitas
      para el coffee del Colegio era pedirlas para nada. La leche frita
@@ -745,7 +761,7 @@ function calcular(){
     it(elegante?'Vasos de agua (cristal)':'Vasos',vasos,'2/pax'+sufE),
     copas>0&&it('Copas de vino (cristal)',copas,'1,25/pax'+sufE),
     chupitos>0&&it('Chupitos',chupitos,
-       nLiquidos+' plato(s) bebible(s) × 1 por persona'),
+       platosLiquidos.map(l=>l.split(/[,(]/)[0].trim()).join(' · ')+' · 1 por persona'),
     cucharitas>0&&it('Cucharitas de postre',cucharitas,'1,1/pax'),
     tenedores>0&&it('Tenedores pequeños',tenedores,'0,75/pieza'),
     abridores>0&&it('Abridores / sacacorchos',abridores,'hay vino'),
