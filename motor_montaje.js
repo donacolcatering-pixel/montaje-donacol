@@ -123,14 +123,21 @@ function repartir(grupos) {
   const orden = grupos.map((g, i) => i).sort((a, b) => grupos[b] - grupos[a]);
 
   // a) proporcional a las mesas, y lo que sobra del redondeo a los grupos grandes
+  /* EL SOBRANTE ROTA. Antes cada tipo empezaba a repartir el resto por el
+     mismo grupo, asi que el sin lactosa, la soja, el agua caliente y la
+     garrafa caian TODOS en la primera mesa. Con 62 personas en tres mesas esa
+     mesa pedia 207 cm de los 180 que hay -- y perdia el agua al recortar --
+     mientras la tercera se quedaba a 108. El cursor sigue donde lo dejo el
+     tipo anterior: cada mesa recibe su parte de los sobrantes. */
+  let vuelta = 0;
   const proporcional = (tipo, total) => {
     let dado = 0;
     grupos.forEach((g, i) => {
       const toca = Math.floor(total * g / mesas);
       porGrupo[i][tipo] = toca; dado += toca;
     });
-    for (let k = 0, resto = total - dado; resto > 0; k = (k + 1) % n, resto--) {
-      porGrupo[orden[k]][tipo]++;
+    for (let resto = total - dado; resto > 0; vuelta++, resto--) {
+      porGrupo[orden[vuelta % n]][tipo]++;
     }
   };
   ['cafe', 'lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo',
@@ -315,9 +322,26 @@ function filaDelante(cuantos, anchoCm, nMesas) {
                        + SEPARA * Math.max(0, cols.length - 1);
   const necesario = mide(columnas);
   const noCaben = [];
+  /* EL AGUA, LA ULTIMA. Se sigue quitando del centro hacia fuera, pero
+     saltandose las garrafas mientras quede cualquier otra cosa que quitar.
+     Una garrafa suelta se coloca en el centro, asi que con la regla anterior
+     era justo lo primero en caer: la barra del Colegio de Trabajo Social se
+     quedaba sin agua teniendo la mesa de al lado medio vacia. Sin agua no se
+     monta una barra; una caja de cafe de menos se aguanta. */
+  const esAgua = (c) => c && c.sep === 'fuente';
+  const aQuitar = (cols) => {
+    const medio = Math.floor(cols.length / 2);
+    const porDistancia = cols.map((c, i) => i)
+      .sort((a, b) => Math.abs(a - medio) - Math.abs(b - medio) || a - b);
+    const otros = porDistancia.filter(i => !esAgua(cols[i]));
+    const lista = otros.length ? otros : porDistancia;
+    const i = lista[0];
+    const espejo = cols.length - 1 - i;
+    // en pareja, para no romper el espejo, salvo que el reflejo sea el agua
+    return (espejo !== i && lista.includes(espejo)) ? [i, espejo] : [i];
+  };
   while (columnas.length > 0 && mide(columnas) > sitio) {
-    const medio = Math.floor(columnas.length / 2);
-    const quita = columnas.length % 2 ? [medio] : [medio, medio - 1];
+    const quita = aQuitar(columnas);
     quita.sort((a, b) => b - a).forEach(i => {
       const c = columnas.splice(i, 1)[0];
       if (c.sep === 'fuente') noCaben.push('fuente', 'vasoAgua', 'vasoAgua');
