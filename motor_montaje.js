@@ -58,7 +58,7 @@ const PIEZAS = {
      estaba la medida de la servilleta sola y cada puesto ocupaba 5,5 cm menos
      de lo real. */
   servis:     {nm:'Platito con servilletas', wc:15.5, hc:15.5, mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2},
-  floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a', zc:26},
+  floral:     {nm:'Arreglo floral',         wc:10,  hc:10,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a', zc:30},
   alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27', zc:110},
   papelera:   {nm:'Mini papelera metalica',               wc:10.4,  hc:10.4,   mk:'P',  col:'#c9c9c9', bd:'#666', zc:9.5},
 };
