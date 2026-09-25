@@ -642,7 +642,30 @@ function calcular(){
   const mantelesAltas=ceil(mesasAltas*1.2);
   const florales=mesas+mesasAltas;   // 1 arreglo por mesa (bajas + altas)
 
-  const platos=ceil(pax*1.5),servilletas=ceil(pax*1.5),vasos=pax*2;
+  /* LO QUE EL MENU OBLIGA A LLEVAR --------------------------------------
+     Se mira el texto del menu, que es lo que de verdad se sirve. Tres cosas
+     cambian el menaje:
+       · un RISOTTO (o cualquier caliente que se come en plato) obliga a
+         DUPLICAR los platos: se come en el suyo, no encima del que ya hay;
+       · la comida BEBIBLE --cremas, salmorejo, gazpacho, sopa, bloody mary--
+         va en CHUPITO, uno por persona y por cada plato de esos;
+       · el POSTRE necesita CUCHARITAS. En Ainzon, 81 personas llevaron 90.  */
+  const txtMenu = ((DESC_ESCRITA||'') + ' ' +
+    (CATALOGO[menuSel] ? CATALOGO[menuSel].items.map(x=>x[0]).join(' ') : '')).toLowerCase();
+  const hayRisotto = /risotto|arroz meloso|showcooking/.test(txtMenu);
+  const LIQUIDOS = [/crema de /, /salmorejo/, /gazpacho/, /sopa/, /vichyssoise/,
+                    /bloody mary/, /chupito/, /vasito/, /consom/];
+  const nLiquidos = LIQUIDOS.filter(r=>r.test(txtMenu)).length;
+  /* Cucharita solo para el postre QUE SE COME CON CUCHARA. Un cake o unas
+     pastas de un coffee break se cogen con la mano: pedir 69 cucharitas
+     para el coffee del Colegio era pedirlas para nada. */
+  const hayPostre = /mousse|helado|natillas|tiramis|leche frita|profiterol|crema catalana|cuajada|yogur|arroz con leche|flan|sorbete|copa de/.test(txtMenu);
+
+  const platos=ceil(pax*1.5)*(hayRisotto?2:1),servilletas=ceil(pax*1.5),vasos=pax*2;
+  const chupitos = nLiquidos * pax;
+  const cucharitas = hayPostre ? ceil(pax*1.1) : 0;
+  const abridores = llevaVino ? Math.max(2, ceil(mesas/2)) : 0;
+  const carros = Math.max(1, ceil((mesas+mesasAltas)/3));
   const copas=llevaVino?ceil(pax*1.25):0;
   const tenedores=$('tenedorCroq').checked?ceil(fritosTot*0.75):0;
 
@@ -714,11 +737,16 @@ function calcular(){
   sec('🍽️','Bandejas y caliente',bandItems);
 
   sec('🥢', elegante?'Menaje (loza y cristal · se DEVUELVE)':'Menaje (desechable)',[
-    it(elegante?'Platos (loza)':'Platos',platos,'1,5/pax'+sufE),
+    it(elegante?'Platos (loza)':'Platos',platos,
+       hayRisotto?'1,5/pax × 2 · el risotto va en su plato':'1,5/pax'+sufE),
     it('Servilletas',servilletas,'1,5/pax'),
     it(elegante?'Vasos de agua (cristal)':'Vasos',vasos,'2/pax'+sufE),
     copas>0&&it('Copas de vino (cristal)',copas,'1,25/pax'+sufE),
+    chupitos>0&&it('Chupitos',chupitos,
+       nLiquidos+' plato(s) bebible(s) × 1 por persona'),
+    cucharitas>0&&it('Cucharitas de postre',cucharitas,'1,1/pax'),
     tenedores>0&&it('Tenedores pequeños',tenedores,'0,75/pieza'),
+    abridores>0&&it('Abridores / sacacorchos',abridores,'hay vino'),
   ]);
 
   if(servicio==='coffee'){
@@ -773,6 +801,7 @@ function calcular(){
 
   sec('🪑','Mesas y decoración',[
     it('Mesas bajas'+(mesasEstim?' (mínimo)':''),mesas,(num('lineas')>1?num('lineas')+' líneas · ':'')+(mesasEstim?'ajusta al espacio':'')),
+    it('Carro de transporte',carros,'1 cada 3 mesas'),
     it('Manteles (mesas bajas)',manteles,'+20%'),
     it('Mesas altas de cóctel'+(altasEstim?' (auto)':''),mesasAltas,`1 cada ${paxAlta} pax`),
     it('Manteles (mesas altas)',mantelesAltas,'+20%'),
@@ -801,6 +830,8 @@ function calcular(){
     elegante && cubos>0  && it('Recoger · Cubos de basura (metal)', cubos, 'devolver'),
     mesas>0         && it('Recoger · Mesas bajas', mesas, 'devolver al obrador'),
     mesasAltas>0    && it('Recoger · Mesas altas de cóctel', mesasAltas, 'devolver al obrador'),
+    carros>0        && it('Recoger · Carro de transporte', carros, 'vuelve al almacén'),
+    abridores>0     && it('Recoger · Abridores', abridores, 'vuelven al almacén'),
     manteles>0      && it('Recoger · Manteles (mesas bajas)', manteles, 'a lavandería'),
     mantelesAltas>0 && it('Recoger · Manteles (mesas altas)', mantelesAltas, 'a lavandería'),
     champaneras>0   && it('Recoger · Champaneras', champaneras, 'devolver'),
