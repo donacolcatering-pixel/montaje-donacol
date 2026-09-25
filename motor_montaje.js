@@ -18,9 +18,9 @@
    planta (los 74 cm son la altura y aquí no pintan nada).
    La marca es la letra que sale dibujada en la pieza y en el listado lateral.
 --------------------------------------------------------------------------- */
-/* zc = ALTURA en cm, la que hace falta para el dibujo en 3D. Estas alturas
-   son estimadas: la caja de bebida, la fuente y la pila de vasos habria que
-   medirlas como el resto. En planta no influyen; en la isometrica, si. */
+/* zc = ALTURA en cm, la que hace falta para el dibujo en 3D. La caja de
+   bebida ya esta medida (25/9/2026); siguen estimadas la fuente y la pila de
+   vasos. En planta no influyen; en la isometrica, si. */
 const PIEZAS = {
   buffet:     {nm:'Mesa buffet',            wc:180, hc:70,   mk:'',   col:'#f7ecd8', bd:'#5A3B27', zc:74},
   bandeja:    {nm:'Bandeja de comida',      wc:35,  hc:26.5, mk:'B',  col:'#cda36a', bd:'#8a6a3a', zc:6},
@@ -31,30 +31,31 @@ const PIEZAS = {
      ancho (17 de frente por 10 de fondo) y es al revés: ocupan poco frente y
      mucho fondo. Por eso no cuadraban en la barra.
 
-     EL ANCHO, 10,5 cm, ESTÁ DEDUCIDO, NO MEDIDO. Sale de la foto del montaje
-     de La Romareda: 8 cajas, la garrafa, 4 pilas de vasos, 2 servilleteros y
-     2 mini box, todo en UNA mesa de 180. Despejando, la caja tiene que medir
-     unos 10 cm de frente; con 20 se pasaba 78 cm y con 15 se pasaba 38.
+     MEDIDA DE VERDAD el 25/9/2026, en el almacén, con la caja delante:
+     10 cm de frente, 16,6 cm de fondo y 22,4 cm de alto.
 
-     Encaja además con que la caja es de 2 litros: las de ese tamaño son
-     estrechas y altas, 10-12 de frente por 16-20 de fondo. Los 20 cm que se
-     dieron de palabra son seguramente el FONDO, la misma confusión que con
-     la mesa, donde los 74 eran el alto.
+     Antes estaba deducida de la foto de La Romareda (10,5 x 20 x 28). El
+     frente estaba casi bien; el fondo se pasaba 3,4 cm por caja, y ese sitio
+     es justo el que le falta a la comida en la fila de detrás.
 
-     CUANDO SE MIDA DE VERDAD, SE CAMBIA AQUÍ Y SOLO AQUÍ: de este número
-     cuelgan el tope por mesa, las mesas que hacen falta y el dibujo entero. */
-  cafe:       {nm:'Caja de CAFÉ',           wc:10.5, hc:20,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f', zc:28},
-  lecheNormal:{nm:'Leche normal',           wc:10.5, hc:20,   mk:'LE', col:'#f0e4cd', bd:'#b9a179', zc:28},
-  sinLactosa: {nm:'Leche sin lactosa',      wc:10.5, hc:20,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8', zc:28},
-  soja:       {nm:'Leche de soja',          wc:10.5, hc:20,   mk:'SO', col:'#e7f0d9', bd:'#96ae77', zc:28},
-  aguaCal:    {nm:'Agua caliente',          wc:10.5, hc:20,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:28},
-  zumo:       {nm:'Caja de zumo',           wc:10.5, hc:20,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:28},
+     De este número cuelgan el tope por mesa, las mesas que hacen falta y el
+     dibujo entero: si algún día cambia el envase, se cambia AQUÍ y solo aquí. */
+  cafe:       {nm:'Caja de CAFÉ',           wc:10  , hc:16.6,   mk:'CA', col:'#8a4f22', bd:'#4a2a0f', zc:22.4},
+  lecheNormal:{nm:'Leche normal',           wc:10  , hc:16.6,   mk:'LE', col:'#f0e4cd', bd:'#b9a179', zc:22.4},
+  sinLactosa: {nm:'Leche sin lactosa',      wc:10  , hc:16.6,   mk:'SL', col:'#e3edf3', bd:'#8aa7b8', zc:22.4},
+  soja:       {nm:'Leche de soja',          wc:10  , hc:16.6,   mk:'SO', col:'#e7f0d9', bd:'#96ae77', zc:22.4},
+  aguaCal:    {nm:'Agua caliente',          wc:10  , hc:16.6,   mk:'AC', col:'#f5ddd6', bd:'#c08c7e', zc:22.4},
+  zumo:       {nm:'Caja de zumo',           wc:10  , hc:16.6,   mk:'ZU', col:'#f6e2b0', bd:'#c2a044', zc:22.4},
   fuente:     {nm:'Garrafa de agua 8 L',    wc:28,  hc:28,   mk:'F',  col:'#bcd4e6', bd:'#5a7fa0', zc:36},
   vaso:       {nm:'Pila de 15 vasos',       wc:6.5, hc:6.5,  mk:'V',  col:'#e4eef5', bd:'#7a98ad', zc:24},
   vasoAgua:   {nm:'Pila de 10 vasos (agua)',wc:6.5, hc:6.5,  mk:'V',  col:'#dce9f2', bd:'#7a98ad', zc:16},
   minibox:    {nm:'Mini box de café',        wc:12,  hc:6.5,  mk:'M',  col:'#e2cf9f', bd:'#a07f3a', zc:9},
   miniboxCal: {nm:'Mini box de infusiones',  wc:12,  hc:6.5,  mk:'MI', col:'#e9dcc4', bd:'#a07f3a', zc:9},
-  servis:     {nm:'Servilletas (platito)',  wc:10,  hc:10,   mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2},
+  /* MEDIDO el 25/9/2026: la servilleta es de 10 x 10, pero va SOBRE UN PLATO
+     de 15,5 cm de diámetro, y lo que se apoya en la mesa es el plato. Antes
+     estaba la medida de la servilleta sola y cada puesto ocupaba 5,5 cm menos
+     de lo real. */
+  servis:     {nm:'Platito con servilletas', wc:15.5, hc:15.5, mk:'S',  col:'#eadfca', bd:'#b09a72', zc:2},
   floral:     {nm:'Arreglo floral',         wc:11,  hc:11,   mk:'L',  col:'#d4ebc2', bd:'#5a8a4a', zc:26},
   alta:       {nm:'Mesa alta de cóctel',    wc:70,  hc:70,   mk:'T',  col:'#e9d3ad', bd:'#5A3B27', zc:110},
   papelera:   {nm:'Papelera',               wc:10,  hc:10,   mk:'P',  col:'#c9c9c9', bd:'#666', zc:60},
@@ -597,7 +598,7 @@ function dibujar(ag, n) {
       const t = PIEZAS[p.tipo], w = t.wc * E, h = t.hc * E;
       const x = X + p.x * E, y = p.y * E;
       const relleno = TRAMA[p.tipo] ? `url(#${TRAMA[p.tipo]})` : t.col;
-      const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral');
+      const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral' || p.tipo === 'servis');
       cuerpo += redondo
         ? `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}"
              fill="${t.col}" stroke="${t.bd}" stroke-width="0.6"/>`
@@ -723,7 +724,7 @@ function dibujarIso(tamGrupo, cuantos) {
   const orden = m.piezas.slice().sort((a, b) => (a.x + a.y) - (b.x + b.y));
   orden.forEach(p => {
     const t = PIEZAS[p.tipo], h = t.zc || 10;
-    const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral');
+    const redondo = (p.tipo === 'vaso' || p.tipo === 'vasoAgua' || p.tipo === 'floral' || p.tipo === 'servis');
     cuerpo += redondo
       ? cil3d(p.x, p.y, ALTO, t.wc, h, t.col, t.bd)
       : caja3d(p.x, p.y, ALTO, t.wc, t.hc, h, t.col, t.bd);
