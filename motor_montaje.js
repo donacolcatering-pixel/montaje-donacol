@@ -243,170 +243,134 @@ function puestosDeCafe(cuantos) {
   return puestos;
 }
 
-/* --- LA FILA DE DELANTE ----------------------------------------------------
+/* --- LA FILA DE DELANTE, POR BLOQUES SIMETRICOS ---------------------------
 
-   Se colocan TODAS las columnas de una vez, de izquierda a derecha, repartidas
-   a lo ancho. La simetría ya viene dada por cómo se repartieron las leches y
-   por dónde se meten las aguas y las servilletas, así que no hace falta
-   reflejar el dibujo — que es lo que antes duplicaba piezas.
+   Un BLOQUE es una pieza principal con lo que la acompaña: el cafe con su
+   leche, su mini box y su pila de vasos; el agua con una pila a cada lado; el
+   zumo con la suya.
 
-   En cada puesto: la MINI BOX por fuera y la PILA DE VASOS por dentro. En la
-   mitad derecha se invierte, para que la mini box quede siempre hacia el
-   extremo de la barra.                                                       */
-function filaDelante(cuantos, anchoCm, nMesas) {
-  const W = (t) => PIEZAS[t].wc;
+   El orden se construye ALTERNANDO cafe y bebida, y se arma por la MITAD:
+   se coloca media barra y se refleja. Asi la simetria no depende de que quede
+   bien por casualidad — es exacta por construccion.
+
+   Los cafes caen en los extremos y las bebidas entre ellos, que es como se
+   monta: cafe, agua, cafe, zumo, cafe, agua, cafe. El agua va en las
+   posiciones de bebida mas separadas del centro y el zumo hacia dentro.     */
+
+function bloquesDeLaBarra(cuantos) {
+  /* CADA TIPO SE PARTE POR LA MITAD, y la otra mitad la pone el espejo. Si se
+     refleja la lista entera se DUPLICAN las piezas: en la primera prueba
+     salian cuatro aguas donde hay dos. La simetria sale del reparto, no de
+     copiar el dibujo. */
   const puestos = puestosDeCafe(cuantos);
-  const nP = puestos.length;
+  const cafes = puestos.map(p => ({clase: 'cafe', piezas: p.slice()}));
+  const aguas = [], zumos = [];
+  for (let i = 0; i < (cuantos.fuente || 0); i++) aguas.push({clase: 'agua', piezas: ['fuente']});
+  for (let i = 0; i < (cuantos.zumo || 0); i++) zumos.push({clase: 'zumo', piezas: ['zumo']});
 
-  /* Separadores: las aguas (en pareja) y los servilleteros.
-
-     Hay un hueco ANTES del primer puesto, uno entre cada dos, y otro DESPUÉS
-     del último: nP + 1 en total. Antes solo se contaban los de en medio, y en
-     una mesa con un solo café no había ningún hueco — así que una mesa de un
-     evento de 20 personas se quedaba sin agua y sin servilletas. Con los
-     extremos, el agua cae a un lado y a otro del puesto, que además es como
-     se monta. */
-  const huecos = nP + 1;
-  const ranuras = Array.from({length: huecos}, () => []);
-  const meterEnPareja = (tipo, cuantas) => {
-    // se colocan en ranuras espejadas, de fuera hacia dentro
-    const pares = [];
-    for (let i = 0, j = huecos - 1; i < j; i++, j--) pares.push([i, j]);
-    const medio = huecos % 2 ? (huecos - 1) / 2 : null;
-    let q = cuantas, p = 0;
-    while (q >= 2 && p < pares.length) {
-      ranuras[pares[p][0]].push(tipo); ranuras[pares[p][1]].push(tipo); q -= 2; p++;
-    }
-    if (q === 1 && medio !== null) { ranuras[medio].push(tipo); q--; }
-    if (q === 1 && pares.length) { ranuras[pares[0][0]].push(tipo); q--; }
-    return cuantas - q;                 // cuántas se han podido meter
-  };
-  const aguasPuestas = meterEnPareja('fuente', cuantos.fuente || 0);
-
-  /* EL ZUMO, PEGADO A LA GARRAFA. Lleva vasos pero no mini box, y cuando cae
-     junto al agua se sirve de la pila de la garrafa en vez de pedir otra. Así
-     se montó en La Romareda: la caja de zumo justo después de la pila del
-     agua. Si no hay garrafa, el zumo va a un hueco cualquiera. */
-  let zumosPorPoner = cuantos.zumo || 0;
-  ranuras.forEach(r => {
-    if (zumosPorPoner > 0 && r.includes('fuente')) { r.push('zumo'); zumosPorPoner--; }
+  const parte = (lista) => ({
+    media: lista.slice(0, Math.floor(lista.length / 2)),
+    impar: lista.length % 2 ? lista[lista.length - 1] : null,
   });
-  if (zumosPorPoner > 0) meterEnPareja('zumo', zumosPorPoner);
+  const C = parte(cafes), A = parte(aguas), Z = parte(zumos);
 
-  const servisPuestos = meterEnPareja('servis', cuantos.servis || 0);
+  // el agua, la primera bebida de la media: queda mas hacia el borde.
+  // el zumo, hacia dentro. Asi sale cafe · agua · cafe · zumo · cafe.
+  const bebidasMedia = A.media.concat(Z.media);
 
-  // La fila completa: puesto, lo que haya en su ranura, puesto, …
-  /* Las ranuras de la mitad DERECHA se vuelcan al revés. Si a la izquierda la
-     ranura lleva [garrafa, servilletas], a la derecha tiene que salir
-     [servilletas, garrafa] para que sea el reflejo. Sin esto la barra salía
-     con el agua a 28 cm del borde izquierdo y a 57 del derecho: parecida,
-     pero no simétrica. */
-  const vuelca = (i) => {
-    const r = ranuras[i] || [];
-    return i > nP / 2 ? r.slice().reverse() : r;
-  };
-  const columnas = [];
-  puestos.forEach((pu, i) => {
-    vuelca(i).forEach(t => columnas.push({sep: t}));            // el hueco de antes
-    columnas.push({puesto: pu, lado: i < nP / 2 ? 'izq' : 'der'});
+  const media = [];
+  let i = 0, j = 0;
+  while (i < C.media.length || j < bebidasMedia.length) {
+    if (i < C.media.length) media.push(C.media[i++]);
+    if (j < bebidasMedia.length) media.push(bebidasMedia[j++]);
+  }
+
+  // LAS SERVILLETAS VAN CON EL CAFE, como el mini box y los vasos: asi nunca
+  // rompen la simetria ni caen dos juntas en medio de la barra.
+  let servis = cuantos.servis || 0;
+  const conServilleta = new Set();
+  media.forEach(b => {
+    if (b.clase === 'cafe' && servis >= 2) { conServilleta.add(b); servis -= 2; }
   });
-  vuelca(nP).forEach(t => columnas.push({sep: t}));             // y el del final
+  media.forEach(b => {
+    if (b.clase !== 'cafe' && servis >= 2) { conServilleta.add(b); servis -= 2; }
+  });
+  media.forEach(b => { if (conServilleta.has(b)) b.servis = true; });
 
-  const anchoCol = (c) => {
-    if (c.sep === 'fuente') return W('vasoAgua') + 2 + W('fuente') + 2 + W('vasoAgua');
-    if (c.sep) return W(c.sep);
-    return c.puesto.reduce((a, t) => a + W(t), 0) + (c.puesto.length - 1) * 2
-         + W('minibox') + 2 + W('vaso') + 2
-         + (c.puesto.includes('aguaCal') && (cuantos.miniboxCal || 0) ? W('miniboxCal') + 2 : 0);
-  };
+  const centro = [];
+  if (C.impar) centro.push(C.impar);
+  if (A.impar) centro.push(A.impar);
+  if (Z.impar) centro.push(Z.impar);
+  if (servis >= 1 && centro.length) centro[0].servis = true;
 
-  /* SI NO CABE, NO SE MIENTE.
+  const espejo = media.slice().reverse().map(b => ({
+    clase: b.clase, piezas: b.piezas.slice(), servis: b.servis, reflejado: true}));
+  return media.concat(centro, espejo);
+}
 
-     Lo que manda la mesa es el ancho: un puesto de café con su mini box y su
-     pila de vasos ocupa casi 60 cm, así que en una mesa de 180 caben tres
-     justos. Cuando el checklist pide más cajas de las que entran, antes se
-     dibujaban igual, saliéndose del tablero. Ahora se quitan de DENTRO HACIA
-     FUERA y en pareja —para no romper el espejo— y se dice cuántas mesas
-     harían falta de verdad. */
+
+/* Las piezas de un bloque, en orden. El bloque reflejado las lleva al reves:
+   si a la izquierda va cafe-leche-minibox-vasos, a la derecha tiene que ir
+   vasos-minibox-leche-cafe. Sin esto la barra parece simetrica de lejos y no
+   lo es de cerca, que es lo que se veia en el plano del Colegio. */
+function piezasDe(b) {
+  let l;
+  if (b.clase === 'agua') l = ['vasoAgua', 'fuente', 'vasoAgua'];
+  else if (b.clase === 'cafe') l = b.piezas.concat(['minibox', 'vaso']);
+  else if (b.clase === 'zumo') l = ['zumo', 'vaso'];
+  else l = b.piezas.slice();
+  if (b.servis) l = l.concat(['servis']);
+  return b.reflejado ? l.slice().reverse() : l;
+}
+
+function anchoBloque(b) {
+  const l = piezasDe(b);
+  return l.reduce((a, t) => a + PIEZAS[t].wc, 0) + (l.length - 1) * 2;
+}
+
+function filaDelante(cuantos, anchoCm, nMesas) {
+  let bloques = bloquesDeLaBarra(cuantos);
+
+  // servilletas: dos por mesa, simetricas, entre bloques
+  const nServis = cuantos.servis || 0;
+
   const sitio = anchoCm - MARGEN * 2;
-  const mide = (cols) => cols.reduce((a, c) => a + anchoCol(c), 0)
-                       + SEPARA * Math.max(0, cols.length - 1);
-  const necesario = mide(columnas);
-  const noCaben = [];
-  /* EL AGUA, LA ULTIMA. Se sigue quitando del centro hacia fuera, pero
-     saltandose las garrafas mientras quede cualquier otra cosa que quitar.
-     Una garrafa suelta se coloca en el centro, asi que con la regla anterior
-     era justo lo primero en caer: la barra del Colegio de Trabajo Social se
-     quedaba sin agua teniendo la mesa de al lado medio vacia. Sin agua no se
-     monta una barra; una caja de cafe de menos se aguanta. */
-  const esAgua = (c) => c && c.sep === 'fuente';
-  const aQuitar = (cols) => {
-    const medio = Math.floor(cols.length / 2);
-    const porDistancia = cols.map((c, i) => i)
-      .sort((a, b) => Math.abs(a - medio) - Math.abs(b - medio) || a - b);
-    const otros = porDistancia.filter(i => !esAgua(cols[i]));
-    const lista = otros.length ? otros : porDistancia;
-    const i = lista[0];
-    const espejo = cols.length - 1 - i;
-    // en pareja, para no romper el espejo, salvo que el reflejo sea el agua
-    return (espejo !== i && lista.includes(espejo)) ? [i, espejo] : [i];
-  };
-  while (columnas.length > 0 && mide(columnas) > sitio) {
-    const quita = aQuitar(columnas);
+  const mide = (bs) => bs.reduce((a, b) => a + anchoBloque(b), 0)
+                     + SEPARA * Math.max(0, bs.length - 1);
+  const necesario = mide(bloques);
+
+  // si no cabe, se quitan bloques DEL CENTRO y EN PAREJA, para no romper el espejo
+  const fuera = [];
+  while (bloques.length > 2 && mide(bloques) > sitio) {
+    const medio = Math.floor(bloques.length / 2);
+    const quita = bloques.length % 2 ? [medio] : [medio, medio - 1];
     quita.sort((a, b) => b - a).forEach(i => {
-      const c = columnas.splice(i, 1)[0];
-      if (c.sep === 'fuente') noCaben.push('fuente', 'vasoAgua', 'vasoAgua');
-      else if (c.sep) noCaben.push(c.sep);
-      else { c.puesto.forEach(t => noCaben.push(t)); noCaben.push('minibox', 'vaso'); }
+      const b = bloques.splice(i, 1)[0];
+      piezasDe(b).forEach(t => fuera.push(t));
     });
   }
 
-  const suma = columnas.reduce((a, c) => a + anchoCol(c), 0);
-  const hueco = columnas.length > 1
-    ? Math.max(SEPARA, (sitio - suma) / (columnas.length - 1)) : 0;
+  // --- posiciones: el sobrante se reparte por igual, asi queda centrado ---
+  const suma = bloques.reduce((a, b) => a + anchoBloque(b), 0);
+  const hueco = bloques.length > 1
+    ? Math.max(SEPARA, (sitio - suma) / (bloques.length - 1)) : 0;
 
   const puntos = [];
-  puntos.necesario = necesario;                    // cm de barra que pedía
-  puntos.cabe = noCaben.length === 0;
-  puntos.noCaben = noCaben;
-  // cuántas mesas harían falta para que entrara entero
-  puntos.mesasQueHacenFalta = Math.ceil(necesario / (PIEZAS.buffet.wc - MARGEN * 2 / nMesas));
-  let x = (anchoCm - (suma + hueco * (columnas.length - 1))) / 2;
-
-  columnas.forEach(c => {
+  let x = (anchoCm - (suma + hueco * (bloques.length - 1))) / 2;
+  bloques.forEach(b => {
     let dx = x;
-    if (c.sep === 'fuente') {
-      puntos.push({tipo: 'vasoAgua', x: dx, adelante: true}); dx += W('vasoAgua') + 2;
-      puntos.push({tipo: 'fuente', x: dx});                   dx += W('fuente') + 2;
-      puntos.push({tipo: 'vasoAgua', x: dx, adelante: true});
-    } else if (c.sep) {
-      puntos.push({tipo: c.sep, x: dx});
-    } else {
-      /* La MINI BOX por fuera del puesto y la PILA DE VASOS por dentro: a la
-         izquierda en la mitad izquierda de la barra y al revés en la otra,
-         para que la mini box quede siempre hacia el extremo. */
-      const derecha = c.lado === 'der';
-      const cajas = derecha ? c.puesto.slice().reverse() : c.puesto;
-      if (!derecha) { puntos.push({tipo: 'minibox', x: dx}); dx += W('minibox') + 2; }
-      else { puntos.push({tipo: 'vaso', x: dx}); dx += W('vaso') + 2; }
-      cajas.forEach(t => {
-        // La mini box de infusiones va pegada al agua caliente, y en la mitad
-        // derecha DELANTE en vez de detrás: si no, las dos mitades no son
-        // espejo y se nota justo al lado del eje.
-        const conInfusiones = (t === 'aguaCal' && (cuantos.miniboxCal || 0) > 0);
-        if (conInfusiones && derecha) {
-          puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
-        }
-        puntos.push({tipo: t, x: dx}); dx += W(t) + 2;
-        if (conInfusiones && !derecha) {
-          puntos.push({tipo: 'miniboxCal', x: dx}); dx += W('miniboxCal') + 2;
-        }
-      });
-      if (!derecha) puntos.push({tipo: 'vaso', x: dx});
-      else puntos.push({tipo: 'minibox', x: dx});
-    }
-    x += anchoCol(c) + hueco;
+    piezasDe(b).forEach((t, k) => {
+      puntos.push({tipo: t, x: dx, fila: k,
+                   adelante: t === 'vasoAgua'});
+      dx += PIEZAS[t].wc + 2;
+    });
+    x += anchoBloque(b) + hueco;
   });
+
+  puntos.necesario = necesario;
+  puntos.cabe = fuera.length === 0;
+  puntos.noCaben = fuera;
+  puntos.mesasQueHacenFalta = Math.ceil(necesario / (PIEZAS.buffet.wc - MARGEN * 2 / nMesas));
   return puntos;
 }
 
