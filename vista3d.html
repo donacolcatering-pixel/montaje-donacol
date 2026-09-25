@@ -53,11 +53,10 @@
   .mando{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--crema);
          border-top:1px solid var(--linea)}
   .mando input[type=range]{flex:1;accent-color:var(--oro)}
-  .mando .zb{border:1px solid var(--linea);background:#fff;color:var(--marron2);
-    width:34px;height:30px;border-radius:8px;font-size:17px;font-weight:700;
-    line-height:1;cursor:pointer;flex:0 0 auto;padding:0}
-  .mando .zb:active{background:var(--marron);color:#f7ecdc}
-  #zCentro{width:auto;padding:0 10px;font-size:13px;font-weight:600}
+  .estado{text-align:center;font-size:12px;color:var(--gris);
+    margin:2px 0 6px;font-variant-numeric:tabular-nums}
+  #escena{touch-action:none;cursor:grab}
+  #escena.arrastrando{cursor:grabbing}
   .mando .grados{font-variant-numeric:tabular-nums;font-weight:800;color:var(--marron);
                  min-width:52px;text-align:right;font-size:13px}
   .pistas{display:flex;gap:6px;padding:0 14px 10px;background:var(--crema);flex-wrap:wrap}
@@ -89,35 +88,28 @@
 
 <div id="escena"></div>
 
-<div class="mando">
-  <span>Girar</span>
-  <input id="giro" type="range" min="0" max="359" value="20">
-  <span class="grados" id="grados">20°</span>
+<div class="pistas">
+  <button data-g="0">De frente</button>
+  <button data-g="45">En diagonal</button>
+  <button data-g="90">De lado</button>
+  <button data-g="180">Por detrás</button>
+  <button id="zAjustar">Ajustar</button>
 </div>
-<div class="mando">
-  <span>Zoom</span>
-  <button class="zb" id="zMenos" aria-label="Alejar">−</button>
-  <input id="zoom" type="range" min="100" max="500" value="100">
-  <button class="zb" id="zMas" aria-label="Acercar">+</button>
-  <span class="grados" id="zval">1,0×</span>
-</div>
-<div class="mando" id="filaMover" hidden>
-  <span>Mover</span>
-  <input id="mover" type="range" min="-100" max="100" value="0">
-  <button class="zb" id="zCentro">Centrar</button>
-</div>
+<div class="estado"><span id="grados">20°</span> · <span id="zval">1,0×</span></div>
 <div class="pistas">
   <button data-g="0">De frente</button>
   <button data-g="45">En diagonal</button>
   <button data-g="90">De lado</button>
   <button data-g="180">Por detrás</button>
 </div>
-<p class="ayuda">Arrastra con el dedo para girar y pellizca con dos para acercar. <b>«De frente»</b> es lo que ve
-  la gente cuando llega. Esto es para mirar: lo que se mide está en la hoja.</p>
+<p class="ayuda"><b>Arrastra</b> para moverte por el plano y <b>pellizca</b> (o usa la rueda)
+  para acercarte. Para girar, <b>dos dedos</b> en el móvil o el <b>botón derecho</b> en el
+  ordenador. <b>«De frente»</b> es lo que ve la gente cuando llega. Esto es para mirar:
+  lo que se mide está en la hoja.</p>
 
 <div id="aviso" class="aviso" style="display:none"></div>
 
-<script src="motor_montaje.js?v=20260925-1234"></script>
+<script src="motor_montaje.js?v=20260925-1305"></script>
 <script>
 /* Los tonos de las cajas, sacados de las fotos: el café oscuro y las
    leches en madera clara. */
@@ -388,13 +380,13 @@ function pintarEscena() {
   const radio = Math.hypot(W, D) / 2;
   const anc = radio * 2 * Math.cos(Math.PI / 6) + 40;
   const alt = radio * 2 * 0.5 + ALTO + 90;
-  /* El encuadre se estrecha al acercar, y PAN corre el centro a lo largo de la
-     barra para poder recorrerla cuando no cabe entera. */
+  /* El encuadre se estrecha al acercar y se corre con lo que se haya
+     arrastrado. ANCHO_VISTA lo necesita el arrastre para convertir pixeles de
+     pantalla en centimetros del dibujo. */
+  ANCHO_VISTA = anc;
   const ancZ = anc / ZOOM, altZ = alt / ZOOM;
-  const corre = PAN * (anc - ancZ) / 2;
-  const vb = [-ancZ / 2 + corre,
-              -(alt - ALTO / 2 - 40) + (alt - altZ) / 2,
-              ancZ, altZ].join(' ');
+  const y0base = -(alt - ALTO / 2 - 40) + (alt - altZ) / 2;
+  const vb = [-ancZ / 2 + PANX, y0base + PANY, ancZ, altZ].join(' ');
 
   const esc = document.getElementById('escena');
   esc.style.height = Math.max(280, Math.min(window.innerHeight * 0.58, 560)) + 'px';
@@ -402,89 +394,116 @@ function pintarEscena() {
                 + cuerpo + '</svg>';
 }
 
-/* --- ZOOM Y DESPLAZAMIENTO ------------------------------------------------
-   Con seis u ocho mesas la barra entera entra en el encuadre, pero cada pieza
-   queda del tamaño de un grano de arroz. El zoom acerca sin cambiar el angulo,
-   y al acercarse aparece el deslizador de mover para recorrer la barra. */
-let ZOOM = 1, PAN = 0;
+/* --- NAVEGAR POR EL PLANO -------------------------------------------------
 
-function aplicarZoom(z, quieto) {
-  ZOOM = Math.min(5, Math.max(1, z));
-  document.getElementById('zoom').value = Math.round(ZOOM * 100);
-  document.getElementById('zval').textContent =
-    ZOOM.toFixed(1).replace('.', ',') + '×';
-  document.getElementById('filaMover').hidden = ZOOM <= 1.05;
-  if (ZOOM <= 1.05) { PAN = 0; document.getElementById('mover').value = 0; }
-  if (!quieto) pintarEscena();
+   Se mira como se mira un mapa: se arrastra para moverse, se pellizca o se usa
+   la rueda para acercarse. Girar es lo de menos una vez encuadrado, asi que va
+   al boton derecho y a los dos dedos, y hay cuatro atajos para los angulos que
+   se usan siempre.                                                           */
+let ZOOM = 1, PANX = 0, PANY = 0, ANCHO_VISTA = 600;
+
+function marcadores() {
+  document.getElementById('zval').textContent = ZOOM.toFixed(1).replace('.', ',') + '×';
+  const g = ((ANG * 180 / Math.PI) % 360 + 360) % 360;
+  document.getElementById('grados').textContent = Math.round(g) + '°';
 }
 
-document.getElementById('zoom').addEventListener('input',
-  e => aplicarZoom(+e.target.value / 100));
-document.getElementById('zMas').addEventListener('click', () => aplicarZoom(ZOOM + 0.5));
-document.getElementById('zMenos').addEventListener('click', () => aplicarZoom(ZOOM - 0.5));
-document.getElementById('mover').addEventListener('input', e => {
-  PAN = +e.target.value / 100; pintarEscena();
-});
-document.getElementById('zCentro').addEventListener('click', () => {
-  PAN = 0; document.getElementById('mover').value = 0; pintarEscena();
-});
+function ponZoom(z, cx, cy) {
+  const antes = ZOOM;
+  ZOOM = Math.min(6, Math.max(1, z));
+  // si se acerca sobre un punto, ese punto se queda donde esta
+  if (cx !== undefined && antes !== ZOOM) {
+    PANX += cx * (1 / antes - 1 / ZOOM);
+    PANY += cy * (1 / antes - 1 / ZOOM);
+  }
+  if (ZOOM <= 1.001) { PANX = 0; PANY = 0; }
+  marcadores();
+  pintarEscena();
+}
 
-/* pellizco con dos dedos, que es como se hace en el movil */
-(function pellizco() {
+function ajustar() { ZOOM = 1; PANX = 0; PANY = 0; marcadores(); pintarEscena(); }
+document.getElementById('zAjustar').addEventListener('click', ajustar);
+
+(function navegar() {
   const esc = document.getElementById('escena');
   const dedos = new Map();
-  let base = 0, zBase = 1;
-  const dist = () => {
-    const p = [...dedos.values()];
-    return p.length < 2 ? 0 : Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
-  };
+  let modo = null, x0 = 0, y0 = 0, a0 = 0, px0 = 0, py0 = 0;
+  let base = 0, zBase = 1, angBase = 0, aBase = 0;
+
+  const puntos = () => [...dedos.values()];
+  const sep = () => { const p = puntos();
+    return p.length < 2 ? 0 : Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); };
+  const angDedos = () => { const p = puntos();
+    return p.length < 2 ? 0 : Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x); };
+
+  esc.addEventListener('contextmenu', e => e.preventDefault());
+
   esc.addEventListener('pointerdown', e => {
+    esc.setPointerCapture(e.pointerId);
     dedos.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    if (dedos.size === 2) { base = dist(); zBase = ZOOM; }
+    if (dedos.size === 2) {
+      modo = 'dosdedos'; base = sep(); zBase = ZOOM;
+      angBase = angDedos(); aBase = ANG;
+    } else {
+      // boton derecho o con Alt = girar; lo normal = moverse
+      modo = (e.button === 2 || e.altKey) ? 'girar' : 'mover';
+      x0 = e.clientX; y0 = e.clientY; a0 = ANG; px0 = PANX; py0 = PANY;
+      esc.classList.add('arrastrando');
+    }
   });
+
   esc.addEventListener('pointermove', e => {
     if (!dedos.has(e.pointerId)) return;
     dedos.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    if (dedos.size === 2 && base > 0) aplicarZoom(zBase * (dist() / base));
+    if (modo === 'dosdedos') {
+      if (base > 0) {
+        ZOOM = Math.min(6, Math.max(1, zBase * (sep() / base)));
+        ANG = aBase + (angDedos() - angBase);
+        if (ZOOM <= 1.001) { PANX = 0; PANY = 0; }
+        marcadores(); pintarEscena();
+      }
+      return;
+    }
+    if (modo === 'girar') {
+      ANG = a0 + (e.clientX - x0) * 0.012;
+      marcadores(); pintarEscena();
+      return;
+    }
+    if (modo === 'mover') {
+      // en unidades del dibujo, para que arrastre lo mismo se vea como se vea
+      const r = esc.getBoundingClientRect();
+      const k = (ANCHO_VISTA / ZOOM) / Math.max(1, r.width);
+      PANX = px0 - (e.clientX - x0) * k;
+      PANY = py0 - (e.clientY - y0) * k;
+      pintarEscena();
+    }
   });
-  const fuera = e => { dedos.delete(e.pointerId); base = 0; };
-  esc.addEventListener('pointerup', fuera);
-  esc.addEventListener('pointercancel', fuera);
-  /* y la rueda del raton, para quien lo mire en el ordenador */
-  esc.addEventListener('wheel', e => {
-    e.preventDefault();
-    aplicarZoom(ZOOM * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
-  }, {passive: false});
-})();
 
-/* --- arrastrar para girar --- */
-(function arrastrar() {
-  const esc = document.getElementById('escena');
-  let x0 = null, a0 = 0;
-  const empezar = (x) => { x0 = x; a0 = ANG; esc.classList.add('arrastrando'); };
-  const mover = (x) => {
-    if (x0 === null) return;
-    ANG = a0 + (x - x0) * 0.012;
-    const g = ((ANG * 180 / Math.PI) % 360 + 360) % 360;
-    document.getElementById('giro').value = Math.round(g);
-    document.getElementById('grados').textContent = Math.round(g) + '°';
-    pintarEscena();
+  const soltar = e => {
+    dedos.delete(e.pointerId);
+    if (dedos.size < 2) base = 0;
+    if (dedos.size === 0) { modo = null; esc.classList.remove('arrastrando'); }
   };
-  const soltar = () => { x0 = null; esc.classList.remove('arrastrando'); };
-  esc.addEventListener('pointerdown', e => { esc.setPointerCapture(e.pointerId); empezar(e.clientX); });
-  esc.addEventListener('pointermove', e => { if (e.isPrimary) mover(e.clientX); });
   esc.addEventListener('pointerup', soltar);
   esc.addEventListener('pointercancel', soltar);
+
+  esc.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r = esc.getBoundingClientRect();
+    const k = (ANCHO_VISTA / ZOOM) / Math.max(1, r.width);
+    const cx = (e.clientX - r.left - r.width / 2) * k;
+    const cy = (e.clientY - r.top - r.height / 2) * k;
+    ponZoom(ZOOM * (e.deltaY < 0 ? 1.15 : 1 / 1.15), cx, cy);
+  }, {passive: false});
 })();
 
 function ponerGrados(g) {
   ANG = g * Math.PI / 180;
-  document.getElementById('giro').value = g;
-  document.getElementById('grados').textContent = g + '°';
+  marcadores();
   pintarEscena();
 }
-document.getElementById('giro').addEventListener('input', e => ponerGrados(+e.target.value));
-document.querySelectorAll('.pistas button').forEach(b =>
+// los atajos de angulo; «Ajustar» tiene lo suyo y no entra aqui
+document.querySelectorAll('.pistas button[data-g]').forEach(b =>
   b.onclick = () => ponerGrados(+b.dataset.g));
 document.getElementById('bTodo').onclick = function () {
   TODO = !TODO; this.classList.toggle('on', TODO);
