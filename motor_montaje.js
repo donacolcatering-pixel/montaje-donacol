@@ -140,6 +140,27 @@ function repartir(grupos) {
      mesa pedia 207 cm de los 180 que hay -- y perdia el agua al recortar --
      mientras la tercera se quedaba a 108. El cursor sigue donde lo dejo el
      tipo anterior: cada mesa recibe su parte de los sobrantes. */
+  /* EL SOBRANTE, AL CENTRO. Con nueve mesas en tres grupos y diez bandejas
+     salia 4-3-3: las cuatro en el grupo de la izquierda. Lo simetrico es
+     3-4-3. El orden de reparto empieza por el grupo del medio y sigue por
+     parejas espejadas de dentro hacia fuera. */
+  const restoSimetrico = (tipo, resto) => {
+    // si sobra un numero impar y hay grupo del medio, uno va ahi
+    if (resto % 2 === 1 && n % 2 === 1) { porGrupo[(n - 1) / 2][tipo]++; resto--; }
+    // el resto, de dos en dos: uno a cada lado, de dentro hacia fuera
+    let i = Math.floor(n / 2) - 1, j = n - 1 - i;
+    while (resto >= 2 && i >= 0) {
+      porGrupo[i][tipo]++; porGrupo[j][tipo]++; resto -= 2; i--; j = n - 1 - i;
+    }
+    // con un numero par de grupos y uno suelto no hay simetria posible:
+    // se pone en uno de los dos del medio
+    if (resto > 0) porGrupo[Math.floor(n / 2)][tipo] += resto;
+  };
+
+  /* La fila de DETRAS se reparte simetrica siempre: es lo que se ve de un
+     vistazo. La de DELANTE rota, para que las leches especiales no se
+     amontonen siempre en el mismo grupo. */
+  const DETRAS_TIPOS = ['bandeja', 'chafing', 'floral'];
   let vuelta = 0;
   const proporcional = (tipo, total) => {
     let dado = 0;
@@ -147,8 +168,13 @@ function repartir(grupos) {
       const toca = Math.floor(total * g / mesas);
       porGrupo[i][tipo] = toca; dado += toca;
     });
-    for (let resto = total - dado; resto > 0; vuelta++, resto--) {
-      porGrupo[orden[vuelta % n]][tipo]++;
+    const sobra = total - dado;
+    if (DETRAS_TIPOS.includes(tipo)) {
+      restoSimetrico(tipo, sobra);
+    } else {
+      for (let resto = sobra; resto > 0; resto--) {
+        porGrupo[orden[vuelta % n]][tipo]++; vuelta++;
+      }
     }
   };
   ['cafe', 'lecheNormal', 'sinLactosa', 'soja', 'aguaCal', 'zumo',
@@ -159,6 +185,8 @@ function repartir(grupos) {
      caer UNA SOLA, y cuando cae sola va al centro, marcándolo. Así está
      montada la foto de La Romareda. Antes se forzaba la pareja dentro de cada
      grupo y salían dos garrafas donde va una. */
+  // el agua tambien se reparte simetrica entre grupos
+  DETRAS_TIPOS.push('fuente');
   proporcional('fuente', INV.fuente || 0);
 
   // c) lo que se deriva, que por definición cuadra
