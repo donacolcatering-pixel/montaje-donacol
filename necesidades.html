@@ -1062,7 +1062,12 @@ function seleccionarEvento(val){
   $('cliente').value=ev.empresa||'';
   const clave=matchMenu(ev.menu);
   $('menu').value=clave;menuSel=clave;aplicarMenu();
-  if(!clave)setServicio(/COFFEE/i.test(ev.menu||'')?'coffee':'coctel');
+  /* QUE CLASE DE SERVICIO ES. Antes solo miraba la palabra COFFEE, asi que un
+     «DESAYUNO ADIDAS» caia en coctel y se le calculaban bebidas de coctel: 160
+     personas salian con ~200 refrescos y 134 cervezas sin alcohol para desayunar.
+     Un desayuno, una merienda y un brunch se sirven como el coffee. */
+  if(!clave)setServicio(/COFFEE|DESAYUNO|MERIENDA|BRUNCH|BREAK|CAF[EÉ]/i
+    .test(ev.menu||'')?'coffee':'coctel');
   setMontaje(/ELEG/i.test(ev.montaje||'')?'elegante':'sport');
   // CAMAREROS (18/9/2026): lo primero que pregunta el montador es si se queda alguien
   // sirviendo o monta y se va. Si el evento es viejo y no trae el dato, no se dice nada
