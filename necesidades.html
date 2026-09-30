@@ -831,8 +831,6 @@ function calcular(){
         if(/vino\s+blanco/i.test(l)) return [rnd(botellas*(hayTinto?0.4:1)),'botellas'];
         if(/0[,.]0|sin\s+alcohol/i.test(l)) return [rnd(totalBeb*pesos.cerv00),'latas'];
         if(/cerveza|ambar|mahou/i.test(l))  return [rnd(totalBeb*pesos.cerv),'latas'];
-        if(/refresco/i.test(l)) return [rnd(nRefr), 'latas · '+rnd(nRefr*0.5)+' C.Cola Zero · '
-            +rnd(nRefr*0.3)+' C.Cola · '+rnd(nRefr*0.1)+' Aquarius · '+rnd(nRefr*0.1)+' Fanta'];
         if(/coca[- ]?cola\s+zero/i.test(l)) return [rnd(nRefr*0.5),'latas'];
         if(/coca[- ]?cola/i.test(l))        return [rnd(nRefr*0.3),'latas'];
         if(/aquarius/i.test(l))             return [rnd(nRefr*0.1),'latas'];
@@ -840,7 +838,19 @@ function calcular(){
         if(/agua/i.test(l)) return [garrafas,'garrafas de 5 L · 3 por cada 2 dispensadores'];
         return null;
       };
+      /* UNA LINEA POR BEBIDA. «Refrescos» a secas no se carga: se cargan tantas
+         Coca-Cola Zero, tantas normales, tantos Aquarius y tantas Fantas, y el montador
+         las va marcando de una en una. Un solo renglon que diga 104 con el desglose en
+         letra pequeña no se puede ir tachando. */
+      var GENERICO = /^\s*[•\-]?\s*refrescos?\s*$/i;
       lineas.forEach(function(l){
+        if(!tieneNum(l) && GENERICO.test(l)){
+          bebItems.push(it('Coca-Cola Zero',   rnd(nRefr*0.5), 'refrescos · lata 33 cl'));
+          bebItems.push(it('Coca-Cola normal', rnd(nRefr*0.3), 'refrescos · lata 33 cl'));
+          bebItems.push(it('Aquarius Limón',   rnd(nRefr*0.1), 'refrescos · lata 33 cl'));
+          bebItems.push(it('Fanta Naranja',    rnd(nRefr*0.1), 'refrescos · lata 33 cl'));
+          return;
+        }
         var c = calc(l);
         bebItems.push(c ? it(esc(l), c[0], c[1]+' · calculado sobre lo escrito')
                         : it(esc(l), '\u270D\uFE0F', 'escrito en el presupuesto'));
