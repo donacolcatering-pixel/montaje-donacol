@@ -795,10 +795,46 @@ function calcular(){
     // Bebidas de cóctel — cantidades ya calculadas (Excel BEBIDA OK.xlsx)
     let bebItems=[];
     if(BEB_ESCRITAS){
-      // La oficina las cambio en el presupuesto: MANDA LO ESCRITO, sin calculo.
-      BEB_ESCRITAS.forEach(l=>bebItems.push(it(esc(l),'✍️','escrito en el presupuesto')));
+      /* LA OFICINA CAMBIO LA LISTA: manda lo escrito, pero las cantidades SE SIGUEN
+         CALCULANDO. Antes, tocar la lista apagaba el calculo entero y el montador se
+         quedaba sin un solo numero: en UFM (30/9) quitaron el vino y las cervezas de un
+         COCTEL 5 de 45 personas y la hoja salio con «Refrescos» y nada mas.
+         La linea que YA trae su cantidad se respeta tal cual --que para eso la
+         escribieron, y pisarla fue el fallo de Maria Luna--; la que no la trae se
+         calcula repartiendo las 2,1 bebidas por persona entre las clases que QUEDAN. */
+      var lineas = BEB_ESCRITAS.map(function(l){ return String(l||''); });
+      var tieneNum = function(l){ return /\d/.test(l); };
+      var hay = function(rx){ return lineas.some(function(l){ return rx.test(l) && !tieneNum(l); }); };
+      var hayTinto  = hay(/vino\s+tinto/i), hayBlanco = hay(/vino\s+blanco/i);
+      var hayCerv00 = hay(/0[,.]0|sin\s+alcohol/i);
+      var hayCerv   = hay(/cerveza|ambar|mahou/i) && !hayCerv00;
+      var hayRefr   = hay(/refresco|coca[- ]?cola|fanta|aquarius|nestea/i);
+      var pesos = {vino:(hayTinto||hayBlanco)?0.40:0, cerv:hayCerv?0.30:0,
+                   cerv00:hayCerv00?0.10:0, refr:hayRefr?0.30:0};
+      var suma = pesos.vino+pesos.cerv+pesos.cerv00+pesos.refr;
+      if(suma>0){ ['vino','cerv','cerv00','refr'].forEach(function(k){ pesos[k]=pesos[k]/suma; }); }
+      var botellas = totalBeb*pesos.vino/6, nRefr = totalBeb*pesos.refr;
+      var calc = function(l){
+        if(tieneNum(l)) return null;
+        if(/vino\s+tinto/i.test(l))  return [rnd(botellas*(hayBlanco?0.6:1)),'botellas'];
+        if(/vino\s+blanco/i.test(l)) return [rnd(botellas*(hayTinto?0.4:1)),'botellas'];
+        if(/0[,.]0|sin\s+alcohol/i.test(l)) return [rnd(totalBeb*pesos.cerv00),'latas'];
+        if(/cerveza|ambar|mahou/i.test(l))  return [rnd(totalBeb*pesos.cerv),'latas'];
+        if(/refresco/i.test(l)) return [rnd(nRefr), 'latas · '+rnd(nRefr*0.5)+' C.Cola Zero · '
+            +rnd(nRefr*0.3)+' C.Cola · '+rnd(nRefr*0.1)+' Aquarius · '+rnd(nRefr*0.1)+' Fanta'];
+        if(/coca[- ]?cola\s+zero/i.test(l)) return [rnd(nRefr*0.5),'latas'];
+        if(/coca[- ]?cola/i.test(l))        return [rnd(nRefr*0.3),'latas'];
+        if(/aquarius/i.test(l))             return [rnd(nRefr*0.1),'latas'];
+        if(/fanta|nestea/i.test(l))         return [rnd(nRefr*0.1),'latas'];
+        return null;
+      };
+      lineas.forEach(function(l){
+        var c = calc(l);
+        bebItems.push(c ? it(esc(l), c[0], c[1]+' · calculado sobre lo escrito')
+                        : it(esc(l), '\u270D\uFE0F', 'escrito en el presupuesto'));
+      });
       bebItems.push(it('Dispensadores de agua (fuentes 5 L)',dispensadores,`${deCada} agua + ${deCada} hierbabuena·limón`));
-      sec('🍷','Bebidas · escritas en el presupuesto',bebItems);
+      sec('\uD83C\uDF77','Bebidas · la lista del presupuesto, con sus cantidades',bebItems);
     } else {
     if(conAlc){
       bebItems.push(it('Vino tinto',bvTinto,'vinos · botellas'));
