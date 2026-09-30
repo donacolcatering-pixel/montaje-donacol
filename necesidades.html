@@ -813,13 +813,17 @@ function calcular(){
       var hayCerv00 = hay(/0[,.]0|sin\s+alcohol/i);
       var hayCerv   = hay(/cerveza|ambar|mahou/i) && !hayCerv00;
       var hayRefr   = hay(/refresco|coca[- ]?cola|fanta|aquarius|nestea/i);
-      var pesos = {vino:(hayTinto||hayBlanco)?0.40:0, cerv:hayCerv?0.30:0,
-                   cerv00:hayCerv00?0.10:0, refr:hayRefr?0.30:0};
-      /* LO QUITADO SE QUITA, no se reparte entre lo que queda. Si la oficina tacha el
-         vino y las cervezas de un coctel 5, se cargan los refrescos que ese coctel
-         llevaba --su 30 %-- y nada mas: lo que se bebia de vino lo cubre el agua de
-         los dispensadores, que va aparte. Cada clase conserva el peso que tiene en la
-         lista del catalogo. */
+      /* LO QUITADO PASA A REFRESCO, en la misma proporcion. La gente bebe lo mismo
+         aunque no haya alcohol: si de un coctel se tachan el vino (40 %), la cerveza
+         (30 %) y la 0,0 (10 %), ese 80 % se suma a los refrescos, que pasan de su 30 %
+         a llevarse el 110 %. Y ese total se reparte con el variado de siempre: mitad
+         Coca-Cola Zero, un 30 % Coca-Cola, y un 10 % Aquarius y otro 10 % Fanta. */
+      var W = {vino:0.40, cerv:0.30, cerv00:0.10, refr:0.30};
+      var aRefresco = ((hayTinto||hayBlanco)?0:W.vino) + (hayCerv?0:W.cerv)
+                    + (hayCerv00?0:W.cerv00);
+      var pesos = {vino:(hayTinto||hayBlanco)?W.vino:0, cerv:hayCerv?W.cerv:0,
+                   cerv00:hayCerv00?W.cerv00:0,
+                   refr:hayRefr?(W.refr + aRefresco):0};
       var botellas = totalBeb*pesos.vino/6, nRefr = totalBeb*pesos.refr;
       var calc = function(l){
         if(tieneNum(l)) return null;
