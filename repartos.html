@@ -318,12 +318,23 @@ function pintarCola(){
   };
 }
 
+// LA HORA, EN MINUTOS, PARA PODER ORDENAR POR ELLA. Las horas se escriben a mano
+// ('ENTREGA 10.00 - 10.30 HRS', 'ENTREGA 8.30 - 9.00', 'ENTREGA 07:45 – 08:15') y
+// antes se comparaban COMO TEXTO: asi '8.30' queda DETRAS de '10.00', porque el 8
+// es mayor que el 1. El 15/10/2026 el repartidor de Madrid veia el de las 10:00 el
+// primero y el de las 9:30 el ultimo, que era justo el que tenia que hacer antes.
+// Los que no llevan hora ('ENTREGA PDTE') van al final, no los primeros.
+function minutosHora(txt){
+  const m=String(txt==null?'':txt).match(/\b([01]?\d|2[0-3])[:.,h]([0-5]\d)\b/);
+  return m ? (parseInt(m[1],10)*60+parseInt(m[2],10)) : 99999;
+}
+
 function pintarLista(){
   pintarCola();
   const cont=$('pedidos');
   let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
-  prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||'')||a.enc.localeCompare(b.enc));
+  prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(minutosHora(a.hora)-minutosHora(b.hora))||a.enc.localeCompare(b.enc));
   const aviso = AVISO_ENTREGAS
     ? `<p class="vacio" style="background:#fff4e5;border:1px solid #f0c98a;color:#7a4b00">⚠️ No he podido comprobar qué repartos están ya entregados.<br>Los que veas como «pendiente» quizá estén hechos. <small>(${esc(AVISO_ENTREGAS)})</small></p>`
     : '';
