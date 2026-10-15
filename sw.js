@@ -1,12 +1,17 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v21';
+const CACHE = 'montaje-v22';
 // eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
 // cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
 // primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
 const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html', './repartos.html',
                 './hoja_montaje.html', './vista3d.html', './motor_montaje.js',
                 './eventos.js', './manifest.json', './repartos-manifest.json',
-                './icon.svg', './logo.png'];
+                './icon.svg', './logo.png',
+                // 2026-10-15: diseño nuevo de repartos. Tipografías e iconos guardados en el móvil
+                // para que la app se vea igual sin cobertura.
+                './fonts/hanken.woff2', './fonts/bodoni.woff2',
+                './iconos/icono-192.png', './iconos/icono-512.png',
+                './iconos/icono-maskable-512.png', './iconos/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
