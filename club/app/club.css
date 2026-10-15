@@ -277,5 +277,5 @@ input[type=file].oculto{position:absolute;width:1px;height:1px;opacity:0}
 .atajo{background:var(--roto)}
 .persona,.conversacion,.pedido-fila,.menu{background:var(--roto)}
 
-.post .autor>span{min-width:0;flex:1}
+.post .autor>span:not(.avatar){min-width:0;flex:1}
 .post header .seguir-mini{flex:none}
