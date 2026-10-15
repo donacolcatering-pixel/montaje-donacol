@@ -1,7 +1,7 @@
 // Club Doña Col: app de clientes. Pantallas y navegación.
 // Los datos los da window.Almacen (almacen-local.js en la demo; almacen-firebase.js en la versión real).
 (() => {
-  const N = window.NEGOCIO, C = window.CLUB, A = window.Almacen;
+  const N = window.NEGOCIO, C = window.CLUB, A = window.AlmacenFirebase || window.Almacen;   // real si hay Firebase; si no, demostración
   const app = document.getElementById("app");
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const euros = n => (Math.round(n * 100) / 100).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
@@ -28,8 +28,10 @@
 
   // ---------- Utilidades ----------
   const iniciales = n => String(n || "?").split(/\s+/).map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  // Si la foto está en Cloudinary, se pide al tamaño justo y en el formato más ligero para cada móvil
+  const optim = (url, ancho) => /res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url || "") ? url.replace("/image/upload/", `/image/upload/f_auto,q_auto,w_${ancho}/`) : url;
   const avatar = (u, g) => u && u.foto
-    ? `<span class="avatar${g ? " g" : ""}${u.oficial ? " oficial" : ""}"><img src="${esc(u.foto)}" alt=""></span>`
+    ? `<span class="avatar${g ? " g" : ""}${u.oficial ? " oficial" : ""}"><img src="${esc(optim(u.foto, g ? 240 : 120))}" alt=""></span>`
     : `<span class="avatar${g ? " g" : ""}" style="background:${colorDe(u && u.id)}">${esc(iniciales(u && u.nombre))}</span>`;
   const COLORES = ["#61422A", "#907A69", "#7A5A3A", "#4E5D52", "#8A5A44", "#5A5468"];
   const colorDe = id => COLORES[[...String(id || "")].reduce((s, c) => s + c.charCodeAt(0), 0) % COLORES.length];
@@ -56,14 +58,22 @@
   function vibrar() { try { navigator.vibrate && navigator.vibrate(25); } catch (e) {} }
   function abrirFuera(url) { const a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
   // Fotos: se reducen en el móvil antes de guardarlas (más rápido y ocupa menos)
-  function comprimir(archivo, max = 1200, calidad = .72) {
+  // Las fotos se reducen y comprimen en el móvil antes de subirlas. «maximo» = tamaño máximo del resultado:
+  // si no cabe, se baja la calidad y, si hace falta, el tamaño, hasta que quepa.
+  function comprimir(archivo, max = 1200, calidad = .72, maximo = 650000) {
     return new Promise((res, rej) => {
       const img = new Image(), url = URL.createObjectURL(archivo);
       img.onload = () => {
-        const k = Math.min(1, max / Math.max(img.width, img.height));
-        const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
-        res(cv.toDataURL("image/jpeg", calidad));
+        let lado = max, q = calidad, dato = "";
+        for (let i = 0; i < 8; i++) {
+          const k = Math.min(1, lado / Math.max(img.width, img.height));
+          const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+          dato = cv.toDataURL("image/jpeg", q);
+          if (dato.length <= maximo) break;
+          if (q > .5) q -= .1; else lado = Math.round(lado * .8);
+        }
+        URL.revokeObjectURL(url); res(dato);
       };
       img.onerror = () => rej(new Error("No se ha podido leer la foto."));
       img.src = url;
@@ -114,11 +124,31 @@
     const [sol, sinLeer] = await Promise.all([A.solicitudes(), A.sinLeer()]);
     const avisoRed = sol.length + sinLeer;
     const t = (id, texto) => `<a href="#${id}" class="${activa === id ? "on" : ""}">${I[id]}<span>${texto}</span>${id === "red" && avisoRed ? `<b class="punto">${avisoRed}</b>` : ""}</a>`;
-    return `<nav class="pestanas">${t("inicio", "Inicio")}${t("pedir", "Pedir")}${t("tarjeta", "Tarjeta")}${t("red", "Red")}${t("perfil", "Perfil")}</nav>`;
+    return `<nav class="pestanas"><a class="nav-marca" href="#inicio"><img src="media/logo-marron.png" alt=""><span>${esc(C.nombre)}</span></a>${t("inicio", "Inicio")}${t("pedir", "Pedir")}${t("tarjeta", "Tarjeta")}${t("red", "Red")}${t("perfil", "Perfil")}</nav>`;
   }
   async function pintar(html, activa, conNav = true) {
     app.classList.toggle("sin-nav", !conNav);
-    app.innerHTML = html + (conNav ? await pestanas(activa) : "");
+    const ancho = conNav && window.innerWidth >= 1200;   // en ordenador, columna derecha con tu resumen
+    app.innerHTML = html + (conNav ? await pestanas(activa) : "") + (ancho ? await lateral() : "");
+    if (ancho) {
+      enlazarSeguir();
+      document.querySelectorAll("#lateral [data-aceptar]").forEach(b => b.onclick = async () => { await A.aceptar(b.dataset.aceptar); aviso("Solicitud aceptada"); router(); });
+    }
+  }
+  // Columna derecha (solo ordenador): tarjeta, solicitudes, a quién seguir y últimos mensajes
+  async function lateral() {
+    const [soc, sol, convs, gente] = await Promise.all([A.socio(), A.solicitudes(), A.conversaciones(), A.perfiles("")]);
+    const nv = nivelDe(soc), sig = siguienteNivel(soc);
+    const sugeridos = [];
+    for (const u of gente) { if (sugeridos.length >= 4) break; if ((await A.relacion(u.id)) === "no") sugeridos.push(u); }
+    const fila = (u, boton) => `<div class="lat-fila"><a href="#perfil/${encodeURIComponent(u.id)}">${avatar(u)}<span><b>${nombreCon(u)}</b><small>${puesto(u)}</small></span></a>${boton}</div>`;
+    return `<aside id="lateral">
+      <a class="lat-tarjeta" href="#tarjeta"><span>Socio ${esc(nv.nombre)}</span><b>${esc(U.nombre)}</b>
+        <small>${puntosTxt(soc.puntos)} y un ${nv.descuento} % de descuento${sig ? `. Siguiente nivel: ${esc(sig.nombre)}` : ""}</small></a>
+      ${sol.length ? `<section><h3>Solicitudes</h3>${sol.map(x => fila(x.perfil, `<button class="boton mini" data-aceptar="${esc(x.perfil.id)}">Aceptar</button>`)).join("")}</section>` : ""}
+      ${sugeridos.length ? `<section><h3>Empresas del club</h3>${sugeridos.map(u => fila(u, `<button class="boton mini suave" data-seguir="${esc(u.id)}">Seguir</button>`)).join("")}</section>` : ""}
+      <section><h3>Mensajes</h3>${convs.length ? convs.slice(0, 4).map(c => `<a class="lat-fila" href="#chat/${encodeURIComponent(c.perfil.id)}">${avatar(c.perfil)}<span><b>${nombreCon(c.perfil)}</b><small>${esc(c.ultimo.texto)}</small></span>${c.sinLeer ? `<span class="contador">${c.sinLeer}</span>` : ""}</a>`).join("") : `<p class="nota">Aún no tienes mensajes.</p>`}</section>
+    </aside>`;
   }
   const barra = (titulo, extra = "", atras = false) =>
     `<header class="barra">${atras ? `<a class="volver" href="${atras}">${I.atras}</a>` : ""}<h1>${titulo}</h1><div class="acciones">${extra}</div></header>`;
@@ -268,7 +298,7 @@
       <header><a class="autor" href="#perfil/${encodeURIComponent(u.id)}">${avatar(u)}<span><b>${nombreCon(u)}</b><small>${puesto(u)}</small></span></a>
         ${!mio && rel === "no" ? `<button class="seguir-mini" data-seguir="${esc(u.id)}">Seguir</button>` : ""}
         <button class="icono-btn" data-menu aria-label="Más opciones">${I.puntos}</button></header>
-      <img class="foto" src="${esc(p.foto)}" alt="${esc(p.texto || "Foto de un evento")}" loading="lazy">
+      <img class="foto" src="${esc(optim(p.foto, 1080))}" alt="${esc(p.texto || "Foto de un evento")}" loading="lazy">
       <div class="acciones-post"><button class="gusta${p.meGustaYo ? " on" : ""}" data-gusta aria-label="Me gusta">${I.corazon}<span>${p.meGusta.length}</span></button>
         <a class="gusta" href="#post/${encodeURIComponent(p.id)}" aria-label="Comentarios">${I.comentario}<span>${p.nComentarios || 0}</span></a>
         ${puedeCompartir ? `<button class="gusta${p.compartidaPorMi ? " hecho" : ""}" data-compartir aria-label="Compartir en mi perfil">${I.compartir}<span>${p.nCompartida || 0}</span></button>` : ""}
@@ -565,7 +595,7 @@
       : `${rel === "ok" ? `<button class="boton suave" data-dejar="${esc(u.id)}">Siguiendo</button>` : rel === "pendiente" ? `<button class="boton suave" disabled>Solicitado</button>` : `<button class="boton" data-seguir="${esc(u.id)}">Seguir</button>`}
          <a class="boton suave" href="#chat/${encodeURIComponent(u.id)}">${I.mensaje} Mensaje</a>`;
     const html = `${barra(mio ? "Perfil" : "", mio ? `<a class="icono-btn" href="#editar" aria-label="Ajustes">${I.ajustes}</a>` : `<button class="icono-btn" id="menuPerfil" aria-label="Más opciones">${I.puntos}</button>`, mio ? false : "javascript:history.back()")}
-      <div class="portada${u.portada ? "" : " vacia"}">${u.portada ? `<img src="${esc(u.portada)}" alt="">` : mio ? `<a href="#editar">${I.camara}<span>Añadir foto de portada</span></a>` : ""}</div>
+      <div class="portada${u.portada ? "" : " vacia"}">${u.portada ? `<img src="${esc(optim(u.portada, 1400))}" alt="">` : mio ? `<a href="#editar">${I.camara}<span>Añadir foto de portada</span></a>` : ""}</div>
       <section class="cabeza-perfil">
         <div class="fila">${avatar(u, true)}<div class="cifras"><div><b>${cuentas.publicaciones}</b><span>fotos</span></div><div><b>${cuentas.seguidores}</b><span>seguidores</span></div><div><b>${cuentas.siguiendo}</b><span>siguiendo</span></div></div></div>
         <h2>${nombreCon(u)}</h2>
@@ -576,7 +606,7 @@
       </section>
       ${ver ? `<div class="rejilla">
           ${mio ? `<label for="subir">${I.camara}<span>Subir foto</span></label><input type="file" id="subir" class="oculto" accept="image/*">` : ""}
-          ${posts.map(p => `<a href="#" data-ver="${esc(p.id)}"${p.repostDe ? ` class="es-compartida" aria-label="Compartida"` : ""}><img src="${esc(p.repostDe ? p.original.foto : p.foto)}" alt="" loading="lazy">${p.repostDe ? `<i>${I.compartir}</i>` : ""}</a>`).join("")}</div>
+          ${posts.map(p => `<a href="#" data-ver="${esc(p.id)}"${p.repostDe ? ` class="es-compartida" aria-label="Compartida"` : ""}><img src="${esc(optim(p.repostDe ? p.original.foto : p.foto, 400))}" alt="" loading="lazy">${p.repostDe ? `<i>${I.compartir}</i>` : ""}</a>`).join("")}</div>
           ${!posts.length && !mio ? `<p class="vacio">Todavía no ha publicado fotos.</p>` : ""}`
         : `<p class="candado"><b>Perfil privado.</b><br>Síguele para ver sus fotos${rel === "pendiente" ? ". Tu solicitud está pendiente." : "."}</p>`}`;
     await pintar(html, mio ? "perfil" : "red");
@@ -614,11 +644,13 @@
     let foto = u.foto, portada = u.portada;
     const bio = document.querySelector("[name=bio]"), cuenta = () => document.getElementById("cuentaBio").textContent = `${bio.value.length} de 300`;
     bio.oninput = cuenta; cuenta();
-    document.getElementById("portada").onchange = async e => { const f = e.target.files[0]; if (!f) return; portada = await comprimir(f, 1200, .72); const pt = document.getElementById("pt"); let im = pt.querySelector("img"); if (!im) { im = document.createElement("img"); pt.prepend(im); } im.src = portada; };
-    document.getElementById("foto").onchange = async e => { const f = e.target.files[0]; if (!f) return; foto = await comprimir(f, 400, .8); document.getElementById("av").innerHTML = avatar({ ...u, foto }, true); };
+    document.getElementById("portada").onchange = async e => { const f = e.target.files[0]; if (!f) return; portada = await comprimir(f, 1400, .72, 370000); const pt = document.getElementById("pt"); let im = pt.querySelector("img"); if (!im) { im = document.createElement("img"); pt.prepend(im); } im.src = portada; };
+    document.getElementById("foto").onchange = async e => { const f = e.target.files[0]; if (!f) return; foto = await comprimir(f, 400, .8, 130000); document.getElementById("av").innerHTML = avatar({ ...u, foto }, true); };
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const f = e.target;
-      await A.actualizarPerfil({ nombre: f.nombre.value.trim() || u.nombre, empresa: f.empresa.value.trim(), cargo: f.cargo.value.trim(), ciudad: f.ciudad.value.trim(), bio: f.bio.value.trim(), privado: f.privado.checked, foto, portada });
+      const b = f.querySelector("button:not([type])"); b.disabled = true; b.textContent = "Guardando…";
+      try { await A.actualizarPerfil({ nombre: f.nombre.value.trim() || u.nombre, empresa: f.empresa.value.trim(), cargo: f.cargo.value.trim(), ciudad: f.ciudad.value.trim(), bio: f.bio.value.trim(), privado: f.privado.checked, foto, portada }); }
+      catch (er) { b.disabled = false; b.textContent = "Guardar"; return aviso(er.message); }
       aviso("Perfil guardado"); location.hash = "#perfil";
     };
     document.getElementById("salir").onclick = async () => { await A.salir(); location.hash = "#"; router(); };
@@ -640,15 +672,32 @@
         <p class="nota" style="margin-top:12px">Publica solo fotos tuyas y con permiso de quien salga en ellas.</p>
       </form>`;
     let foto = null;
-    const cargar = async f => { if (!f) return; try { foto = await comprimir(f); document.getElementById("vista").innerHTML = `<img src="${foto}" alt="">`; } catch (e) { document.getElementById("err").textContent = e.message; } };
+    const cargar = async f => { if (!f) return; try { foto = await comprimir(f, 1400, .75, 650000); document.getElementById("vista").innerHTML = `<img src="${foto}" alt="">`; } catch (e) { document.getElementById("err").textContent = e.message; } };
     document.getElementById("foto").onchange = e => cargar(e.target.files[0]);
     if (S.fotoPendiente) { cargar(S.fotoPendiente); S.fotoPendiente = null; }
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const f = e.target, err = document.getElementById("err");
+      const b = f.querySelector("button"); b.disabled = true; b.textContent = "Subiendo…";
       try { await A.publicar({ foto, texto: f.texto.value, evento: f.evento.value }); vibrar(); aviso(`Foto publicada. +${C.puntos.porFoto} puntos`); location.hash = "#inicio"; }
-      catch (er) { err.textContent = er.message; }
+      catch (er) { err.textContent = er.message; const b = f.querySelector("button"); b.disabled = false; b.textContent = `Publicar (+${C.puntos.porFoto} puntos)`; }
     };
   }
+
+  // ¿Hay una APK más nueva publicada? (solo dentro de la app instalada; la web siempre está al día)
+  (async () => {
+    try {
+      const nativa = window.Capacitor && typeof Capacitor.isNativePlatform === "function" && Capacitor.isNativePlatform();
+      if (!nativa || !C.version || !C.version.comprobar) return;
+      const r = await fetch(C.version.comprobar + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) return;
+      const v = await r.json();
+      if (+v.codigo > C.version.codigo) {
+        const b = document.createElement("a"); b.className = "aviso-version"; b.href = "#";
+        b.innerHTML = `<b>Hay una versión nueva (${esc(v.nombre)})</b><span>Toca para descargarla e instalarla encima.</span>`;
+        b.onclick = e => { e.preventDefault(); abrirFuera(v.apk); };
+        document.body.appendChild(b);
+      }
+    } catch (e) {}
+  })();
 
   router();
 })();

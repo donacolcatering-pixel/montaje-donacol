@@ -1,7 +1,7 @@
 // ALMACÉN DE DEMOSTRACIÓN: todo se guarda en ESTE móvil (localStorage).
 // Tiene exactamente las mismas funciones que tendrá almacen-firebase.js; para pasar a la versión
 // real con usuarios de verdad basta con cargar ese archivo en lugar de este.
-// Los perfiles «de ejemplo» son inventados y responden solos a los mensajes para poder probar.
+// Solo hay una cuenta precargada: la oficial de Doña Col (no se puede entrar con ella).
 (() => {
   const K = "club_doncol_demo_v2";   // v2: perfiles con foto de portada
   const ahora = () => new Date().toISOString();
@@ -13,6 +13,15 @@
     return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
   }
 
+  // Solo la cuenta oficial de Doña Col, con fotos reales de sus montajes. Sin perfiles inventados.
+  const FOTOS_OFICIALES = [
+    { id: "p1", foto: "media/elegante.jpg", texto: "Montaje elegante para una presentación de producto en Madrid.", evento: "Cóctel", h: 5 },
+    { id: "p7", foto: "media/congresos.jpg", texto: "Congreso con 400 asistentes: coffee break y cóctel de clausura.", evento: "Congreso", h: 26 },
+    { id: "p8", foto: "media/cateringbox.jpg", texto: "Catering Box® listo para abrir en la oficina.", evento: "Catering Box®", h: 50 },
+    { id: "p5", foto: "media/comuniones.jpg", texto: "Temporada de comuniones: buffet con montaje elegante incluido.", evento: "Comunión", h: 120 },
+    { id: "p9", foto: "media/empresas.jpg", texto: "Jornada de empresa con montaje completo.", evento: "Evento de empresa", h: 140 }
+  ];
+
   function semilla() {
     const hace = h => new Date(Date.now() - h * 3600e3).toISOString();
     const u = (id, nombre, tipo, empresa, cargo, ciudad, bio, extra = {}) =>
@@ -21,31 +30,10 @@
       version: 1, sesion: null, contador: 1040,
       usuarios: [
         u("u_donacol", "Doña Col Catering", "Empresa", "Doña Col", "Cuenta oficial", "Madrid y Zaragoza",
-          "Catering para empresas, cócteles, comuniones y congresos. Aquí publicamos los montajes de cada semana.", { oficial: true, foto: "media/logo-marron.png", portada: "media/campana.jpg", socio: 1 }),
-        u("u_lumen", "Lumen Eventos", "Agencia", "Lumen Eventos", "Agencia de eventos corporativos", "Madrid",
-          "Organizamos presentaciones, convenciones y fiestas de empresa. Trabajamos con Doña Col desde 2024.", { socio: 1002, portada: "media/congresos.jpg" }),
-        u("u_marta", "Marta Ruiz", "Empresa", "Nexo Consultores", "Office manager", "Madrid",
-          "Desayunos de equipo los viernes y alguna que otra formación con coffee break.", { socio: 1011, portada: "media/coffee.jpg" }),
-        u("u_avante", "Grupo Avante", "Empresa", "Grupo Avante", "Recursos humanos", "Zaragoza",
-          "Jornadas de bienvenida y eventos internos para 200 personas.", { socio: 1019, privado: true, portada: "media/empresas.jpg" }),
-        u("u_carlos", "Carlos Gil", "Agencia", "Brisa Producciones", "Productor de eventos", "Zaragoza",
-          "Producción técnica y catering para congresos en Aragón.", { socio: 1024, portada: "media/elegante.jpg" })
+          "Catering para empresas, cócteles, comuniones y congresos. Aquí publicamos los montajes de cada semana.", { oficial: true, foto: "media/logo-marron.png", portada: "media/campana.jpg", socio: 1 })
       ],
-      seguimientos: [
-        { de: "u_lumen", a: "u_donacol", estado: "ok", fecha: hace(500) },
-        { de: "u_marta", a: "u_donacol", estado: "ok", fecha: hace(400) },
-        { de: "u_carlos", a: "u_donacol", estado: "ok", fecha: hace(300) },
-        { de: "u_marta", a: "u_lumen", estado: "ok", fecha: hace(200) },
-        { de: "u_carlos", a: "u_lumen", estado: "ok", fecha: hace(150) }
-      ],
-      publicaciones: [
-        { id: "p1", autor: "u_donacol", foto: "media/elegante.jpg", texto: "Montaje elegante para la presentación de producto de esta semana en Madrid.", evento: "Cóctel", fecha: hace(5), meGusta: ["u_marta", "u_lumen"] },
-        { id: "p2", autor: "u_lumen", foto: "media/congresos.jpg", texto: "Convención anual con 400 asistentes. El coffee break voló en diez minutos.", evento: "Congreso", fecha: hace(26), meGusta: ["u_donacol", "u_carlos"] },
-        { id: "p3", autor: "u_marta", foto: "media/cateringbox.jpg", texto: "Viernes de Catering Box en la oficina. El equipo pide repetir.", evento: "Catering Box®", fecha: hace(50), meGusta: ["u_donacol"] },
-        { id: "p4", autor: "u_carlos", foto: "media/campana.jpg", texto: "Cóctel de clausura del congreso en Zaragoza.", evento: "Cóctel", fecha: hace(80), meGusta: [] },
-        { id: "p5", autor: "u_donacol", foto: "media/comuniones.jpg", texto: "Temporada de comuniones: buffet con montaje elegante incluido.", evento: "Comunión", fecha: hace(120), meGusta: ["u_marta"] },
-        { id: "p6", autor: "u_avante", foto: "media/empresas.jpg", texto: "Jornada de bienvenida para las nuevas incorporaciones.", evento: "Evento de empresa", fecha: hace(140), meGusta: [] }
-      ],
+      seguimientos: [],
+      publicaciones: FOTOS_OFICIALES.map(f => ({ ...f, autor: "u_donacol", fecha: hace(f.h), meGusta: [], comentarios: [] })),
       pedidos: [], mensajes: [], bloqueos: [], denuncias: []
     };
   }
@@ -58,14 +46,17 @@
   }
   function migrar() {
     db.publicaciones.forEach(p => { p.comentarios = p.comentarios || []; p.meGusta = p.meGusta || []; });
-    if (!db.comentariosSemilla) {
-      const c = (pub, autor, texto, h) => { const p = db.publicaciones.find(x => x.id === pub); if (p) p.comentarios.push({ id: nuevoId("c_"), autor, texto, fecha: new Date(Date.now() - h * 3600e3).toISOString() }); };
-      c("p1", "u_marta", "¡Qué montaje tan bonito! Lo queremos para la presentación de diciembre.", 4);
-      c("p1", "u_lumen", "Como siempre, impecable.", 3);
-      c("p2", "u_donacol", "¡Gracias por contar con nosotros, Lumen!", 20);
-      c("p3", "u_lumen", "Los viernes de Catering Box son sagrados.", 40);
-      db.comentariosSemilla = true;
+    // 1.2: se borran los perfiles inventados de versiones anteriores (y todo lo suyo); tu cuenta se conserva
+    const falsos = new Set(db.usuarios.filter(x => x.ejemplo && !x.oficial).map(x => x.id));
+    if (falsos.size) {
+      db.usuarios = db.usuarios.filter(x => !falsos.has(x.id));
+      const fuera = new Set(db.publicaciones.filter(p => falsos.has(p.autor)).map(p => p.id));
+      db.publicaciones = db.publicaciones.filter(p => !falsos.has(p.autor) && !fuera.has(p.repostDe));
+      db.publicaciones.forEach(p => { p.comentarios = p.comentarios.filter(c => !falsos.has(c.autor)); p.meGusta = p.meGusta.filter(x => !falsos.has(x)); });
+      db.seguimientos = db.seguimientos.filter(x => !falsos.has(x.de) && !falsos.has(x.a));
+      db.mensajes = db.mensajes.filter(m => !falsos.has(m.de) && !falsos.has(m.a));
     }
+    FOTOS_OFICIALES.forEach(f => { if (!db.publicaciones.some(p => p.id === f.id)) db.publicaciones.push({ ...f, autor: "u_donacol", fecha: new Date(Date.now() - f.h * 3600e3).toISOString(), meGusta: [], comentarios: [] }); });
     guardar();
   }
 
@@ -92,10 +83,8 @@
         cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "", bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: ++db.contador
       };
       db.usuarios.push(nuevo); db.sesion = nuevo.id;
-      // Para que la demostración tenga vida: la cuenta oficial te da la bienvenida y una agencia te pide seguirte
+      // La cuenta oficial te da la bienvenida
       db.mensajes.push({ id: nuevoId("m_"), de: "u_donacol", a: nuevo.id, texto: `¡Bienvenido al club, ${nuevo.nombre.split(" ")[0]}! Desde la app tienes un 5 % de descuento en cada pedido. Si necesitas algo, escríbenos por aquí.`, fecha: ahora(), leido: false });
-      db.seguimientos.push({ de: "u_lumen", a: nuevo.id, estado: nuevo.privado ? "pendiente" : "ok", fecha: ahora() });
-      if (!nuevo.privado) db.seguimientos.push({ de: "u_carlos", a: nuevo.id, estado: "pendiente", fecha: ahora() });
       guardar(); return publico(nuevo);
     },
     async entrar(email, clave) {
@@ -134,8 +123,6 @@
       const otro = usuario(id); if (!otro || seguimiento(db.sesion, id)) return;
       const estado = otro.privado ? "pendiente" : "ok";
       db.seguimientos.push({ de: db.sesion, a: id, estado, fecha: ahora() });
-      // Los perfiles de ejemplo privados aceptan solos a los pocos segundos
-      if (otro.ejemplo && otro.privado) setTimeout(() => { const s = seguimiento(db.sesion, id); if (s) { s.estado = "ok"; guardar(); avisar(); } }, 4000);
       guardar(); avisar(); return estado;
     },
     async dejarDeSeguir(id) { db.seguimientos = db.seguimientos.filter(s => !(s.de === db.sesion && s.a === id)); guardar(); avisar(); },
@@ -201,11 +188,6 @@
       texto = String(texto || "").trim(); if (!texto) return;
       const p = db.publicaciones.find(x => x.id === id); if (!p) throw new Error("Esa foto ya no está disponible.");
       p.comentarios.push({ id: nuevoId("c_"), autor: db.sesion, texto, fecha: ahora() }); guardar(); avisar();
-      const a = usuario(p.autor);
-      if (a && a.ejemplo && a.id !== db.sesion) setTimeout(() => {
-        const r = ["¡Gracias por el comentario!", "¡Muchas gracias! Repetiremos seguro.", "Gracias, el equipo de Doña Col lo bordó."];
-        p.comentarios.push({ id: nuevoId("c_"), autor: a.id, texto: r[Math.floor(Math.random() * r.length)] + " (perfil de ejemplo)", fecha: ahora() }); guardar(); avisar();
-      }, 3000);
     },
     async borrarComentario(id, cid) {
       const p = db.publicaciones.find(x => x.id === id); if (!p) return;
@@ -215,8 +197,6 @@
       if (!foto) throw new Error("Elige una foto.");
       const p = { id: nuevoId("p_"), autor: db.sesion, foto, texto: (texto || "").trim(), evento: evento || "", fecha: ahora(), meGusta: [], comentarios: [] };
       db.publicaciones.push(p); guardar(); avisar();
-      // Demostración: una agencia de ejemplo comenta tu foto a los pocos segundos
-      setTimeout(() => { const x = db.publicaciones.find(y => y.id === p.id); if (x) { x.comentarios.push({ id: nuevoId("c_"), autor: "u_lumen", texto: "¡Qué buena pinta! (perfil de ejemplo)", fecha: ahora() }); guardar(); avisar(); } }, 6000);
       return p;
     },
     async borrarPublicacion(id) {
@@ -253,13 +233,10 @@
       texto = String(texto || "").trim(); if (!texto) return;
       db.mensajes.push({ id: nuevoId("m_"), de: db.sesion, a: otro, texto, fecha: ahora(), leido: false }); guardar(); avisar();
       const o = usuario(otro);
-      if (o && o.ejemplo) setTimeout(() => {
-        const respuestas = o.oficial
-          ? ["¡Gracias por escribirnos! Te respondemos en horario de oficina, de lunes a viernes de 8:00 a 16:00.", "Recibido. Si es para un pedido, puedes hacerlo desde «Pedir» con tu descuento de socio."]
-          : ["¡Hola! Encantados de conectar por aquí.", "Gracias por el mensaje. ¿Te paso el contacto de nuestro equipo de eventos?", "Genial, hablamos esta semana."];
-        db.mensajes.push({ id: nuevoId("m_"), de: otro, a: db.sesion, texto: respuestas[Math.floor(Math.random() * respuestas.length)] + " (perfil de ejemplo)", fecha: ahora(), leido: false });
+      if (o && o.oficial && !db.mensajes.some(m => m.de === otro && m.a === db.sesion && m.auto && Date.now() - new Date(m.fecha) < 3600e3)) setTimeout(() => {
+        db.mensajes.push({ id: nuevoId("m_"), de: otro, a: db.sesion, auto: true, texto: "Gracias por escribirnos. Te respondemos en horario de oficina, de lunes a viernes de 8:00 a 16:00. (Respuesta automática)", fecha: ahora(), leido: false });
         guardar(); avisar();
-      }, 2500);
+      }, 1500);
     },
     async sinLeer() { return db.mensajes.filter(m => m.a === db.sesion && !m.leido && !bloqueado(m.de)).length; },
 

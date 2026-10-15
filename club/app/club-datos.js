@@ -29,6 +29,18 @@ window.CLUB = {
 
   textoPrivacidad: "Doña Col trata tus datos (nombre, empresa, cargo, correo, fotos y mensajes) para gestionar tu cuenta del club, tus pedidos y la red de contactos. Las fotos que publicas las ven los demás socios; si marcas tu perfil como privado, solo las ven quienes aceptes. Puedes borrar tu cuenta y tus datos desde Perfil > Editar perfil. Responsable: Doña Col Catering. Texto provisional: pendiente de revisión por la asesoría.",
 
+  // FIREBASE (usuarios reales). Pega aquí el bloque «firebaseConfig» de tu proyecto, por ejemplo:
+  //   config: { apiKey: "...", authDomain: "donacol-club.firebaseapp.com", projectId: "donacol-club", storageBucket: "...", messagingSenderId: "...", appId: "..." }
+  // Mientras esté en null, la app funciona en modo demostración (todo guardado en el móvil).
+  firebase: { config: null },
+
+  // CLOUDINARY (opcional, recomendado cuando haya muchas fotos): nombre de la cuenta y un «upload preset» sin firmar.
+  // Vacío = las fotos se guardan comprimidas dentro de Firestore (suficiente para empezar).
+  cloudinary: { cloud: "", preset: "", carpeta: "club-donacol" },
+
+  // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
+  version: { nombre: "1.2", codigo: 4, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: true
 };
