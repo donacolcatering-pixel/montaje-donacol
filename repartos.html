@@ -2,106 +2,214 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#3F2920">
-<title>Reparto de Pedidos · Doña Col</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1B1411">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Repartos">
+<title>Repartos · Doña Col</title>
 <link rel="manifest" href="repartos-manifest.json">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
 <style>
+  /* Tipografías de la marca, guardadas en la app (funcionan sin cobertura) */
+  @font-face{font-family:"Hanken";src:url(fonts/hanken.woff2) format("woff2");font-weight:300 800;font-display:swap}
+  @font-face{font-family:"Bodoni";src:url(fonts/bodoni.woff2) format("woff2");font-weight:400 700;font-display:swap}
   :root{
-    --beige:#F5EAD8; --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --oro-d:#b06d24;
-    --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#3a2c22; --gris:#8c7a68;
-    --ok:#4e7d3a; --okbg:#eef4e6; --pend:#cf8a2e; --pendbg:#fbf1e0; --no:#b23b3b; --nobg:#fbeeee;
-    --azul:#2f6f8f;
+    --cacao:#1B1411; --cafe:#61422A; --taupe:#907A69; --nata:#F1E4C3;
+    --fondo:#F4EFE6; --sup:#FFFFFF; --sup2:#EDE5D8; --tinta:#1F1712; --suave:#6B6058; --linea:rgba(31,23,18,.12);
+    --acento:var(--cafe); --sobre:#FFFFFF;
+    --ok:#2C7448; --okbg:#E1EFE5; --amb:#8A5208; --ambbg:#FAEAD0; --no:#A8322D;
+    --display:"Bodoni","Bodoni Moda",Didot,Georgia,serif;
+    --texto:"Hanken",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:16px; --nav:64px; --inf:env(safe-area-inset-bottom,0px); --sup-seg:env(safe-area-inset-top,0px);
   }
+  /* De noche (los primeros repartos salen a las 7:45) la app pasa a oscuro con el móvil */
+  @media (prefers-color-scheme:dark){:root{
+    --fondo:#14100D; --sup:#211915; --sup2:#2C221D; --tinta:#F3EBDD; --suave:#B5A797; --linea:rgba(243,235,221,.14);
+    --acento:var(--nata); --sobre:#1B1411; --ok:#79C795; --okbg:#1C3124; --amb:#F0B45C; --ambbg:#3A2A12; --no:#F08A80;
+  }}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--beige);color:var(--tinta);font-size:16px;line-height:1.4}
-  header{background:var(--marron);color:#f7ecdc;padding:14px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px rgba(63,41,32,.25);border-bottom:3px solid var(--oro)}
-  .brand{display:flex;align-items:center;gap:12px;max-width:620px;margin:0 auto}
-  .brand .logo{width:54px;height:54px;flex:none;border-radius:50%;background:#fbf4e7;padding:4px;object-fit:contain;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-  header h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px;font-family:Georgia,'Times New Roman',serif}
-  header p{margin:2px 0 0;font-size:11px;color:var(--oro);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-  main{padding:14px;max-width:620px;margin:0 auto}
-  .card{background:var(--crema);border:1px solid var(--linea);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(90,59,39,.06)}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--oro-d);margin:0 0 10px;font-weight:700}
-  label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px;color:var(--marron2)}
-  input[type=text],input[type=date]{width:100%;padding:11px;font-size:16px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta)}
-  input:focus{outline:none;border-color:var(--oro);box-shadow:0 0 0 3px rgba(208,132,52,.15)}
-  button{font-family:inherit}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:var(--texto);background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.45;
+       padding-bottom:calc(var(--nav) + var(--inf) + 12px);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+  body.en-detalle{padding-bottom:0}
+  button,input{font:inherit;color:inherit}
+  button{background:none;border:0;cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  svg{width:20px;height:20px;flex:none}
+  :focus-visible{outline:2px solid var(--acento);outline-offset:3px}
 
-  /* Lista de pedidos a repartir */
-  .diaSep{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#f7ecdc;background:var(--marron2);border-radius:9px;padding:7px 11px;margin:14px 0 6px;border-left:4px solid var(--oro)}
-  .ped{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;box-shadow:0 1px 3px rgba(90,59,39,.05)}
-  .ped:active{transform:scale(.99)}
-  .ped .hora{flex:none;width:58px;text-align:center;font-family:Georgia,serif;font-weight:800;font-size:18px;color:var(--marron);line-height:1.1}
-  .ped .hora small{display:block;font-size:9px;color:var(--gris);font-weight:700;letter-spacing:.5px}
-  .ped .info{flex:1;min-width:0}
-  .ped .emp{font-weight:700;font-size:15px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ped .dir{font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ped .meta{font-size:11px;color:var(--oro-d);font-weight:700;margin-top:2px}
-  .ped .badge{flex:none}
-  .filtros{display:flex;gap:7px;margin:2px 0 12px}
-  .fbtn{flex:1;padding:10px 6px;border:1px solid var(--linea);border-radius:10px;background:#fff;
-        color:var(--marron);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
-  .fbtn.on{background:var(--marron);color:#fff;border-color:var(--marron)}
-  .ciudadSep{font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--oro-d);
-             margin:10px 0 5px 2px;text-transform:uppercase}
-  .badge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
-  .b-pend{background:var(--pendbg);color:var(--pend)} .b-ok{background:var(--okbg);color:var(--ok)}
-  .vacio{font-size:13px;color:var(--gris);text-align:center;padding:18px 8px}
-  .rutaBtn{display:block;text-align:center;background:var(--azul);color:#fff;text-decoration:none;border-radius:12px;padding:12px;font-weight:800;font-size:14px;margin:0 0 10px;box-shadow:0 2px 8px rgba(47,111,143,.3)}
-  .rutaBtn:active{transform:scale(.99)}
+  /* Barra superior */
+  .barra-app{position:sticky;top:0;z-index:20;background:var(--cacao);color:var(--nata);padding:calc(10px + var(--sup-seg)) 18px 10px;
+             display:flex;align-items:center;gap:12px}
+  .barra-app img{width:40px;height:40px;object-fit:contain;flex:none;border-radius:50%;background:#FBF4E7;padding:3px}
+  .barra-app .titulo{font-family:var(--display);font-size:22px;line-height:1;font-weight:500}
+  .barra-app .fecha{margin-left:auto;font-size:13px;color:rgba(241,228,195,.75);text-align:right}
+  main{max-width:640px;margin:0 auto;padding:0 18px}
+
+  /* Botones */
+  .boton{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:52px;padding:12px 18px;border-radius:12px;
+         font-weight:700;font-size:16px;background:var(--acento);color:var(--sobre);transition:transform .15s,opacity .2s}
+  .boton:active{transform:scale(.97)}
+  .boton.contorno{background:transparent;color:inherit;box-shadow:inset 0 0 0 1.5px currentColor}
+  .boton.ancho{width:100%}
+  .boton:disabled{opacity:.45}
+
+  /* Resumen del día */
+  .dia{padding:22px 0 6px}
+  .dia-titulo{display:flex;align-items:baseline;gap:12px}
+  .dia-titulo h2{margin:0;font-family:var(--display);font-weight:500;font-size:40px;line-height:1}
+  .dia-titulo span{color:var(--suave);font-size:15px}
+  .progreso-texto{margin:14px 0 8px;font-size:15px;color:var(--suave)}
+  .progreso-texto b{color:var(--tinta)}
+  .progreso{display:flex;gap:4px;height:6px}
+  .progreso i{flex:1;border-radius:3px;background:var(--linea);transition:background .4s}
+  .progreso i.hecho{background:var(--ok)}
+
+  /* Ciudad */
+  .segmentos{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:16px 0 0}
+  .segmentos button{flex:1;min-height:38px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave)}
+  .segmentos button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+  /* Siguiente parada: lo más importante de la pantalla */
+  .siguiente{margin:16px 0 6px;padding:20px;border-radius:20px;background:var(--cacao);color:var(--nata);
+             box-shadow:0 12px 28px -20px rgba(27,20,17,.8)}
+  @media (prefers-color-scheme:dark){.siguiente{background:var(--sup2)}}
+  .sig-etiqueta{margin:0;font-size:14px;color:rgba(241,228,195,.75);display:flex;align-items:center;gap:8px}
+  .sig-etiqueta::before{content:"";width:8px;height:8px;border-radius:50%;background:#E9B872;box-shadow:0 0 0 4px rgba(233,184,114,.25)}
+  .sig-hora{margin:10px 0 4px;font-family:var(--display);font-weight:500;font-size:58px;line-height:.95;letter-spacing:-.01em}
+  .sig-hora small{font-size:26px;margin-left:6px;opacity:.75}
+  .siguiente h3{margin:6px 0 4px;font-size:22px;line-height:1.2;font-weight:700}
+  .sig-dir{margin:0;font-size:16px;color:rgba(241,228,195,.85)}
+  .sig-meta{margin:6px 0 0;font-size:14px;color:rgba(241,228,195,.65)}
+  .sig-botones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .sig-botones .boton{padding:12px 10px;gap:7px;font-size:15px;white-space:nowrap}
+  .siguiente .boton{background:var(--nata);color:var(--cacao)}
+  .siguiente .boton.contorno{background:transparent;color:var(--nata)}
+  .siguiente.terminada{text-align:left}
+  .siguiente.terminada .sig-hora{font-size:40px}
+
+  /* Ruta: paradas unidas por una línea, como una hoja de ruta */
+  .dia-sep{margin:30px 0 4px;font-size:20px;font-weight:800;line-height:1.2}
+  .ciudad-sep{margin:18px 0 8px;font-size:15px;font-weight:700;color:var(--suave)}
+  .boton-ruta{display:flex;align-items:center;gap:10px;min-height:52px;margin:10px 0 6px;padding:12px 16px;border-radius:12px;
+              background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);font-weight:700}
+  .boton-ruta span{margin-left:auto;font-weight:500;color:var(--suave);font-size:14px}
+  .ruta{list-style:none;margin:6px 0 0;padding:0}
+  .parada{display:grid;grid-template-columns:58px 22px 1fr;column-gap:10px;cursor:pointer;min-height:84px}
+  .parada:active .p-info{opacity:.6}
+  .p-hora{padding-top:13px;text-align:right;font-size:17px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+  .p-hora small{display:block;margin-top:4px;font-family:var(--texto);font-size:12px;color:var(--suave)}
+  .p-nodo{position:relative;display:flex;justify-content:center}
+  .p-nodo::before{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--linea)}
+  .parada:first-child .p-nodo::before{top:18px} .parada:last-child .p-nodo::before{bottom:calc(100% - 18px)}
+  .p-nodo i{position:relative;margin-top:12px;width:20px;height:20px;border-radius:50%;background:var(--fondo);
+            box-shadow:inset 0 0 0 2px var(--taupe);display:grid;place-items:center}
+  .p-nodo i svg{width:12px;height:12px;color:#fff}
+  .parada.ok .p-nodo i{background:var(--ok);box-shadow:none}
+  .parada.sinsubir .p-nodo i{background:var(--amb);box-shadow:none}
+  .parada.es-siguiente .p-nodo i{box-shadow:inset 0 0 0 6px var(--acento)}
+  .p-info{padding:12px 0 16px;border-bottom:1px solid var(--linea);min-width:0;display:flex;flex-direction:column;gap:3px}
+  .parada:last-child .p-info{border-bottom:0}
+  .p-info b{font-size:17px;line-height:1.25}
+  .p-dir{font-size:14px;color:var(--suave);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .p-meta{font-size:14px}
+  .parada.ok .p-info b,.parada.ok .p-hora{color:var(--suave)}
+  .chip{align-self:flex-start;margin-top:4px;padding:4px 10px;border-radius:99px;font-size:13px;font-weight:700;background:var(--sup2)}
+  .chip.ok{background:var(--okbg);color:var(--ok)} .chip.amb{background:var(--ambbg);color:var(--amb)}
+
+  .vacio{margin:24px 0;padding:22px;border-radius:var(--r);background:var(--sup);text-align:center;color:var(--suave)}
+  .aviso{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--ambbg);color:var(--amb);font-size:14px}
+  .aviso .boton{min-height:44px;margin-top:10px;width:100%;background:var(--amb);color:var(--sup)}
+
+  /* Entregados */
+  #cardRegistro{display:none;padding-top:22px}
+  body.vista-entregados #cardRegistro{display:block} body.vista-entregados #vistaRuta{display:none}
+  #cardRegistro h2{margin:0 0 12px;font-family:var(--display);font-weight:500;font-size:36px;line-height:1}
+  .reg{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--linea);cursor:pointer}
+  .reg div{flex:1;min-width:0} .reg b{display:block} .reg span{font-size:14px;color:var(--suave)}
+  .reg i{width:28px;height:28px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;flex:none}
+  .reg i svg{width:14px;height:14px}
+
+  /* Pestañas inferiores (como una app) */
+  .pestanas{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;height:calc(var(--nav) + var(--inf));padding-bottom:var(--inf);
+            background:var(--sup);box-shadow:0 -1px 0 var(--linea)}
+  .pestanas button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;color:var(--suave);position:relative}
+  .pestanas button.on{color:var(--tinta)}
+  .pestanas button svg{width:24px;height:24px}
+  .pestanas b{position:absolute;top:8px;left:calc(50% + 8px);min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ok);color:#fff;font-size:12px;display:grid;place-items:center}
+  .pestanas b:empty{display:none}
+  body.en-detalle .pestanas{display:none}
 
   /* Detalle / entrega */
-  #detalle{display:none}
-  .volver{background:#ecdcc4;color:var(--marron2);border:none;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}
-  .resumen{background:linear-gradient(160deg,var(--marron2),var(--marron));color:#f7ecdc;border-radius:14px;padding:14px;margin-bottom:14px}
-  .resumen .enc{font-size:11px;letter-spacing:1px;color:var(--oro);font-weight:800;text-transform:uppercase}
-  .resumen h3{margin:2px 0 8px;font-size:20px;font-family:Georgia,serif;color:#fff}
-  .resumen .linea{display:flex;gap:8px;font-size:14px;margin:5px 0;align-items:flex-start}
-  .resumen .linea .ic{flex:none;width:20px;text-align:center}
-  .mapsBtn{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:800;font-size:14px;margin-top:10px}
+  #detalle{display:none;padding-bottom:20px}
+  .volver{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:12px 0 0 -6px;padding:0 10px;font-weight:700;color:var(--suave)}
+  .resumen{padding:6px 0 20px}
+  .det-etiqueta{margin:0;font-size:14px;color:var(--suave)}
+  .resumen h2{margin:6px 0 10px;font-family:var(--display);font-weight:500;font-size:34px;line-height:1.05}
+  .det-hora{margin:0;font-size:18px;font-weight:700}
+  .det-dir{margin:4px 0 0;font-size:16px}
+  .det-meta{margin:4px 0 16px;font-size:15px;color:var(--suave)}
+  .paso{padding:20px 0;border-top:1px solid var(--linea);scroll-margin-bottom:110px}
+  .paso-titulo{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:18px;font-weight:700}
+  .paso-titulo span{width:28px;height:28px;border-radius:50%;background:var(--acento);color:var(--sobre);display:grid;place-items:center;font-size:14px}
+  .paso-titulo small{margin-left:auto;font-weight:500;font-size:14px;color:var(--suave)}
+  .campo{width:100%;min-height:54px;padding:12px 14px;font-size:17px;border:0;border-radius:12px;background:var(--sup);
+         box-shadow:inset 0 0 0 1.5px var(--linea);color:var(--tinta)}
+  .campo:focus{outline:none;box-shadow:inset 0 0 0 2px var(--acento)}
+  .firmaWrap{position:relative;border-radius:12px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1.5px var(--linea)}
+  #firma{width:100%;height:240px;display:block;touch-action:none}
+  .firmaHint{position:absolute;left:0;right:0;bottom:46px;text-align:center;font-size:15px;color:#7D6F63;pointer-events:none}
+  .firmaLinea{position:absolute;left:24px;right:24px;bottom:38px;height:1px;background:#D9CFC2;pointer-events:none}
+  .firmaBorrar{position:absolute;right:10px;top:10px;min-height:36px;padding:0 12px;border-radius:10px;background:#F1EBE2;color:#5A4B40;font-size:14px;font-weight:700}
+  .camara{display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px;border-radius:12px;background:var(--sup);
+          box-shadow:inset 0 0 0 1.5px var(--linea);font-weight:700;cursor:pointer}
+  .camara svg{width:24px;height:24px}
+  #fotoInput{position:absolute;width:1px;height:1px;opacity:0}
+  #fotoPrev{display:none;width:100%;max-height:260px;object-fit:cover;border-radius:16px;margin-bottom:10px}
+  .barra-confirmar{position:sticky;bottom:0;margin:0 -18px;padding:12px 18px calc(12px + var(--inf));
+                   background:linear-gradient(to top,var(--fondo) 75%,transparent)}
+  .btnConfirmar{width:100%;min-height:58px;border-radius:12px;font-size:17px;font-weight:800;background:var(--ok);color:#fff}
+  @media (prefers-color-scheme:dark){.btnConfirmar{color:#0F2417}}
+  .btnConfirmar:disabled{opacity:.5}
+  .campo.error{box-shadow:inset 0 0 0 2px var(--no)}
+  /* El borde de la firma va por encima del lienzo (si no, el lienzo blanco lo tapa) */
+  .firmaWrap::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1.5px var(--linea)}
+  .firmaWrap.error::after{box-shadow:inset 0 0 0 2.5px var(--no)}
+  .estadoMsg{margin:8px 0 0;min-height:1.2em;text-align:center;font-size:14px;color:var(--suave)}
 
-  .firmaWrap{border:2px dashed var(--oro);border-radius:12px;background:#fff;position:relative;overflow:hidden}
-  #firma{width:100%;height:200px;display:block;touch-action:none;cursor:crosshair}
-  .firmaHint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:#cbb9a0;pointer-events:none}
-  .firmaBorrar{position:absolute;right:8px;top:8px;background:rgba(178,59,59,.9);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;padding:5px 10px;cursor:pointer}
+  /* Entregado */
+  #cardEntregado{padding:10px 0 20px;text-align:center}
+  .ok-sello{width:84px;height:84px;margin:10px auto 14px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;animation:sello .5s cubic-bezier(.2,1.4,.4,1) both}
+  .ok-sello svg{width:40px;height:40px}
+  .ok-sello.amb{background:var(--amb)}
+  @keyframes sello{from{transform:scale(.4);opacity:0}}
+  #cardEntregado h3{margin:0;font-family:var(--display);font-weight:500;font-size:34px}
+  .ok-hora{margin:6px 0 2px;color:var(--suave)}
+  .ok-obs{margin:12px auto 0;padding:10px 14px;border-radius:12px;background:var(--sup2);text-align:left;font-size:15px}
+  #avisoPendiente{display:none;margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--ambbg);color:var(--amb);font-size:14px;text-align:left}
+  .pruebas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+  .pruebas a{display:block;border-radius:14px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px var(--linea)}
+  .pruebas a img{width:100%;height:130px;object-fit:contain;display:block;background:#fff}
+  .pruebas a span{display:block;padding:8px;font-size:14px;font-weight:700;background:var(--sup);color:var(--tinta)}
 
-  .btnGrande{width:100%;padding:15px;border:none;border-radius:13px;font-size:16px;font-weight:800;cursor:pointer}
-  .btnConfirmar{background:var(--ok);color:#fff;box-shadow:0 3px 10px rgba(78,125,58,.35)}
-  .btnConfirmar:disabled{background:#c8bda8;box-shadow:none;cursor:not-allowed}
-  .estadoMsg{font-size:13px;text-align:center;color:var(--gris);margin:10px 0 0}
-
-  .pruebas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
-  .pruebas a{display:block;border:1px solid var(--linea);border-radius:10px;overflow:hidden;text-decoration:none;background:#fff}
-  .pruebas a img{width:100%;height:120px;object-fit:contain;background:#fff;display:block}
-  .pruebas a span{display:block;font-size:11px;text-align:center;color:var(--oro-d);font-weight:700;padding:5px}
-
-  /* Registro de entregas confirmadas (oficina) */
-  .regrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #efe3d0;cursor:pointer;font-size:14px}
-  .regrow:last-child{border-bottom:none}
-  .regrow .nt{display:block;font-size:11px;color:var(--gris)}
-
-  footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
-  footer b{color:var(--marron2)}
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:24px 0 8px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img src="logo.png" class="logo" alt="Doña Col Catering">
-    <div>
-      <h1>🚚 Reparto de Pedidos</h1>
-      <p>Doña Col · Catering &amp; Eventos</p>
-    </div>
-  </div>
+<header class="barra-app">
+  <img src="logo.png" alt="Doña Col">
+  <span class="titulo">Repartos</span>
 </header>
 <main>
 
   <!-- LISTA de pedidos a repartir -->
   <div id="lista">
-    <div class="card">
-      <h2>📦 Pedidos a repartir</h2>
-      <div class="filtros" id="filtroCiudad">
+    <div id="vistaRuta">
+      <section class="dia" id="resumenDia"></section>
+      <div class="segmentos" id="filtroCiudad">
         <button class="fbtn" data-ciudad="">Todas</button>
         <button class="fbtn" data-ciudad="Madrid">Madrid</button>
         <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
@@ -110,55 +218,64 @@
       <div id="pedidos"><p class="vacio">Cargando pedidos…</p></div>
     </div>
 
-    <div class="card" id="cardRegistro" style="display:none">
-      <h2>🗂️ Entregas confirmadas</h2>
+    <section id="cardRegistro">
+      <h2>Entregados</h2>
       <div id="registro"></div>
-      <p style="font-size:11px;color:var(--gris);margin:8px 0 0">Toca una entrega para ver la firma y la foto.</p>
-    </div>
+    </section>
   </div>
 
   <!-- DETALLE / pantalla de entrega -->
   <div id="detalle">
-    <button class="volver" id="btnVolver">← Volver a la lista</button>
+    <button class="volver" id="btnVolver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Ruta</button>
     <div class="resumen" id="resumen"></div>
 
     <!-- Formulario de entrega (pedido pendiente) -->
-    <div class="card" id="formEntrega">
-      <h2>✍️ Confirmar entrega</h2>
-      <label for="receptor">Recibido por (nombre de quien firma)</label>
-      <input id="receptor" type="text" placeholder="Nombre y apellido" autocomplete="off">
-
-      <label style="margin-top:14px">Firma del cliente</label>
-      <div class="firmaWrap">
-        <canvas id="firma"></canvas>
-        <button class="firmaBorrar" id="btnBorrarFirma">↻ Borrar</button>
-        <div class="firmaHint" id="firmaHint">Firme con el dedo aquí ☝️</div>
+    <div id="formEntrega">
+      <div class="paso">
+        <p class="paso-titulo"><span>1</span>¿Quién lo recibe?</p>
+        <input class="campo" id="receptor" type="text" placeholder="Nombre y apellido" autocomplete="off" autocapitalize="words">
       </div>
-
-      <label style="margin-top:14px">Observaciones (opcional)</label>
-      <input id="obs" type="text" placeholder="Ej.: entregado en recepción · faltaba 1 caja" autocomplete="off">
-
-      <label style="margin-top:14px">Foto del pedido entregado (opcional)</label>
-      <input id="fotoInput" type="file" accept="image/*" capture="environment" style="font-size:13px">
-
-      <button class="btnGrande btnConfirmar" id="btnConfirmar" style="margin-top:16px">✅ Confirmar entrega</button>
-      <p class="estadoMsg" id="estadoMsg"></p>
+      <div class="paso">
+        <p class="paso-titulo"><span>2</span>Firma del cliente</p>
+        <div class="firmaWrap">
+          <canvas id="firma"></canvas>
+          <div class="firmaLinea"></div>
+          <button class="firmaBorrar" id="btnBorrarFirma">Borrar</button>
+          <div class="firmaHint" id="firmaHint">Firme aquí con el dedo</div>
+        </div>
+      </div>
+      <div class="paso">
+        <p class="paso-titulo"><span>3</span>Foto del pedido<small>Opcional</small></p>
+        <img id="fotoPrev" alt="Foto del pedido">
+        <label class="camara" for="fotoInput"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span id="fotoTexto">Hacer foto</span></label>
+        <input id="fotoInput" type="file" accept="image/*" capture="environment">
+      </div>
+      <div class="paso">
+        <p class="paso-titulo">Observaciones<small>Opcional</small></p>
+        <input class="campo" id="obs" type="text" placeholder="Ej.: entregado en recepción" autocomplete="off">
+      </div>
+      <div class="barra-confirmar">
+        <button class="btnConfirmar" id="btnConfirmar">Confirmar entrega</button>
+        <p class="estadoMsg" id="estadoMsg"></p>
+      </div>
     </div>
 
     <!-- Prueba de entrega (pedido ya entregado) -->
-    <div class="card" id="cardEntregado" style="display:none">
-      <h2>✅ Entregado</h2>
-      <p id="avisoPendiente" style="display:none;margin:0 0 10px;padding:9px 11px;background:#fff4e5;
-         border:1px solid #f0c98a;border-radius:9px;color:#7a4b00;font-size:13px">
-        📥 Guardada en este móvil. <b>Se subirá sola en cuanto haya cobertura.</b>
-        No hace falta repetirla.</p>
-      <div id="datosEntrega" style="font-size:14px"></div>
+    <div id="cardEntregado" style="display:none">
+      <div id="datosEntrega"></div>
+      <p id="avisoPendiente">Guardada en este móvil. <b>Se subirá sola en cuanto haya cobertura.</b> No hace falta repetirla.</p>
       <div class="pruebas" id="pruebas"></div>
+      <button class="boton ancho" id="btnOtraVez">Volver a la ruta</button>
     </div>
   </div>
 
-  <footer>Doña Col · reparto de pedidos <b>v1</b></footer>
+  <footer>Doña Col · Repartos</footer>
 </main>
+
+<nav class="pestanas" id="pestanas">
+  <button data-vista="ruta" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.5 5H15a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h6.5"/></svg><span>Ruta</span></button>
+  <button data-vista="entregados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg><span>Entregados</span><b id="cuentaEntregados"></b></button>
+</nav>
 
 <!-- Firebase (guarda la entrega: firma, hora, receptor, foto) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -265,6 +382,42 @@ function esReparto(e){
 }
 
 // ---------- Lista ----------
+// Iconos propios (los emojis se ven distintos en cada móvil)
+const _svg=(p,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w||1.9}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICO={
+  check:_svg('<path d="M5 12.5 10 17 19 7"/>',3),
+  navegar:_svg('<path d="M3 11 21 3l-8 18-2-8z"/>'),
+  firma:_svg('<path d="M4 20c3 0 4-6 7-6s1 4 4 4 3-3 5-3"/><path d="m14 4 6 6"/>'),
+  mapa:_svg('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+  chevron:_svg('<path d="m9 6 6 6-6 6"/>'),
+  reloj:_svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')
+};
+// La hora viene escrita a mano ('ENTREGA 8.30 - 9.00', 'ENTREGA 07:45 – 08:15', 'ENTREGA PDTE').
+// Se saca la franja limpia: {ini:'8:30', fin:'9:00'}; si no hay hora, un texto corto.
+function horaCorta(txt){
+  const t=String(txt==null?'':txt);
+  const ms=[...t.matchAll(/\b([01]?\d|2[0-3])[:.,h]([0-5]\d)\b/g)].map(m=>parseInt(m[1],10)+':'+m[2]);
+  if(ms.length) return {ini:ms[0], fin:ms[1]||'', texto:''};
+  const resto=t.replace(/^\s*entrega\s*/i,'').trim();
+  return {ini:'', fin:'', texto: !resto || /pdte|pend/i.test(resto) ? 'Hora por confirmar' : resto};
+}
+function capital(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+const MESES_L=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fmtFechaLarga(iso){const d=new Date(iso+'T00:00:00');return capital(DIAS_SEM[d.getDay()])+', '+d.getDate()+' de '+MESES_L[d.getMonth()];}
+function etiquetaBonita(iso){
+  const hoy=hoyISO(); if(iso===hoy) return 'Paradas de hoy';
+  const man=new Date(hoy+'T00:00:00');man.setDate(man.getDate()+1);
+  const manISO=man.getFullYear()+'-'+String(man.getMonth()+1).padStart(2,'0')+'-'+String(man.getDate()).padStart(2,'0');
+  return iso===manISO ? 'Mañana, '+fmtFecha(iso) : capital(fmtFecha(iso));
+}
+const urlMaps=e=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.direccion||e.empresa||'');
+// Pestañas de abajo: Ruta / Entregados
+function verVista(v){
+  document.body.classList.toggle('vista-entregados', v==='entregados');
+  document.querySelectorAll('#pestanas button').forEach(b=>b.classList.toggle('on', b.dataset.vista===v));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('#pestanas button').forEach(b=>b.onclick=()=>verVista(b.dataset.vista));
 // Ruta del día en Google Maps con TODAS las paradas (sin API key: Maps calcula la
 // ruta al abrir). Origen = ubicación actual del móvil; paradas en el orden de la lista.
 function urlRutaDia(entregas){
@@ -303,13 +456,9 @@ function pintarCola(){
   const n=Object.keys(PENDIENTES).length;
   if(!n){ c.style.display='none'; c.innerHTML=''; return; }
   c.style.display='';
-  c.innerHTML=`<div style="padding:10px 12px;background:#fff4e5;border:1px solid #f0c98a;
-      border-radius:10px;margin-bottom:10px;font-size:13px;color:#7a4b00">
-      📥 <b>${n} entrega(s) guardada(s) en este móvil</b>, todavía sin subir.
+  c.innerHTML=`<div class="aviso"><b>${n} entrega${n>1?'s':''} guardada${n>1?'s':''} en este móvil</b>, todavía sin subir.
       Se suben solas al recuperar cobertura.
-      <button id="btnReintentarCola" style="margin-top:7px;width:100%;padding:8px;border:1px solid #d9a441;
-        border-radius:8px;background:#fff;color:#7a4b00;font-weight:800;font-family:inherit">
-        ↻ Intentar subirlas ahora</button></div>`;
+      <button class="boton" id="btnReintentarCola">Intentar subirlas ahora</button></div>`;
   $('btnReintentarCola').onclick=async ()=>{
     $('btnReintentarCola').textContent='Subiendo…';
     const r=await subirCola();
@@ -329,14 +478,38 @@ function minutosHora(txt){
   return m ? (parseInt(m[1],10)*60+parseInt(m[2],10)) : 99999;
 }
 
+function tarjetaSiguiente(e){
+  const h=horaCorta(e.hora);
+  return `<section class="siguiente" data-enc="${esc(e.enc)}" data-fecha="${esc(e.fecha||'')}">
+    <p class="sig-etiqueta">Siguiente parada</p>
+    <div class="sig-hora">${h.ini?esc(h.ini)+(h.fin?`<small>– ${esc(h.fin)}</small>`:''):`<small style="margin:0">${esc(h.texto)}</small>`}</div>
+    <h3>${esc(e.empresa||'(sin nombre)')}</h3>
+    <p class="sig-dir">${esc(e.direccion||'Sin dirección')}</p>
+    <p class="sig-meta">${esc(e.menu||'Menú sin indicar')} para ${esc(e.pax||0)} personas</p>
+    <div class="sig-botones">
+      ${e.direccion?`<a class="boton contorno" href="${esc(urlMaps(e))}" target="_blank" rel="noopener">${ICO.navegar} Cómo llegar</a>`:''}
+      <button class="boton" data-abrir${e.direccion?'':' style="grid-column:1/-1"'}>${ICO.firma} Entregar</button>
+    </div>
+  </section>`;
+}
+
 function pintarLista(){
   pintarCola();
   const cont=$('pedidos');
   let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
   prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(minutosHora(a.hora)-minutosHora(b.hora))||a.enc.localeCompare(b.enc));
+
+  // Resumen del día: cuántas llevas y cuántas faltan
+  const hoy=hoyISO(), deHoy=prox.filter(e=>e.fecha===hoy), hechos=deHoy.filter(e=>entregaDe(e)).length;
+  $('resumenDia').innerHTML=`<div class="dia-titulo"><h2>Hoy</h2><span>${esc(capital(fmtFecha(hoy)))}</span></div>`
+    +(deHoy.length
+      ? `<p class="progreso-texto"><b>${hechos} de ${deHoy.length}</b> entregados${CIUDAD?' en '+esc(CIUDAD):''}</p>
+         <div class="progreso">${deHoy.map(e=>`<i class="${entregaDe(e)?'hecho':''}"></i>`).join('')}</div>`
+      : `<p class="progreso-texto">Sin repartos para hoy${CIUDAD?' en '+esc(CIUDAD):''}.</p>`);
+
   const aviso = AVISO_ENTREGAS
-    ? `<p class="vacio" style="background:#fff4e5;border:1px solid #f0c98a;color:#7a4b00">⚠️ No he podido comprobar qué repartos están ya entregados.<br>Los que veas como «pendiente» quizá estén hechos. <small>(${esc(AVISO_ENTREGAS)})</small></p>`
+    ? `<p class="aviso"><b>No he podido comprobar qué repartos están ya entregados.</b> Los que no salen como entregados quizá estén hechos. <small>(${esc(AVISO_ENTREGAS)})</small></p>`
     : '';
   if(!prox.length){
     cont.innerHTML = aviso + (CIUDAD
@@ -344,61 +517,76 @@ function pintarLista(){
       : '<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>');
     return;
   }
+  const ciudadesHoy=[...new Set(REPARTOS.filter(e=>e.fecha===hoy).map(e=>normCiudad(e.ciudad)))].sort();
+  const elegirCiudad=!CIUDAD && ciudadesHoy.length>1;
+  const sig=elegirCiudad ? null : deHoy.find(e=>!entregaDe(e));
+  let html=aviso;
+  if(elegirCiudad) html+=`<section class="siguiente elegir"><p class="sig-etiqueta">Para ver tu siguiente parada</p>
+      <h3>¿En qué ciudad repartes hoy?</h3>
+      <div class="sig-botones">${ciudadesHoy.map(c=>`<button class="boton" data-elegir-ciudad="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <p class="sig-meta">Se queda guardado en este móvil. Puedes cambiarlo arriba.</p></section>`;
+  else if(sig) html+=tarjetaSiguiente(sig);
+  else if(deHoy.length) html+=`<section class="siguiente terminada"><p class="sig-etiqueta">Ruta de hoy</p><div class="sig-hora">Terminada</div><p class="sig-dir">Las ${deHoy.length} entregas de hoy están hechas.</p></section>`;
+
   const dias={};
   prox.forEach(e=>{ (dias[e.fecha]=dias[e.fecha]||[]).push(e); });
-  let html=aviso;
   Object.keys(dias).sort().forEach(fecha=>{
-    html+=`<div class="diaSep">${esc(etiquetaDia(fecha))}</div>`;
+    html+=`<h2 class="dia-sep">${esc(etiquetaBonita(fecha))}</h2>`;
     // Dentro de cada día se agrupa por CIUDAD. No es solo estético: la ruta de Maps
     // no puede mezclar Madrid y Zaragoza, saldrían 300 km de por medio.
     const porCiudad={};
     dias[fecha].forEach(e=>{ const c=normCiudad(e.ciudad); (porCiudad[c]=porCiudad[c]||[]).push(e); });
     const ciudades=Object.keys(porCiudad).sort();
     ciudades.forEach(ciudad=>{
-    const grupo=porCiudad[ciudad];
-    if(!CIUDAD && ciudades.length>1) html+=`<div class="ciudadSep">📍 ${esc(ciudad)}</div>`;
-    const conDir=grupo.filter(e=>e.direccion);
-    const rutaUrl=urlRutaDia(grupo);
-    if(rutaUrl && conDir.length){
-      html+=`<a class="rutaBtn" href="${esc(rutaUrl)}" target="_blank" rel="noopener">🗺️ Ver la RUTA de ${esc(ciudad)} en Maps · ${conDir.length} parada${conDir.length>1?'s':''}</a>`;
-    }
-    grupo.forEach(e=>{
-      const ent=entregaDe(e);
-      const badge = !ent ? `<span class="badge b-pend">○ pendiente</span>`
-        : estaPendiente(e)
-          ? `<span class="badge b-pend" style="background:#fff4e5;color:#7a4b00">📥 sin subir</span>`
-          : `<span class="badge b-ok">✓ ${esc(ent.hora_entrega||'entregado')}</span>`;
-      const horaRaw=(e.hora||'').trim();
-      const esHora=/^\d{1,2}:\d{2}/.test(horaRaw);
-      const horaHtml=esHora ? `${esc(horaRaw)}<small>ENTREGA</small>`
-                            : `<span style="font-size:11px;font-weight:800;line-height:1.15;display:block">${esc(horaRaw||'🕒')}</span>`;
-      html+=`<div class="ped" data-enc="${esc(e.enc)}" data-fecha="${esc(e.fecha||'')}">
-        <div class="hora">${horaHtml}</div>
-        <div class="info">
-          <div class="emp">${esc(e.empresa||'(sin nombre)')}</div>
-          <div class="dir">📍 ${esc(e.direccion||'sin dirección')}</div>
-          <div class="meta">${esc(e.pax||0)} pax · ${esc(e.menu||'')}</div>
-        </div>
-        <div class="badge">${badge}</div>
-      </div>`;
-    });
+      const grupo=porCiudad[ciudad];
+      if(!CIUDAD && ciudades.length>1) html+=`<h3 class="ciudad-sep">${esc(ciudad)}</h3>`;
+      const conDir=grupo.filter(e=>e.direccion);
+      const rutaUrl=urlRutaDia(grupo);
+      if(rutaUrl && conDir.length>1){
+        html+=`<a class="boton-ruta" href="${esc(rutaUrl)}" target="_blank" rel="noopener">${ICO.mapa} Abrir la ruta en Maps<span>${conDir.length} paradas</span></a>`;
+      }
+      html+='<ol class="ruta">';
+      grupo.forEach(e=>{
+        const ent=entregaDe(e), h=horaCorta(e.hora);
+        const estado=!ent?'pend':(estaPendiente(e)?'sinsubir':'ok');
+        html+=`<li class="parada ${estado}${e===sig?' es-siguiente':''}" data-enc="${esc(e.enc)}" data-fecha="${esc(e.fecha||'')}">
+          <div class="p-hora">${h.ini?esc(h.ini)+(h.fin?`<small>${esc(h.fin)}</small>`:''):'—'}</div>
+          <div class="p-nodo"><i>${estado!=='pend'?ICO.check:''}</i></div>
+          <div class="p-info">
+            <b>${esc(e.empresa||'(sin nombre)')}</b>
+            <span class="p-dir">${esc(e.direccion||'Sin dirección')}</span>
+            <span class="p-meta">${esc(e.menu||'Menú sin indicar')} para ${esc(e.pax||0)} personas</span>
+            ${estado==='ok'?`<span class="chip ok">Entregado a las ${esc(ent.hora_entrega||'')}</span>`
+              :estado==='sinsubir'?'<span class="chip amb">Guardado, falta subirlo</span>'
+              :!h.ini?`<span class="chip">${esc(h.texto)}</span>`:''}
+          </div>
+        </li>`;
+      });
+      html+='</ol>';
     });
   });
   cont.innerHTML=html;
-  cont.querySelectorAll('.ped').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc'), p.getAttribute('data-fecha')));
+  cont.querySelectorAll('.parada').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc'), p.getAttribute('data-fecha')));
+  cont.querySelectorAll('[data-elegir-ciudad]').forEach(b=>b.onclick=()=>{
+    CIUDAD=b.getAttribute('data-elegir-ciudad');
+    try{ localStorage.setItem('reparto_ciudad', CIUDAD); }catch(e){}
+    pintarFiltros(); pintarLista(); window.scrollTo(0,0);
+  });
+  cont.querySelectorAll('.siguiente [data-abrir]').forEach(b=>b.onclick=()=>{const s=b.closest('.siguiente');abrir(s.getAttribute('data-enc'), s.getAttribute('data-fecha'));});
 }
 
 function pintarRegistro(){
   const ents=Object.values(ENTREGAS)
     .sort((a,b)=>(b.entregado_en||'').localeCompare(a.entregado_en||''));
-  if(!ents.length){$('cardRegistro').style.display='none';return;}
-  $('cardRegistro').style.display='';
+  $('cuentaEntregados').textContent=ents.length||'';
+  if(!ents.length){$('registro').innerHTML='<p class="vacio">Todavía no hay entregas confirmadas.</p>';return;}
   $('registro').innerHTML=ents.map(en=>`
-    <div class="regrow" data-enc="${esc(en.enc)}" data-fecha="${esc(en.fecha||'')}">
-      <div><b>${esc(en.empresa||en.enc)}</b><span class="nt">${esc(en.fecha?fmtFecha(en.fecha):'')} · entregado ${esc(en.hora_entrega||'')}${en.receptor?' · firmó '+esc(en.receptor):''}</span></div>
-      <span class="badge b-ok">✓</span>
+    <div class="reg" data-enc="${esc(en.enc)}" data-fecha="${esc(en.fecha||'')}">
+      <i>${ICO.check}</i>
+      <div><b>${esc(en.empresa||en.enc)}</b><span>${esc(en.fecha?capital(fmtFecha(en.fecha)):'')}, a las ${esc(en.hora_entrega||'')}${en.receptor?'. Firmó '+esc(en.receptor):''}</span></div>
+      ${ICO.chevron}
     </div>`).join('');
-  $('registro').querySelectorAll('.regrow').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc'), r.getAttribute('data-fecha')));
+  $('registro').querySelectorAll('.reg').forEach(r=>r.onclick=()=>abrir(r.getAttribute('data-enc'), r.getAttribute('data-fecha')));
 }
 
 // La clave de la entrega lleva la FECHA porque el codigo ENC se repite cada semana
@@ -424,18 +612,19 @@ function abrir(enc, fecha){
   pedidoActual=ev;
   $('lista').style.display='none';
   $('detalle').style.display='block';   // 'block' explícito: el CSS tiene #detalle{display:none}
+  document.body.classList.add('en-detalle');
   window.scrollTo(0,0);
-  const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.direccion||ev.empresa||'');
+  const h=horaCorta(ev.hora);
   $('resumen').innerHTML=`
-    <div class="enc">Pedido ${esc(ev.enc)}</div>
-    <h3>${esc(ev.empresa||'(sin nombre)')}</h3>
-    <div class="linea"><span class="ic">📅</span><span>${esc(ev.fecha?fmtFecha(ev.fecha):'')}${ev.hora?' · entrega '+esc(ev.hora):''}</span></div>
-    <div class="linea"><span class="ic">📍</span><span>${esc(ev.direccion||'sin dirección')}</span></div>
-    <div class="linea"><span class="ic">🍽️</span><span>${esc(ev.pax||0)} pax · ${esc(ev.menu||'')}</span></div>
-    ${ev.direccion?`<a class="mapsBtn" href="${esc(maps)}" target="_blank" rel="noopener">🗺️ Abrir en Maps</a>`:''}`;
+    <p class="det-etiqueta">Pedido ${esc(ev.enc)}</p>
+    <h2>${esc(ev.empresa||'(sin nombre)')}</h2>
+    <p class="det-hora">${esc(ev.fecha?capital(fmtFecha(ev.fecha))+', ':'')}${h.ini?'de '+esc(h.ini)+(h.fin?' a '+esc(h.fin):''):esc(h.texto).toLowerCase()}</p>
+    <p class="det-dir">${esc(ev.direccion||'Sin dirección')}</p>
+    <p class="det-meta">${esc(ev.menu||'Menú sin indicar')} para ${esc(ev.pax||0)} personas</p>
+    ${ev.direccion?`<a class="boton contorno ancho" href="${esc(urlMaps(ev))}" target="_blank" rel="noopener">${ICO.navegar} Cómo llegar</a>`:''}`;
 
   const ent=entregaDe(ev);
-  if(ent){ mostrarEntregado(ent); }
+  if(ent){ mostrarEntregado(ent, estaPendiente(ev)); }
   else { mostrarFormulario(); }
 }
 
@@ -445,32 +634,50 @@ function mostrarFormulario(){
   $('receptor').value='';
   $('obs').value='';
   $('fotoInput').value='';
+  $('fotoPrev').style.display='none'; $('fotoPrev').removeAttribute('src');
+  $('fotoTexto').textContent='Hacer foto';
   $('estadoMsg').textContent='';
   $('btnConfirmar').disabled=false;
-  $('btnConfirmar').textContent='✅ Confirmar entrega';
+  $('btnConfirmar').textContent='Confirmar entrega';
   prepararFirma();
 }
 
 function mostrarEntregado(ent, pendiente){
   $('formEntrega').style.display='none';
   $('cardEntregado').style.display='';
-  $('avisoPendiente').style.display = pendiente ? '' : 'none';
+  $('avisoPendiente').style.display = pendiente ? 'block' : 'none';
   $('datosEntrega').innerHTML=`
-    <p style="margin:0 0 6px"><b>${esc(ent.receptor||'—')}</b> recibió el pedido</p>
-    <p style="margin:0;color:var(--gris)">🕒 ${esc(ent.fecha?fmtFecha(ent.fecha)+' · ':'')}${esc(ent.hora_entrega||'')}</p>`
-    +(ent.observaciones?`<p style="margin:8px 0 0;padding:8px 10px;background:var(--pendbg);border-radius:8px;font-size:13px">📝 ${esc(ent.observaciones)}</p>`:'');
+    <div class="ok-sello${pendiente?' amb':''}">${ICO.check}</div>
+    <h3>${pendiente?'Guardada':'Entregado'}</h3>
+    <p class="ok-hora">${esc(ent.fecha?capital(fmtFecha(ent.fecha))+', ':'')}a las ${esc(ent.hora_entrega||'')}</p>
+    <p style="margin:0">Lo recibió <b>${esc(ent.receptor||'—')}</b></p>`
+    +(ent.observaciones?`<p class="ok-obs">${esc(ent.observaciones)}</p>`:'');
   let pr='';
   const fu=safeUrl(ent.firma_url), fo=safeUrl(ent.foto_url);
-  if(fu)pr+=`<a href="${esc(fu)}" target="_blank" rel="noopener"><img src="${esc(fu)}"><span>✍️ Ver firma</span></a>`;
-  if(fo)pr+=`<a href="${esc(fo)}" target="_blank" rel="noopener"><img src="${esc(fo)}"><span>📷 Ver foto</span></a>`;
-  $('pruebas').innerHTML=pr||'<p style="font-size:12px;color:var(--gris);grid-column:1/-1">Sin imágenes adjuntas.</p>';
+  if(fu)pr+=`<a href="${esc(fu)}" target="_blank" rel="noopener"><img src="${esc(fu)}" alt="Firma"><span>Firma</span></a>`;
+  if(fo)pr+=`<a href="${esc(fo)}" target="_blank" rel="noopener"><img src="${esc(fo)}" alt="Foto"><span>Foto</span></a>`;
+  $('pruebas').innerHTML=pr;
 }
 
-$('btnVolver').onclick=()=>{
+function volverALista(){
   $('detalle').style.display='none';
   $('lista').style.display='block';
+  document.body.classList.remove('en-detalle');
   window.scrollTo(0,0);
   pedidoActual=null;
+}
+$('btnVolver').onclick=volverALista;
+$('btnOtraVez').onclick=volverALista;
+
+$('receptor').addEventListener('input',()=>$('receptor').classList.remove('error'));
+$('firma').addEventListener('pointerdown',()=>document.querySelector('.firmaWrap').classList.remove('error'));
+
+// Vista previa de la foto (antes era el selector de archivos del móvil, pequeño y sin vista previa)
+$('fotoInput').onchange=()=>{
+  const f=$('fotoInput').files&&$('fotoInput').files[0];
+  if(!f) return;
+  $('fotoPrev').src=URL.createObjectURL(f); $('fotoPrev').style.display='block';
+  $('fotoTexto').textContent='Repetir foto';
 };
 
 // ---------- Firma (canvas) ----------
@@ -478,12 +685,12 @@ let ctx=null, dibujando=false, hayFirma=false, ultimo=null;
 function prepararFirma(){
   const cv=$('firma');
   const dpr=window.devicePixelRatio||1;
-  const w=cv.clientWidth||300, h=200;
+  const w=cv.clientWidth||300, h=cv.clientHeight||240;
   cv.width=w*dpr; cv.height=h*dpr;
   ctx=cv.getContext('2d');
   ctx.scale(dpr,dpr);
   ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2.8; ctx.lineCap='round'; ctx.lineJoin='round';
   hayFirma=false; $('firmaHint').style.display='';
 }
 function posFirma(ev){
@@ -598,8 +805,8 @@ window.addEventListener('online', ()=>subirCola(true));
 $('btnConfirmar').onclick=async ()=>{
   if(!pedidoActual)return;
   const receptor=$('receptor').value.trim();
-  if(!receptor){$('estadoMsg').textContent='⚠️ Pon el nombre de quien recibe el pedido.';$('receptor').focus();return;}
-  if(!hayFirma){$('estadoMsg').textContent='⚠️ Falta la firma del cliente.';return;}
+  if(!receptor){$('estadoMsg').textContent='Escribe el nombre de quien recibe el pedido.';$('receptor').classList.add('error');$('receptor').scrollIntoView({block:'center'});$('receptor').focus();return;}
+  if(!hayFirma){$('estadoMsg').textContent='Falta la firma del cliente.';document.querySelector('.firmaWrap').classList.add('error');document.querySelector('.firmaWrap').scrollIntoView({block:'center'});return;}
 
   const ev=pedidoActual, enc=ev.enc, clave=claveEntrega(ev);
   const obs=$('obs').value.trim();
@@ -625,14 +832,14 @@ $('btnConfirmar').onclick=async ()=>{
     try{
       await colaGuardar({clave, reg, firma:firmaBlob, foto:fotoFile});
       PENDIENTES[clave]=reg;
-      $('estadoMsg').textContent='📥 Entrega guardada en el móvil. Se subirá sola en cuanto haya cobertura.';
+      $('estadoMsg').textContent='Entrega guardada en el móvil. Se subirá sola en cuanto haya cobertura.';
       mostrarEntregado(reg, true);
       pintarLista(); pintarRegistro();
       return true;
     }catch(e){
       $('btnConfirmar').disabled=false;
-      $('btnConfirmar').textContent='✅ Confirmar entrega';
-      $('estadoMsg').textContent='⚠️ No se pudo guardar NI en el móvil ('+e.message+'). No cierres esta pantalla.';
+      $('btnConfirmar').textContent='Confirmar entrega';
+      $('estadoMsg').textContent='No se pudo guardar ni en el móvil ('+e.message+'). No cierres esta pantalla.';
       return false;
     }
   }
@@ -647,7 +854,8 @@ $('btnConfirmar').onclick=async ()=>{
     $('estadoMsg').textContent='Registrando entrega…';
     await DB.collection('entregas').doc(clave).set(reg);
     ENTREGAS[clave]=reg;
-    $('estadoMsg').textContent='✅ Entrega registrada.';
+    $('estadoMsg').textContent='Entrega registrada.';
+    try{navigator.vibrate&&navigator.vibrate(40);}catch(e){}
     mostrarEntregado(reg);
     pintarLista(); pintarRegistro();
   }catch(e){
@@ -670,7 +878,7 @@ async function cargarEntregas(){
 (async()=>{
   const r=await descifrarEventos();
   if(r===null){
-    $('pedidos').innerHTML='<p class="vacio">🔒 Pedidos bloqueados.<br>Abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.</p>';
+    $('pedidos').innerHTML='<p class="vacio">Pedidos bloqueados.<br>Abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.</p>';
     return;
   }
   // Solo REPARTOS (entregas a domicilio). Excluye montajes y también las RECOGIDAS
