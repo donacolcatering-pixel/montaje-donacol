@@ -19,6 +19,8 @@
     enviar: svg('<path d="M4 12 20 4l-6 16-3-7z"/>', 2),
     puntos: svg('<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>'),
     camara: svg('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'),
+    compartir: svg('<path d="M17 3l4 4-4 4"/><path d="M3 11V9a2 2 0 0 1 2-2h16"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a2 2 0 0 1-2 2H3"/>'),
+    comentario: svg('<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4A8 8 0 1 1 20 12z"/>'),
     check: svg('<path d="M5 12.5 10 17 19 7"/>', 3),
     ajustes: svg('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>')
   };
@@ -41,8 +43,13 @@
     if (s < 86400 * 7) return `hace ${Math.floor(s / 86400)} d`;
     return new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
   }
-  const nivelDe = pts => [...C.niveles].reverse().find(n => pts >= n.desde) || C.niveles[0];
-  const siguienteNivel = pts => C.niveles.find(n => n.desde > pts) || null;
+  // Un nivel se alcanza con sus puntos Y sus pedidos de los últimos 12 meses
+  const alcanza = (s, n) => s.puntos >= n.desde && s.pedidos >= (n.pedidos || 0);
+  const nivelDe = s => [...C.niveles].reverse().find(n => alcanza(s, n)) || C.niveles[0];
+  const siguienteNivel = s => C.niveles.find(n => !alcanza(s, n)) || null;
+  const eurosPorPunto = () => Math.round(1 / C.puntos.porEuro);
+  const miles = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const puntosTxt = n => `${miles(n)} ${n === 1 ? "punto" : "puntos"}`;
   const numeroSocio = u => `${C.prefijoSocio}-${String(u.socio || 0).padStart(6, "0")}`;
   let avisoT;
   function aviso(t) { let a = document.querySelector(".aviso"); if (!a) { a = document.createElement("div"); a.className = "aviso"; document.body.appendChild(a); } a.textContent = t; a.classList.add("visible"); clearTimeout(avisoT); avisoT = setTimeout(() => a.classList.remove("visible"), 2600); }
@@ -91,6 +98,17 @@
       setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
   });
 
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".ver-clave"); if (!b) return;
+    const i = b.parentElement.querySelector("input"), ver = i.type === "password";
+    i.type = ver ? "text" : "password"; b.textContent = ver ? "Ocultar" : "Mostrar";
+  });
+  // La caja de escribir (chat y comentarios) sube con el teclado del móvil
+  function pegarAlTeclado(id) {
+    const ajustar = () => { const vv = window.visualViewport, f = document.getElementById(id); if (!vv || !f) return; const tapado = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); f.style.transform = tapado ? `translateY(${-tapado}px)` : ""; };
+    if (window.visualViewport) { visualViewport.onresize = ajustar; visualViewport.onscroll = ajustar; }
+  }
+
   // ---------- Esqueleto: barra superior + pestañas ----------
   async function pestanas(activa) {
     const [sol, sinLeer] = await Promise.all([A.solicitudes(), A.sinLeer()]);
@@ -112,7 +130,7 @@
     const [ruta, arg] = location.hash.slice(1).split("/");
     window.scrollTo(0, 0);
     if (!U) return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
-    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar };
+    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost };
     try { await (V[ruta] || vInicio)(arg ? decodeURIComponent(arg) : null); }
     catch (e) { console.error(e); app.innerHTML = `<div class="vacio">Algo ha fallado: ${esc(e.message)}<br><a class="enlace" href="#inicio">Volver al inicio</a></div>`; }
   }
@@ -121,6 +139,7 @@
   window.addEventListener("club:cambio", () => {
     const r = location.hash.slice(1).split("/")[0];
     if (r === "chat") pintarChat();
+    else if (r === "post") pintarComentarios();
     else if (["red", "inicio"].includes(r) && !document.activeElement.matches("input,textarea")) router();
   });
 
@@ -148,11 +167,17 @@
       <form class="formulario" id="f">
         <h2>Entrar</h2>
         <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email" required></label>
-        <label class="campo"><span>Contraseña</span><input class="entrada" name="clave" type="password" autocomplete="current-password" required></label>
+        <div class="campo"><span>Contraseña</span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="current-password" required><button type="button" class="ver-clave">Mostrar</button></div></div>
+        <p style="margin:10px 0 0"><a class="enlace nota" href="#" id="olvido">¿Has olvidado tu contraseña?</a></p>
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Entrar</button>
         <p class="nota" style="margin-top:18px">¿Aún no tienes cuenta? <a class="enlace" href="#registro">Créala aquí</a></p>
       </form>`;
+    document.getElementById("olvido").onclick = async e => {
+      e.preventDefault(); const f = document.getElementById("f");
+      try { await A.recuperarClave(f.email.value); hojaTexto("Revisa tu correo", "Te hemos enviado un enlace para crear una contraseña nueva."); }
+      catch (er) { hojaTexto("Recuperar la contraseña", er.message); }
+    };
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const f = e.target;
       try { await A.entrar(f.email.value, f.clave.value); location.hash = "#inicio"; }
@@ -174,7 +199,8 @@
         <div class="campo"><span>Ciudad</span>
           <div class="segmentos" id="ciudad">${[...N.sedes.map(s => s.nombre), "Otra"].map((c, i) => `<button type="button" data-c="${esc(c)}" class="${i === 0 ? "on" : ""}">${esc(c)}</button>`).join("")}</div></div>
         <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email"></label>
-        <label class="campo"><span>Contraseña <small>Mínimo 8 caracteres</small></span><input class="entrada" name="clave" type="password" autocomplete="new-password"></label>
+        <div class="campo"><span>Contraseña <small>Mínimo 8 caracteres</small></span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
+        <div class="campo"><span>Repite la contraseña <small id="coinciden"></small></span><div class="clave"><input class="entrada" name="clave2" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
         <label class="casilla"><input type="checkbox" name="privado"><span><b>Perfil privado.</b> Solo verán tus fotos las personas a las que aceptes.</span></label>
         <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
         <p class="error" id="err"></p>
@@ -184,11 +210,18 @@
     const seg = (sel, attr, fn) => document.querySelectorAll(`${sel} button`).forEach(b => b.onclick = () => { document.querySelectorAll(`${sel} button`).forEach(x => x.classList.toggle("on", x === b)); fn(b.dataset[attr]); });
     seg("#tipo", "t", v => { tipo = v; document.getElementById("cEmpresa").hidden = v === "Particular"; });
     seg("#ciudad", "c", v => { ciudad = v; });
+    const fr = document.getElementById("f"), marca = () => {
+      const a = fr.clave.value, b = fr.clave2.value, el = document.getElementById("coinciden");
+      el.textContent = !b ? "" : a === b ? "Coinciden" : "No coinciden"; el.style.color = !b ? "" : a === b ? "var(--ok)" : "var(--no)";
+    };
+    fr.clave.oninput = marca; fr.clave2.oninput = marca;
     document.getElementById("verPriv").onclick = e => { e.preventDefault(); hojaTexto("Política de privacidad", C.textoPrivacidad); };
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const f = e.target, err = document.getElementById("err");
       if (!f.nombre.value.trim()) return err.textContent = "Escribe tu nombre.";
       if (tipo !== "Particular" && !f.empresa.value.trim()) return err.textContent = "Escribe el nombre de tu empresa o agencia.";
+      if (f.clave.value.length < 8) return err.textContent = "La contraseña necesita al menos 8 caracteres.";
+      if (f.clave.value !== f.clave2.value) { f.clave2.focus(); return err.textContent = "Las contraseñas no coinciden. Pulsa «Mostrar» para revisarlas."; }
       if (!f.acepto.checked) return err.textContent = "Para crear la cuenta tienes que aceptar la política de privacidad.";
       try {
         await A.registrar({ email: f.email.value, clave: f.clave.value, nombre: f.nombre.value, tipo, empresa: tipo === "Particular" ? "" : f.empresa.value, cargo: f.cargo.value, ciudad, privado: f.privado.checked });
@@ -199,12 +232,12 @@
 
   // ================================================================ INICIO (fotos de la comunidad)
   async function vInicio() {
-    const [pts, pedidos, posts] = await Promise.all([A.puntos(), A.pedidos(), A.publicaciones({ filtro: S.filtroFeed })]);
-    const nv = nivelDe(pts), ult = pedidos[0];
+    const [soc, pedidos, posts] = await Promise.all([A.socio(), A.pedidos(), A.publicaciones({ filtro: S.filtroFeed })]);
+    const pts = soc.puntos, nv = nivelDe(soc), ult = pedidos[0];
     const faltan = [!U.foto && "la foto de perfil", !U.portada && "la foto de portada", !U.bio && "la biografía"].filter(Boolean);
     const html = `
       ${barra(esc(C.marca), `<a class="icono-btn" href="#publicar" aria-label="Subir foto">${I.mas}</a>`)}
-      <section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${pts} puntos. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>
+      <section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${puntosTxt(pts)}. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
         ${ult ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
@@ -219,17 +252,30 @@
     enlazarPosts();
   }
   async function tarjetaPost(p) {
+    if (p.repostDe) {
+      const quien = p.perfil.id === U.id ? "Tú" : esc(p.perfil.nombre);
+      return `<article class="post compartida" data-id="${esc(p.original.id)}" data-autor="${esc(p.original.perfil.id)}" data-repost="${esc(p.id)}" data-repostero="${esc(p.perfil.id)}">
+        <p class="compartido-por">${I.compartir}<span><a href="#perfil/${encodeURIComponent(p.perfil.id)}">${quien}</a> ${p.perfil.id === U.id ? "has" : "ha"} compartido, ${hace(p.fecha)}</span></p>
+        ${p.texto ? `<p class="compartido-texto">${esc(p.texto)}</p>` : ""}
+        ${await cuerpoPost(p.original)}</article>`;
+    }
+    return `<article class="post" data-id="${esc(p.id)}" data-autor="${esc(p.perfil.id)}">${await cuerpoPost(p)}</article>`;
+  }
+  async function cuerpoPost(p) {
     const u = p.perfil, mio = u.id === U.id, rel = mio ? "ok" : await A.relacion(u.id);
-    return `<article class="post" data-id="${esc(p.id)}" data-autor="${esc(u.id)}">
+    const puedeCompartir = !mio && !u.privado;
+    return `
       <header><a class="autor" href="#perfil/${encodeURIComponent(u.id)}">${avatar(u)}<span><b>${nombreCon(u)}</b><small>${puesto(u)}</small></span></a>
         ${!mio && rel === "no" ? `<button class="seguir-mini" data-seguir="${esc(u.id)}">Seguir</button>` : ""}
         <button class="icono-btn" data-menu aria-label="Más opciones">${I.puntos}</button></header>
       <img class="foto" src="${esc(p.foto)}" alt="${esc(p.texto || "Foto de un evento")}" loading="lazy">
-      <div class="acciones-post"><button class="gusta${p.meGustaYo ? " on" : ""}" data-gusta>${I.corazon}<span>${p.meGusta.length}</span></button>
-        ${!mio ? `<a class="gusta" href="#chat/${encodeURIComponent(u.id)}">${I.mensaje}<span>Escribir</span></a>` : ""}
+      <div class="acciones-post"><button class="gusta${p.meGustaYo ? " on" : ""}" data-gusta aria-label="Me gusta">${I.corazon}<span>${p.meGusta.length}</span></button>
+        <a class="gusta" href="#post/${encodeURIComponent(p.id)}" aria-label="Comentarios">${I.comentario}<span>${p.nComentarios || 0}</span></a>
+        ${puedeCompartir ? `<button class="gusta${p.compartidaPorMi ? " hecho" : ""}" data-compartir aria-label="Compartir en mi perfil">${I.compartir}<span>${p.nCompartida || 0}</span></button>` : ""}
         ${p.evento ? `<span class="chip" style="margin-left:auto">${esc(p.evento)}</span>` : ""}</div>
-      <div class="pie">${p.texto ? esc(p.texto) : ""}<time>${hace(p.fecha)}</time></div>
-    </article>`;
+      <div class="pie">${p.texto ? `<b>${esc(u.nombre)}</b> ${esc(p.texto)}` : ""}
+        ${p.nComentarios ? `<a class="ver-comentarios" href="#post/${encodeURIComponent(p.id)}">Ver ${p.nComentarios === 1 ? "el comentario" : `los ${p.nComentarios} comentarios`}</a>` : ""}
+        <time>${hace(p.fecha)}</time></div>`;
   }
   function enlazarPosts() {
     document.querySelectorAll(".post").forEach(el => {
@@ -238,17 +284,68 @@
       if (g) g.onclick = async () => { const on = await A.meGusta(id); g.classList.toggle("on", on); const n = g.querySelector("span"); n.textContent = +n.textContent + (on ? 1 : -1); if (on) vibrar(); };
       const s = el.querySelector("[data-seguir]");
       if (s) s.onclick = async () => { const est = await A.seguir(autor); s.remove(); aviso(est === "pendiente" ? "Solicitud enviada" : "Ahora le sigues"); };
+      const c = el.querySelector("[data-compartir]");
+      if (c) c.onclick = () => hojaCompartir(id);
+      const miRepost = el.dataset.repostero === U.id ? [{ texto: "Quitar de mi perfil", peligro: true, accion: async () => { await A.borrarPublicacion(el.dataset.repost); aviso("Quitada de tu perfil"); router(); } }] : [];
       el.querySelector("[data-menu]").onclick = () => menuHoja(autor === U.id
-        ? [{ texto: "Borrar esta foto", peligro: true, accion: async () => { if (await confirmar("¿Borrar esta foto?", "Borrar")) { await A.borrarPublicacion(id); router(); } } }]
-        : [{ texto: "Ver perfil", accion: () => location.hash = "#perfil/" + encodeURIComponent(autor) },
+        ? [...miRepost, { texto: "Borrar esta foto", peligro: true, accion: async () => { if (await confirmar("¿Borrar esta foto? También desaparecerá donde la hayan compartido.", "Borrar")) { await A.borrarPublicacion(id); router(); } } }]
+        : [...miRepost,
+           { texto: "Ver perfil", accion: () => location.hash = "#perfil/" + encodeURIComponent(autor) },
+           { texto: "Enviar mensaje", accion: () => location.hash = "#chat/" + encodeURIComponent(autor) },
            { texto: "Denunciar esta foto", accion: async () => { await A.denunciar(id, "inapropiada"); aviso("Gracias. Doña Col la revisará."); } },
            { texto: "Bloquear a este usuario", peligro: true, accion: async () => { await A.bloquear(autor); aviso("Usuario bloqueado"); router(); } }]);
     });
   }
 
+  function hojaCompartir(id) {
+    const h = document.createElement("div"); h.className = "hoja-menu";
+    h.innerHTML = `<div class="hoja-larga"><h3>Compartir en tu perfil</h3>
+      <p class="nota" style="margin:0 0 12px">La verán quienes te siguen, con el nombre de quien la subió.</p>
+      <textarea class="entrada" id="txtCompartir" maxlength="300" placeholder="Añade un comentario (opcional)"></textarea>
+      <p class="error" id="errCompartir"></p>
+      <button class="boton ancho" id="okCompartir" style="margin-top:8px">Compartir</button>
+      <button class="boton suave ancho" data-cerrar style="margin-top:8px">Cancelar</button></div>`;
+    h.onclick = e => { if (e.target === h || e.target.closest("[data-cerrar]")) h.remove(); };
+    document.body.appendChild(h);
+    h.querySelector("#okCompartir").onclick = async () => {
+      try { await A.compartir(id, h.querySelector("#txtCompartir").value); h.remove(); vibrar(); aviso("Compartida en tu perfil"); router(); }
+      catch (er) { h.querySelector("#errCompartir").textContent = er.message; }
+    };
+  }
+
+  let postAbierto = null;
+  async function vPost(id) {
+    const p = await A.publicacion(id);
+    if (!p) { aviso("Esa foto ya no está disponible."); return vInicio(); }
+    postAbierto = id;
+    app.classList.add("sin-nav");
+    app.innerHTML = `${barra("Comentarios", "", "javascript:history.back()")}
+      ${await tarjetaPost(p)}
+      <div class="comentarios" id="coms"></div>
+      <form class="escribir" id="fc"><input id="txtc" placeholder="Escribe un comentario" autocomplete="off" enterkeyhint="send" maxlength="500"><button aria-label="Publicar comentario">${I.enviar}</button></form>`;
+    enlazarPosts();
+    await pintarComentarios();
+    pegarAlTeclado("fc");
+    document.getElementById("fc").onsubmit = async e => {
+      e.preventDefault(); const t = document.getElementById("txtc"); if (!t.value.trim()) return;
+      await A.comentar(id, t.value); t.value = ""; await pintarComentarios(true);
+    };
+  }
+  async function pintarComentarios(alFinal) {
+    const c = document.getElementById("coms"); if (!c || !postAbierto) return;
+    const cs = await A.comentarios(postAbierto);
+    c.innerHTML = cs.length ? cs.map(x => `
+      <div class="comentario">${avatar(x.perfil)}<div><p><a href="#perfil/${encodeURIComponent(x.perfil.id)}"><b>${nombreCon(x.perfil)}</b></a> ${esc(x.texto)}</p>
+        <small>${hace(x.fecha)}${x.autor === U.id ? ` · <button class="borrar-com" data-c="${esc(x.id)}">Borrar</button>` : ""}</small></div></div>`).join("")
+      : `<p class="vacio">Aún no hay comentarios. Escribe el primero.</p>`;
+    c.querySelectorAll(".borrar-com").forEach(b => b.onclick = async () => { await A.borrarComentario(postAbierto, b.dataset.c); pintarComentarios(); });
+    const n = document.querySelector(".post a[href^='#post/'] span"); if (n) n.textContent = cs.length;
+    if (alFinal) window.scrollTo(0, document.body.scrollHeight);
+  }
+
   // ================================================================ PEDIR (carta con descuento de socio)
   async function vPedir() {
-    const pts = await A.puntos(), nv = nivelDe(pts), dto = nv.descuento;
+    const soc = await A.socio(), nv = nivelDe(soc), dto = nv.descuento;
     if (S.repetir) { const r = S.repetir; S.repetir = null; return hojaPedido(r.cat, r.idx, dto, r); }
     const cats = N.carta;
     const cat = cats[S.categoria] || cats[0];
@@ -330,7 +427,7 @@
     }
     document.getElementById("wa").onclick = async () => {
       const r = await registrar("WhatsApp"); if (!r) return;
-      vibrar(); aviso(`Pedido guardado. +${Math.round(r.p.base * C.puntos.porEuro)} puntos`);
+      vibrar(); aviso(`Pedido guardado. +${Math.floor(r.p.base * C.puntos.porEuro)} puntos`);
       abrirFuera(`https://wa.me/${String(r.sedeObj.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(r.texto)}`);
       location.hash = "#pedidos";
     };
@@ -353,10 +450,12 @@
 
   // ================================================================ TARJETA DE SOCIO
   async function vTarjeta() {
-    const pts = await A.puntos(), nv = nivelDe(pts), sig = siguienteNivel(pts);
+    const soc = await A.socio(), pts = soc.puntos, nv = nivelDe(soc), sig = siguienteNivel(soc);
+    const faltaP = sig ? Math.max(0, sig.desde - pts) : 0, faltaO = sig ? Math.max(0, (sig.pedidos || 0) - soc.pedidos) : 0;
+    const falta = listaNatural([faltaP && puntosTxt(faltaP), faltaO && `${faltaO} ${faltaO === 1 ? "pedido" : "pedidos"}`].filter(Boolean));
     let qr = "";
     try { const q = window.qrcode(0, "M"); q.addData(`${numeroSocio(U)}|${U.id}`); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
-    const progreso = sig ? Math.round((pts - nv.desde) / (sig.desde - nv.desde) * 100) : 100;
+    const progreso = sig ? Math.round((Math.min(1, pts / Math.max(1, sig.desde)) + Math.min(1, soc.pedidos / Math.max(1, sig.pedidos || 1))) * 50) : 100;
     const html = `${barra("Tarjeta")}
       <div class="tarjeta">
         <div class="arriba"><img class="logo" src="${esc(N.logo || "media/logo.png")}" alt=""><div class="nivel">${esc(nv.nombre)}<small>${nv.descuento} % en pedidos</small></div></div>
@@ -364,15 +463,18 @@
       </div>
       ${qr ? `<div class="qr" aria-label="Código de socio">${qr}</div><p class="nota" style="text-align:center;margin:8px 0 0">Enséñalo en los eventos de ${esc(C.marca)}</p>` : ""}
       <div class="progreso-nivel">
-        <b>${pts} puntos</b>${sig ? `<span class="nota">. Te faltan ${sig.desde - pts} para ${esc(sig.nombre)}</span>` : `<span class="nota">. Nivel máximo</span>`}
+        <b>${puntosTxt(pts)} y ${soc.pedidos} ${soc.pedidos === 1 ? "pedido" : "pedidos"}</b> <span class="nota">en los últimos 12 meses.</span>
+        <p class="nota" style="margin:4px 0 0">${sig ? `Te ${(faltaP && faltaO) || faltaP > 1 || faltaO > 1 ? "faltan" : "falta"} ${falta} para ser ${esc(sig.nombre)}.` : "Tienes el nivel más alto. ¡Gracias!"}</p>
         <div class="barra-progreso"><i style="width:${Math.max(3, progreso)}%"></i></div>
       </div>
       <h3 class="seccion-titulo">Niveles</h3>
-      <ul class="niveles">${C.niveles.map(n => `<li class="${pts >= n.desde ? "hecho" : ""}"><span class="marca-nivel"></span><div><b>${esc(n.nombre)} <span class="nota">desde ${n.desde} puntos</span></b><small>${n.ventajas.map(esc).join(". ")}.</small></div></li>`).join("")}</ul>
+      <ul class="niveles">${C.niveles.map(n => `<li class="${alcanza(soc, n) ? "hecho" : ""}"><span class="marca-nivel"></span><div><b>${esc(n.nombre)} <span class="nota">${n.desde ? `${miles(n.desde)} puntos y ${n.pedidos} pedidos al año` : "al registrarte"}</span></b><small>${n.ventajas.map(esc).join(". ")}.</small></div></li>`).join("")}</ul>
       <h3 class="seccion-titulo">Cómo ganar puntos</h3>
-      <ul class="niveles"><li><div><b>${C.puntos.porEuro} punto por cada euro</b><small>De los pedidos que hagas desde la app.</small></div></li>
-        <li><div><b>${C.puntos.porFoto} puntos por foto</b><small>Sube las fotos de tus eventos con ${esc(C.marca)}.</small></div></li>
-        <li><div><b>${C.puntos.porSeguidor} puntos por seguidor</b><small>Cuantas más empresas te sigan, más subes.</small></div></li></ul>`;
+      <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porFoto)} por foto</b><small>Sube las fotos de tus eventos con ${esc(C.marca)}.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Cuantas más empresas te sigan, más subes.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Las fotos que gustan llegan más lejos.</small></div></li>
+        <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>`;
     await pintar(html, "tarjeta");
   }
 
@@ -436,8 +538,7 @@
       <div class="chat" id="chat"></div>
       <form class="escribir" id="f"><input id="txt" placeholder="Escribe un mensaje" autocomplete="off" enterkeyhint="send"><button aria-label="Enviar">${I.enviar}</button></form>`;
     await pintarChat();
-    const ajustar = () => { const vv = window.visualViewport, f = document.getElementById("f"); if (!vv || !f) return; const tapado = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); f.style.transform = tapado ? `translateY(${-tapado}px)` : ""; };
-    if (window.visualViewport) { visualViewport.onresize = ajustar; visualViewport.onscroll = ajustar; }
+    pegarAlTeclado("f");
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const t = document.getElementById("txt"); if (!t.value.trim()) return;
       await A.enviarMensaje(otro, t.value); t.value = ""; await pintarChat(); t.focus();
@@ -456,9 +557,9 @@
     const mio = !id || id === U.id;
     const u = mio ? U : await A.perfil(id);
     if (!u) { aviso("Ese perfil ya no existe."); return vRed(); }
-    const [cuentas, rel, ver, pts] = await Promise.all([A.cuentas(u.id), mio ? "ok" : A.relacion(u.id), A.puedeVer(u.id), A.puntos(u.id)]);
+    const [cuentas, rel, ver, soc] = await Promise.all([A.cuentas(u.id), mio ? "ok" : A.relacion(u.id), A.puedeVer(u.id), A.socio(u.id)]);
     const posts = ver ? await A.publicaciones({ autor: u.id }) : [];
-    const nv = nivelDe(pts);
+    const nv = nivelDe(soc);
     const botones = mio
       ? `<a class="boton suave" href="#editar">Editar perfil</a><a class="boton" href="#publicar">${I.camara} Subir foto</a>`
       : `${rel === "ok" ? `<button class="boton suave" data-dejar="${esc(u.id)}">Siguiendo</button>` : rel === "pendiente" ? `<button class="boton suave" disabled>Solicitado</button>` : `<button class="boton" data-seguir="${esc(u.id)}">Seguir</button>`}
@@ -475,7 +576,7 @@
       </section>
       ${ver ? `<div class="rejilla">
           ${mio ? `<label for="subir">${I.camara}<span>Subir foto</span></label><input type="file" id="subir" class="oculto" accept="image/*">` : ""}
-          ${posts.map(p => `<a href="#" data-ver="${esc(p.id)}"><img src="${esc(p.foto)}" alt="" loading="lazy"></a>`).join("")}</div>
+          ${posts.map(p => `<a href="#" data-ver="${esc(p.id)}"${p.repostDe ? ` class="es-compartida" aria-label="Compartida"` : ""}><img src="${esc(p.repostDe ? p.original.foto : p.foto)}" alt="" loading="lazy">${p.repostDe ? `<i>${I.compartir}</i>` : ""}</a>`).join("")}</div>
           ${!posts.length && !mio ? `<p class="vacio">Todavía no ha publicado fotos.</p>` : ""}`
         : `<p class="candado"><b>Perfil privado.</b><br>Síguele para ver sus fotos${rel === "pendiente" ? ". Tu solicitud está pendiente." : "."}</p>`}`;
     await pintar(html, mio ? "perfil" : "red");

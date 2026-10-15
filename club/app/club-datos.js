@@ -6,15 +6,19 @@ window.CLUB = {
   prefijoSocio: "DC",
 
   // Descuento por pedir desde la app. Sube con el nivel de socio.
+  // Cada nivel pide PUNTOS y un mínimo de PEDIDOS en los últimos 12 meses: un único pedido grande
+  // no te hace subir de golpe; hay que repetir (el negocio va por volumen y por rotación).
+  // Orientativo: 300 puntos ≈ 3.000 € al año · 1.500 ≈ 15.000 € · 5.000 ≈ 50.000 €.
   niveles: [
-    { id: "comensal",   nombre: "Comensal",       desde: 0,    descuento: 5,  ventajas: ["5 % de descuento en pedidos desde la app", "Historial y «repetir pedido» con un toque"] },
-    { id: "anfitrion",  nombre: "Anfitrión",      desde: 300,  descuento: 7,  ventajas: ["7 % de descuento", "Prioridad en fechas de alta demanda"] },
-    { id: "gran",       nombre: "Gran Anfitrión", desde: 1000, descuento: 10, ventajas: ["10 % de descuento", "Degustación de carta nueva para tu equipo"] },
-    { id: "embajador",  nombre: "Embajador",      desde: 3000, descuento: 12, ventajas: ["12 % de descuento", "Gestor personal en Madrid o Zaragoza", "Invitación a los eventos de Doña Col"] }
+    { id: "comensal",   nombre: "Comensal",       desde: 0,    pedidos: 0,  descuento: 5,  ventajas: ["5 % de descuento en pedidos desde la app", "Historial y «repetir pedido» con un toque"] },
+    { id: "anfitrion",  nombre: "Anfitrión",      desde: 300,  pedidos: 2,  descuento: 7,  ventajas: ["7 % de descuento", "Prioridad en fechas de alta demanda"] },
+    { id: "gran",       nombre: "Gran Anfitrión", desde: 1500, pedidos: 5,  descuento: 10, ventajas: ["10 % de descuento", "Degustación de carta nueva para tu equipo"] },
+    { id: "embajador",  nombre: "Embajador",      desde: 5000, pedidos: 12, descuento: 12, ventajas: ["12 % de descuento", "Gestor personal en Madrid o Zaragoza", "Invitación a los eventos de Doña Col"] }
   ],
 
-  // Cómo se ganan puntos
-  puntos: { porEuro: 1, porFoto: 25, porSeguidor: 5 },
+  // Cómo se ganan puntos. porEuro: 0.1 = 1 punto por cada 10 € de pedido (sin IVA, ya con el descuento).
+  // Todo cuenta solo durante «caducanMeses»: para mantener el nivel hay que seguir pidiendo.
+  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, porCompartida: 2, caducanMeses: 12 },
 
   // Pago con tarjeta. Pega aquí un «Payment Link» de Stripe cuando esté montado
   // (más adelante: Stripe Checkout con importe exacto, que necesita un pequeño servidor).

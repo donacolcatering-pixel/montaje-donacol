@@ -56,11 +56,26 @@
     try { localStorage.setItem(K, JSON.stringify(db)); }
     catch (e) { throw new Error("El móvil no tiene más espacio para la demostración. Borra alguna foto."); }
   }
+  function migrar() {
+    db.publicaciones.forEach(p => { p.comentarios = p.comentarios || []; p.meGusta = p.meGusta || []; });
+    if (!db.comentariosSemilla) {
+      const c = (pub, autor, texto, h) => { const p = db.publicaciones.find(x => x.id === pub); if (p) p.comentarios.push({ id: nuevoId("c_"), autor, texto, fecha: new Date(Date.now() - h * 3600e3).toISOString() }); };
+      c("p1", "u_marta", "¡Qué montaje tan bonito! Lo queremos para la presentación de diciembre.", 4);
+      c("p1", "u_lumen", "Como siempre, impecable.", 3);
+      c("p2", "u_donacol", "¡Gracias por contar con nosotros, Lumen!", 20);
+      c("p3", "u_lumen", "Los viernes de Catering Box son sagrados.", 40);
+      db.comentariosSemilla = true;
+    }
+    guardar();
+  }
+
   const yo = () => db.usuarios.find(x => x.id === db.sesion) || null;
   const usuario = id => db.usuarios.find(x => x.id === id) || null;
   const publico = x => x && (({ clave, ...resto }) => resto)(x);
   const bloqueado = id => db.bloqueos.some(b => b.de === db.sesion && b.a === id);
   const seguimiento = (de, a) => db.seguimientos.find(s => s.de === de && s.a === a);
+
+  migrar();
 
   const Almacen = {
     demo: true,
@@ -89,6 +104,7 @@
       db.sesion = x.id; guardar(); return publico(x);
     },
     async salir() { db.sesion = null; guardar(); },
+    async recuperarClave() { throw new Error("En la versión real te llegará un correo para crear una contraseña nueva. En esta demostración, si no la recuerdas, crea otra cuenta."); },
     async actualizarPerfil(c) {
       const x = yo(); if (!x) return;
       ["nombre", "tipo", "empresa", "cargo", "ciudad", "bio", "privado", "foto", "portada"].forEach(k => { if (k in c) x[k] = c[k]; });
@@ -132,7 +148,7 @@
       return {
         seguidores: db.seguimientos.filter(s => s.a === id && s.estado === "ok").length,
         siguiendo: db.seguimientos.filter(s => s.de === id && s.estado === "ok").length,
-        publicaciones: db.publicaciones.filter(p => p.autor === id).length
+        publicaciones: db.publicaciones.filter(p => p.autor === id && !p.repostDe).length
       };
     },
     async puedeVer(id) {
@@ -150,16 +166,63 @@
         if (autor && p.autor !== autor) continue;
         if (filtro === "siguiendo" && !sigo.has(p.autor) && p.autor !== db.sesion) continue;
         if (!(await this.puedeVer(p.autor))) continue;
-        visibles.push({ ...p, perfil: publico(usuario(p.autor)), meGustaYo: p.meGusta.includes(db.sesion) });
+        if (p.repostDe) {
+          const o = db.publicaciones.find(x => x.id === p.repostDe);
+          if (!o || bloqueado(o.autor) || !(await this.puedeVer(o.autor))) continue;
+          visibles.push({ ...p, perfil: publico(usuario(p.autor)), original: this._enriquecer(o) });
+        } else visibles.push(this._enriquecer(p));
       }
       return visibles.sort((a, b) => b.fecha.localeCompare(a.fecha));
     },
+    _enriquecer(p) {
+      return { ...p, perfil: publico(usuario(p.autor)), meGustaYo: p.meGusta.includes(db.sesion),
+        nComentarios: p.comentarios.length, nCompartida: db.publicaciones.filter(x => x.repostDe === p.id).length,
+        compartidaPorMi: db.publicaciones.some(x => x.repostDe === p.id && x.autor === db.sesion) };
+    },
+    async publicacion(id) {
+      const p = db.publicaciones.find(x => x.id === id && !x.repostDe);
+      if (!p || bloqueado(p.autor) || !(await this.puedeVer(p.autor))) return null;
+      return this._enriquecer(p);
+    },
+    async compartir(id, texto) {
+      const o = db.publicaciones.find(x => x.id === id && !x.repostDe);
+      if (!o) throw new Error("Esa foto ya no está disponible.");
+      if (o.autor === db.sesion) throw new Error("Esta foto ya está en tu perfil.");
+      if ((usuario(o.autor) || {}).privado) throw new Error("Su perfil es privado: sus fotos no se pueden compartir.");
+      if (db.publicaciones.some(x => x.repostDe === id && x.autor === db.sesion)) throw new Error("Ya la has compartido.");
+      db.publicaciones.push({ id: nuevoId("p_"), autor: db.sesion, repostDe: id, texto: (texto || "").trim(), fecha: ahora(), meGusta: [], comentarios: [] });
+      guardar(); avisar();
+    },
+    async comentarios(id) {
+      const p = db.publicaciones.find(x => x.id === id); if (!p) return [];
+      return p.comentarios.filter(c => !bloqueado(c.autor) && usuario(c.autor)).map(c => ({ ...c, perfil: publico(usuario(c.autor)) }));
+    },
+    async comentar(id, texto) {
+      texto = String(texto || "").trim(); if (!texto) return;
+      const p = db.publicaciones.find(x => x.id === id); if (!p) throw new Error("Esa foto ya no está disponible.");
+      p.comentarios.push({ id: nuevoId("c_"), autor: db.sesion, texto, fecha: ahora() }); guardar(); avisar();
+      const a = usuario(p.autor);
+      if (a && a.ejemplo && a.id !== db.sesion) setTimeout(() => {
+        const r = ["¡Gracias por el comentario!", "¡Muchas gracias! Repetiremos seguro.", "Gracias, el equipo de Doña Col lo bordó."];
+        p.comentarios.push({ id: nuevoId("c_"), autor: a.id, texto: r[Math.floor(Math.random() * r.length)] + " (perfil de ejemplo)", fecha: ahora() }); guardar(); avisar();
+      }, 3000);
+    },
+    async borrarComentario(id, cid) {
+      const p = db.publicaciones.find(x => x.id === id); if (!p) return;
+      p.comentarios = p.comentarios.filter(c => !(c.id === cid && (c.autor === db.sesion || p.autor === db.sesion))); guardar(); avisar();
+    },
     async publicar({ foto, texto, evento }) {
       if (!foto) throw new Error("Elige una foto.");
-      const p = { id: nuevoId("p_"), autor: db.sesion, foto, texto: (texto || "").trim(), evento: evento || "", fecha: ahora(), meGusta: [] };
-      db.publicaciones.push(p); guardar(); avisar(); return p;
+      const p = { id: nuevoId("p_"), autor: db.sesion, foto, texto: (texto || "").trim(), evento: evento || "", fecha: ahora(), meGusta: [], comentarios: [] };
+      db.publicaciones.push(p); guardar(); avisar();
+      // Demostración: una agencia de ejemplo comenta tu foto a los pocos segundos
+      setTimeout(() => { const x = db.publicaciones.find(y => y.id === p.id); if (x) { x.comentarios.push({ id: nuevoId("c_"), autor: "u_lumen", texto: "¡Qué buena pinta! (perfil de ejemplo)", fecha: ahora() }); guardar(); avisar(); } }, 6000);
+      return p;
     },
-    async borrarPublicacion(id) { db.publicaciones = db.publicaciones.filter(p => !(p.id === id && p.autor === db.sesion)); guardar(); avisar(); },
+    async borrarPublicacion(id) {
+      const p = db.publicaciones.find(x => x.id === id && x.autor === db.sesion); if (!p) return;
+      db.publicaciones = db.publicaciones.filter(x => x.id !== id && x.repostDe !== id); guardar(); avisar();
+    },
     async meGusta(id) {
       const p = db.publicaciones.find(x => x.id === id); if (!p) return;
       p.meGusta = p.meGusta.includes(db.sesion) ? p.meGusta.filter(x => x !== db.sesion) : [...p.meGusta, db.sesion];
@@ -201,12 +264,18 @@
     async sinLeer() { return db.mensajes.filter(m => m.a === db.sesion && !m.leido && !bloqueado(m.de)).length; },
 
     // ---------- Puntos ----------
+    // Puntos y pedidos de los últimos 12 meses (lo que decide el nivel)
+    async socio(id = db.sesion) {
+      return { puntos: await this.puntos(id), pedidos: db.pedidos.filter(p => p.uid === id && p.fecha >= this._desde()).length };
+    },
+    _desde() { const d = new Date(); d.setMonth(d.getMonth() - (window.CLUB.puntos.caducanMeses || 12)); return d.toISOString(); },
     async puntos(id = db.sesion) {
-      const P = window.CLUB.puntos;
-      const euros = db.pedidos.filter(p => p.uid === id).reduce((s, p) => s + (p.base || 0), 0);
-      const fotos = db.publicaciones.filter(p => p.autor === id).length;
+      const P = window.CLUB.puntos, desde = this._desde();
+      const euros = db.pedidos.filter(p => p.uid === id && p.fecha >= desde).reduce((s, p) => s + (p.base || 0), 0);
+      const fotos = db.publicaciones.filter(p => p.autor === id && !p.repostDe && p.fecha >= desde).length;
+      const compartidas = db.publicaciones.filter(p => p.repostDe && p.fecha >= desde && p.autor !== id && (db.publicaciones.find(o => o.id === p.repostDe) || {}).autor === id).length;
       const seguidores = db.seguimientos.filter(s => s.a === id && s.estado === "ok").length;
-      return Math.round(euros * P.porEuro + fotos * P.porFoto + seguidores * P.porSeguidor);
+      return Math.floor(euros * P.porEuro) + fotos * P.porFoto + seguidores * P.porSeguidor + compartidas * (P.porCompartida || 0);
     },
 
     // Solo demostración: vuelve a dejarlo todo como al principio
