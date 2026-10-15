@@ -18,7 +18,10 @@ window.CLUB = {
 
   // Cómo se ganan puntos. porEuro: 0.1 = 1 punto por cada 10 € de pedido (sin IVA, ya con el descuento).
   // Todo cuenta solo durante «caducanMeses»: para mantener el nivel hay que seguir pidiendo.
-  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, porCompartida: 2, caducanMeses: 12 },
+  // Los pedidos solo suman cuando Doña Col los confirma, y las fotos cuando Doña Col las verifica (desde su panel).
+  // Seguidores: con tope al año, para que no se suba de nivel con cuentas falsas.
+  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, topeSeguidores: 50, porCompartida: 2, caducanMeses: 12 },
+  estadosConPuntos: ["Confirmado", "Entregado"],
 
   // Pago con tarjeta. Pega aquí un «Payment Link» de Stripe cuando esté montado
   // (más adelante: Stripe Checkout con importe exacto, que necesita un pequeño servidor).
@@ -39,7 +42,7 @@ window.CLUB = {
   cloudinary: { cloud: "", preset: "", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "1.2", codigo: 4, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "1.3", codigo: 5, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: true

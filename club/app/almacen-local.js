@@ -22,6 +22,19 @@
     { id: "p9", foto: "media/empresas.jpg", texto: "Jornada de empresa con montaje completo.", evento: "Evento de empresa", h: 140 }
   ];
 
+  // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
+  // compartidas de esas fotos y seguidores (con tope)
+  function calcularPuntos(pedidos, fotos, seguidores) {
+    const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
+    const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
+    const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
+    const euros = ok.reduce((s, p) => s + (p.base || 0), 0);
+    const verificadas = fotos.filter(f => !f.repostDe && f.verificacion === "verificada" && f.fecha >= desde);
+    const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
+    const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0), pedidos: ok.length };
+  }
+
   function semilla() {
     const hace = h => new Date(Date.now() - h * 3600e3).toISOString();
     const u = (id, nombre, tipo, empresa, cargo, ciudad, bio, extra = {}) =>
@@ -33,7 +46,7 @@
           "Catering para empresas, cócteles, comuniones y congresos. Aquí publicamos los montajes de cada semana.", { oficial: true, foto: "media/logo-marron.png", portada: "media/campana.jpg", socio: 1 })
       ],
       seguimientos: [],
-      publicaciones: FOTOS_OFICIALES.map(f => ({ ...f, autor: "u_donacol", fecha: hace(f.h), meGusta: [], comentarios: [] })),
+      publicaciones: FOTOS_OFICIALES.map(f => ({ ...f, autor: "u_donacol", fecha: hace(f.h), meGusta: [], comentarios: [], etiquetaDonaCol: false, verificacion: "sin" })),
       pedidos: [], mensajes: [], bloqueos: [], denuncias: []
     };
   }
@@ -193,9 +206,10 @@
       const p = db.publicaciones.find(x => x.id === id); if (!p) return;
       p.comentarios = p.comentarios.filter(c => !(c.id === cid && (c.autor === db.sesion || p.autor === db.sesion))); guardar(); avisar();
     },
-    async publicar({ foto, texto, evento }) {
+    async publicar({ foto, texto, evento, etiqueta, pedidoId }) {
       if (!foto) throw new Error("Elige una foto.");
-      const p = { id: nuevoId("p_"), autor: db.sesion, foto, texto: (texto || "").trim(), evento: evento || "", fecha: ahora(), meGusta: [], comentarios: [] };
+      const p = { id: nuevoId("p_"), autor: db.sesion, foto, texto: (texto || "").trim(), evento: evento || "", fecha: ahora(), meGusta: [], comentarios: [],
+        etiquetaDonaCol: !!etiqueta, verificacion: etiqueta ? "pendiente" : "sin", pedidoId: pedidoId || null };
       db.publicaciones.push(p); guardar(); avisar();
       return p;
     },
@@ -243,10 +257,25 @@
     // ---------- Puntos ----------
     // Puntos y pedidos de los últimos 12 meses (lo que decide el nivel)
     async socio(id = db.sesion) {
-      return { puntos: await this.puntos(id), pedidos: db.pedidos.filter(p => p.uid === id && p.fecha >= this._desde()).length };
+      const fotos = db.publicaciones.filter(p => p.autor === id).map(p => ({ ...p, nCompartida: db.publicaciones.filter(x => x.repostDe === p.id && x.autor !== id).length }));
+      return calcularPuntos(db.pedidos.filter(p => p.uid === id), fotos, db.seguimientos.filter(s => s.a === id && s.estado === "ok").length);
     },
     _desde() { const d = new Date(); d.setMonth(d.getMonth() - (window.CLUB.puntos.caducanMeses || 12)); return d.toISOString(); },
-    async puntos(id = db.sesion) {
+    async puntos(id = db.sesion) { return (await this.socio(id)).puntos; },
+
+    // ---------- Panel de Doña Col (en la demostración lo puede abrir cualquiera, para probar el flujo) ----------
+    async puedeGestionar() { return true; },
+    async panel() {
+      const pedidos = await Promise.all(db.pedidos.filter(p => p.estado === "Solicitado").sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map(async p => ({ ...p, perfil: publico(usuario(p.uid)), socio: await this.socio(p.uid) })));
+      const fotos = db.publicaciones.filter(p => p.verificacion === "pendiente").sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map(p => ({ ...p, perfil: publico(usuario(p.autor)), pedido: p.pedidoId ? db.pedidos.find(x => x.id === p.pedidoId) || null : null }));
+      return { pedidos: pedidos.filter(p => p.perfil), fotos: fotos.filter(p => p.perfil) };
+    },
+    async confirmarPedido(id, estado) { const p = db.pedidos.find(x => x.id === id); if (p) { p.estado = estado; p.confirmadoEn = ahora(); guardar(); avisar(); } },
+    async verificarFoto(id, ok) { const p = db.publicaciones.find(x => x.id === id); if (p && p.etiquetaDonaCol) { p.verificacion = ok ? "verificada" : "rechazada"; p.verificadaEn = ahora(); guardar(); avisar(); } },
+
+    async _puntosAntiguos(id = db.sesion) {
       const P = window.CLUB.puntos, desde = this._desde();
       const euros = db.pedidos.filter(p => p.uid === id && p.fecha >= desde).reduce((s, p) => s + (p.base || 0), 0);
       const fotos = db.publicaciones.filter(p => p.autor === id && !p.repostDe && p.fecha >= desde).length;

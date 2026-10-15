@@ -105,6 +105,19 @@
       nComentarios: p.nComentarios || 0, nCompartida: p.nCompartida || 0, compartidaPorMi: misCompartidas.has(p.id) };
   }
 
+  // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
+  // compartidas de esas fotos y seguidores (con tope)
+  function calcularPuntos(pedidos, fotos, seguidores) {
+    const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
+    const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
+    const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
+    const euros = ok.reduce((s, p) => s + (p.base || 0), 0);
+    const verificadas = fotos.filter(f => !f.repostDe && f.verificacion === "verificada" && f.fecha >= desde);
+    const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
+    const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0), pedidos: ok.length };
+  }
+
   const Almacen = {
     demo: false,
 
@@ -244,12 +257,13 @@
       return salida.sort((a, b) => b.fecha.localeCompare(a.fecha));
     },
     async publicacion(id) { fotoCache.delete(id); const p = await fotoPorId(id); return p && !p.repostDe ? enriquecer(p) : null; },
-    async publicar({ foto, texto, evento }) {
+    async publicar({ foto, texto, evento, etiqueta, pedidoId }) {
       if (!foto) throw new Error("Elige una foto.");
       const url = await subirImagen(foto, "fotos");
       try {
         const r = await db.collection("publicaciones").add({ autor: yo, autorPrivado: !!(perfilYo && perfilYo.privado), foto: url, texto: (texto || "").trim(),
-          evento: evento || "", fecha: ahora(), meGusta: [], nComentarios: 0, nCompartida: 0, repostDe: null });
+          evento: evento || "", fecha: ahora(), meGusta: [], nComentarios: 0, nCompartida: 0, repostDe: null,
+          etiquetaDonaCol: !!etiqueta, verificacion: etiqueta ? "pendiente" : "sin", pedidoId: pedidoId || null });
         cacheSocio = null; avisar(); return { id: r.id };
       } catch (e) { throw traducir(e); }
     },
@@ -273,7 +287,7 @@
       if (misCompartidas.has(id)) throw new Error("Ya la has compartido.");
       const lote = db.batch();
       lote.set(db.collection("publicaciones").doc(), { autor: yo, autorPrivado: !!(perfilYo && perfilYo.privado), foto: "", texto: (texto || "").trim(), evento: "",
-        fecha: ahora(), meGusta: [], nComentarios: 0, nCompartida: 0, repostDe: id });
+        fecha: ahora(), meGusta: [], nComentarios: 0, nCompartida: 0, repostDe: id, etiquetaDonaCol: false, verificacion: "sin", pedidoId: null });
       lote.update(db.doc(`publicaciones/${id}`), { nCompartida: FV.increment(1) });
       try { await lote.commit(); } catch (e) { throw traducir(e); }
       misCompartidas.add(id); fotoCache.delete(id); avisar();
@@ -335,20 +349,40 @@
     async socio(id = yo) {
       if (id !== yo) { const u = await usuario(id); return { puntos: (u && u.puntos) || 0, pedidos: (u && u.pedidos12) || 0 }; }
       if (cacheSocio && Date.now() - cacheSocio.t < 30000) return cacheSocio.v;
-      const P = C.puntos, d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
       const [peds, mias] = await Promise.all([this.pedidos(), db.collection("publicaciones").where("autor", "==", yo).get()]);
-      const recientes = peds.filter(p => p.fecha >= desde);
-      const euros = recientes.reduce((s, p) => s + (p.base || 0), 0);
-      const fotos = mias.docs.filter(x => !x.data().repostDe && x.data().fecha >= desde);
-      const compartidas = fotos.reduce((s, x) => s + (x.data().nCompartida || 0), 0);
-      const seguidores = meSiguen.filter(s => s.estado === "ok").length;
-      const v = { puntos: Math.floor(euros * P.porEuro) + fotos.length * P.porFoto + seguidores * P.porSeguidor + compartidas * (P.porCompartida || 0), pedidos: recientes.length };
+      const v = calcularPuntos(peds, mias.docs.map(x => x.data()), meSiguen.filter(s => s.estado === "ok").length);
       cacheSocio = { t: Date.now(), v };
       // Se copia en el perfil para que los demás vean tu nivel (es informativo; el descuento lo confirma Doña Col)
       if (perfilYo && (perfilYo.puntos !== v.puntos || perfilYo.pedidos12 !== v.pedidos)) db.doc(`usuarios/${yo}`).update({ puntos: v.puntos, pedidos12: v.pedidos }).catch(() => {});
       return v;
     },
-    async puntos(id = yo) { return (await this.socio(id)).puntos; }
+    async puntos(id = yo) { return (await this.socio(id)).puntos; },
+
+    // ---------- Panel de Doña Col (solo la cuenta oficial; lo garantizan las reglas de seguridad) ----------
+    async puedeGestionar() { await listo; return !!(perfilYo && perfilYo.oficial); },
+    // Nivel REAL de un cliente, calculado con sus datos (la oficina puede leerlos)
+    async _socioDe(uid) {
+      const [peds, fotos, segs] = await Promise.all([
+        db.collection("pedidos").where("uid", "==", uid).get(),
+        db.collection("publicaciones").where("autor", "==", uid).get(),
+        db.collection("seguimientos").where("a", "==", uid).where("estado", "==", "ok").get()]);
+      return calcularPuntos(peds.docs.map(d => d.data()), fotos.docs.map(d => d.data()), segs.size);
+    },
+    async panel() {
+      const [qp, qf] = await Promise.all([
+        db.collection("pedidos").where("estado", "==", "Solicitado").limit(100).get(),
+        db.collection("publicaciones").where("verificacion", "==", "pendiente").limit(100).get()]);
+      const pedidos = await Promise.all(qp.docs.map(async d => { const p = { id: d.id, ...d.data() }; return { ...p, perfil: await usuario(p.uid), socio: await this._socioDe(p.uid) }; }));
+      const fotos = await Promise.all(qf.docs.map(async d => {
+        const p = { id: d.id, ...d.data() };
+        let pedido = null; if (p.pedidoId) { try { const x = await db.doc(`pedidos/${p.pedidoId}`).get(); pedido = x.exists ? x.data() : null; } catch (e) {} }
+        return { ...p, perfil: await usuario(p.autor), pedido };
+      }));
+      const orden = (a, b) => a.fecha.localeCompare(b.fecha);
+      return { pedidos: pedidos.filter(p => p.perfil).sort(orden), fotos: fotos.filter(p => p.perfil).sort(orden) };
+    },
+    async confirmarPedido(id, estado) { try { await db.doc(`pedidos/${id}`).update({ estado, confirmadoEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
+    async verificarFoto(id, ok) { try { await db.doc(`publicaciones/${id}`).update({ verificacion: ok ? "verificada" : "rechazada", verificadaEn: ahora() }); } catch (e) { throw traducir(e); } fotoCache.delete(id); avisar(); }
   };
   window.AlmacenFirebase = Almacen;
 })();

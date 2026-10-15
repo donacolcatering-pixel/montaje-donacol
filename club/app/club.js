@@ -159,8 +159,9 @@
     U = await A.sesion();
     const [ruta, arg] = location.hash.slice(1).split("/");
     window.scrollTo(0, 0);
+    app.classList.toggle("completa", !U);
     if (!U) return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
-    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost };
+    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion };
     try { await (V[ruta] || vInicio)(arg ? decodeURIComponent(arg) : null); }
     catch (e) { console.error(e); app.innerHTML = `<div class="vacio">Algo ha fallado: ${esc(e.message)}<br><a class="enlace" href="#inicio">Volver al inicio</a></div>`; }
   }
@@ -182,18 +183,36 @@
           <img class="logo" src="${esc(N.logo || "media/logo.png")}" alt="${esc(C.marca)}">
           <h1>${esc(C.nombre)}</h1>
           <p>Pide con un ${C.niveles[0].descuento} % de descuento, lleva tu tarjeta de socio en el móvil y conecta con las empresas que ya celebran con ${esc(C.marca)}.</p>
+          <ul class="ventajas">
+            <li><b>${C.niveles[0].descuento} %</b><span>de descuento desde tu primer pedido, y hasta un ${C.niveles[C.niveles.length - 1].descuento} % según tu nivel</span></li>
+            <li><b>QR</b><span>Tu tarjeta de socio siempre a mano, con tus puntos y tu historial</span></li>
+            <li><b>Red</b><span>Las empresas y agencias que ya celebran con ${esc(C.marca)}</span></li>
+          </ul>
           <div class="botones">
             <a class="boton" href="#registro">Crear mi cuenta</a>
             <a class="boton contorno" href="#entrar">Ya tengo cuenta</a>
           </div>
-          ${A.demo ? `<p class="demo">Versión de demostración: los datos se guardan solo en este móvil.</p>` : ""}
+          ${A.demo ? `<p class="demo">Versión de demostración: los datos se guardan solo en este dispositivo.</p>` : ""}
+        </div>
+        <div class="bienvenida-mosaico" aria-hidden="true">
+          <img class="m1" src="media/empresas.jpg" alt=""><img class="m2" src="media/elegante.jpg" alt=""><img class="m3" src="media/coffee.jpg" alt="">
+          <img class="m4" src="media/congresos.jpg" alt=""><img class="m5" src="media/campana.jpg" alt="">
+          <div class="mini-tarjeta"><img src="${esc(N.logo || "media/logo.png")}" alt=""><span>${esc(C.niveles[0].nombre)}</span><b>Socio del club</b><small>${C.niveles[0].descuento} % en cada pedido</small></div>
         </div>
       </section>`;
   }
 
+  // Entrar y crear cuenta: en tablet y ordenador, foto de marca a un lado y el formulario al otro
+  function acceso(foto, titulo, texto, contenido) {
+    return `<div class="acceso">
+      <aside class="acceso-foto" style="background-image:url('${foto}')"><div>
+        <img class="logo" src="${esc(N.logo || "media/logo.png")}" alt="${esc(C.marca)}">
+        <h2>${esc(titulo)}</h2><p>${esc(texto)}</p></div></aside>
+      <div class="acceso-form">${contenido}</div></div>`;
+  }
   function vEntrar() {
     app.classList.add("sin-nav");
-    app.innerHTML = `${barra("", "", "#")}
+    app.innerHTML = acceso("media/campana.jpg", "Bienvenido de nuevo", "Tu tarjeta, tus pedidos y tu red te esperan.", `${barra("", "", "#")}
       <form class="formulario" id="f">
         <h2>Entrar</h2>
         <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email" required></label>
@@ -202,7 +221,7 @@
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Entrar</button>
         <p class="nota" style="margin-top:18px">¿Aún no tienes cuenta? <a class="enlace" href="#registro">Créala aquí</a></p>
-      </form>`;
+      </form>`);
     document.getElementById("olvido").onclick = async e => {
       e.preventDefault(); const f = document.getElementById("f");
       try { await A.recuperarClave(f.email.value); hojaTexto("Revisa tu correo", "Te hemos enviado un enlace para crear una contraseña nueva."); }
@@ -217,7 +236,7 @@
 
   function vRegistro() {
     app.classList.add("sin-nav");
-    app.innerHTML = `${barra("", "", "#")}
+    app.innerHTML = acceso("media/empresas.jpg", "Únete al club", `Desde hoy, un ${C.niveles[0].descuento} % de descuento en tus pedidos y tu tarjeta de socio en el móvil.`, `${barra("", "", "#")}
       <form class="formulario" id="f" novalidate>
         <h2>Crea tu cuenta</h2>
         <p class="nota">Tu perfil sirve para pedir con descuento, guardar tu tarjeta y conectar con otras empresas.</p>
@@ -235,7 +254,8 @@
         <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Crear mi cuenta</button>
-      </form>`;
+        <p class="nota" style="margin-top:18px">¿Ya tienes cuenta? <a class="enlace" href="#entrar">Entra aquí</a></p>
+      </form>`);
     let tipo = C.tiposPerfil[0], ciudad = N.sedes[0].nombre;
     const seg = (sel, attr, fn) => document.querySelectorAll(`${sel} button`).forEach(b => b.onclick = () => { document.querySelectorAll(`${sel} button`).forEach(x => x.classList.toggle("on", x === b)); fn(b.dataset[attr]); });
     seg("#tipo", "t", v => { tipo = v; document.getElementById("cEmpresa").hidden = v === "Particular"; });
@@ -272,7 +292,7 @@
       <div class="atajos">
         ${ult ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
               : `<a class="atajo oscuro" href="#pedir"><b>Hacer un pedido</b><span>Con tu ${nv.descuento} % de descuento de socio</span></a>`}
-        <a class="atajo" href="#publicar"><b>Subir fotos</b><span>De tu último evento, +${C.puntos.porFoto} puntos cada una</span></a>
+        <a class="atajo" href="#publicar"><b>Subir fotos</b><span>Etiqueta a ${esc(C.marca)} y suma ${C.puntos.porFoto} puntos cuando la verifique</span></a>
       </div>
       <div class="filtro-feed"><div class="segmentos" id="filtro"><button data-f="todos" class="${S.filtroFeed === "todos" ? "on" : ""}">Todo el club</button><button data-f="siguiendo" class="${S.filtroFeed === "siguiendo" ? "on" : ""}">A quién sigo</button></div></div>
       ${posts.length ? (await Promise.all(posts.map(tarjetaPost))).join("") : `<p class="vacio">${S.filtroFeed === "siguiendo" ? "Aún no sigues a nadie que haya publicado. Busca empresas en «Red»." : "Todavía no hay fotos. ¡Sube la primera!"}</p>`}`;
@@ -303,7 +323,10 @@
         <a class="gusta" href="#post/${encodeURIComponent(p.id)}" aria-label="Comentarios">${I.comentario}<span>${p.nComentarios || 0}</span></a>
         ${puedeCompartir ? `<button class="gusta${p.compartidaPorMi ? " hecho" : ""}" data-compartir aria-label="Compartir en mi perfil">${I.compartir}<span>${p.nCompartida || 0}</span></button>` : ""}
         ${p.evento ? `<span class="chip" style="margin-left:auto">${esc(p.evento)}</span>` : ""}</div>
-      <div class="pie">${p.texto ? `<b>${esc(u.nombre)}</b> ${esc(p.texto)}` : ""}
+      <div class="pie">${p.verificacion === "verificada" ? `<p class="sello-dc">${I.check} Evento verificado por ${esc(C.marca)}</p>`
+          : mio && p.verificacion === "pendiente" ? `<p class="sello-dc pendiente">Pendiente de que ${esc(C.marca)} la verifique</p>`
+          : mio && p.verificacion === "rechazada" ? `<p class="sello-dc rechazada">${esc(C.marca)} no la ha podido verificar: no suma puntos</p>` : ""}
+        ${p.texto ? `<b>${esc(u.nombre)}</b> ${esc(p.texto)}` : ""}
         ${p.nComentarios ? `<a class="ver-comentarios" href="#post/${encodeURIComponent(p.id)}">Ver ${p.nComentarios === 1 ? "el comentario" : `los ${p.nComentarios} comentarios`}</a>` : ""}
         <time>${hace(p.fecha)}</time></div>`;
   }
@@ -457,7 +480,7 @@
     }
     document.getElementById("wa").onclick = async () => {
       const r = await registrar("WhatsApp"); if (!r) return;
-      vibrar(); aviso(`Pedido guardado. +${Math.floor(r.p.base * C.puntos.porEuro)} puntos`);
+      vibrar(); aviso(`Pedido enviado. Sumarás ${Math.floor(r.p.base * C.puntos.porEuro)} puntos cuando Doña Col lo confirme.`);
       abrirFuera(`https://wa.me/${String(r.sedeObj.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(r.texto)}`);
       location.hash = "#pedidos";
     };
@@ -465,15 +488,23 @@
     if (pg) pg.onclick = async () => { const r = await registrar("Tarjeta"); if (!r) return; abrirFuera(C.stripe.enlacePago); location.hash = "#pedidos"; };
   }
 
+  function estadoPedido(p) {
+    const pts = Math.floor((p.base || 0) * C.puntos.porEuro);
+    if ((C.estadosConPuntos || []).includes(p.estado)) return `<span class="chip ok-chip">${esc(p.estado)} por Doña Col, +${puntosTxt(pts)}</span>`;
+    if (p.estado === "Cancelado") return `<span class="chip">Cancelado</span>`;
+    return `<span class="chip pend-chip">Pendiente de confirmar, ${puntosTxt(pts)} al confirmarlo</span>`;
+  }
   async function vPedidos() {
     const ps = await A.pedidos();
     const html = `${barra("Mis pedidos", "", "#pedir")}
       ${ps.length ? ps.map(p => `
         <div class="pedido-fila"><div><b>${esc(p.menu)}</b>
           <small>${p.personas} personas en ${esc(p.sede)}, ${new Date(p.fechaEvento + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</small>
-          <small>${euros(p.total)}, ahorraste ${euros(p.ahorro)}. ${esc(p.estado)}</small></div>
+          <small>${euros(p.total)}, ahorraste ${euros(p.ahorro)}.</small>
+          ${estadoPedido(p)}</div>
           <button class="boton mini" data-id="${esc(p.id)}">Repetir</button></div>`).join("")
-        : `<p class="vacio">Aún no has hecho pedidos desde la app.<br><a class="enlace" href="#pedir">Ver la carta</a></p>`}`;
+        : `<p class="vacio">Aún no has hecho pedidos desde la app.<br><a class="enlace" href="#pedir">Ver la carta</a></p>`}
+      ${ps.length ? `<p class="nota zona" style="margin-top:14px">Los puntos de cada pedido se suman cuando Doña Col lo confirma.</p>` : ""}`;
     await pintar(html, "pedir");
     document.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { S.repetir = ps.find(p => p.id === b.dataset.id); location.hash = "#pedir"; });
   }
@@ -500,10 +531,10 @@
       <h3 class="seccion-titulo">Niveles</h3>
       <ul class="niveles">${C.niveles.map(n => `<li class="${alcanza(soc, n) ? "hecho" : ""}"><span class="marca-nivel"></span><div><b>${esc(n.nombre)} <span class="nota">${n.desde ? `${miles(n.desde)} puntos y ${n.pedidos} pedidos al año` : "al registrarte"}</span></b><small>${n.ventajas.map(esc).join(". ")}.</small></div></li>`).join("")}</ul>
       <h3 class="seccion-titulo">Cómo ganar puntos</h3>
-      <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA.</small></div></li>
-        <li><div><b>${puntosTxt(C.puntos.porFoto)} por foto</b><small>Sube las fotos de tus eventos con ${esc(C.marca)}.</small></div></li>
-        <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Cuantas más empresas te sigan, más subes.</small></div></li>
-        <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Las fotos que gustan llegan más lejos.</small></div></li>
+      <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA, cuando Doña Col los confirma.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porFoto)} por foto verificada</b><small>Etiqueta a ${esc(C.marca)} en las fotos de vuestros eventos. Cuentan cuando ${esc(C.marca)} comprueba que son suyos.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Hasta ${puntosTxt(C.puntos.topeSeguidores)} al año.</small></div></li>
+        <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Solo en fotos verificadas por ${esc(C.marca)}.</small></div></li>
         <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>`;
     await pintar(html, "tarjeta");
   }
@@ -589,7 +620,7 @@
     if (!u) { aviso("Ese perfil ya no existe."); return vRed(); }
     const [cuentas, rel, ver, soc] = await Promise.all([A.cuentas(u.id), mio ? "ok" : A.relacion(u.id), A.puedeVer(u.id), A.socio(u.id)]);
     const posts = ver ? await A.publicaciones({ autor: u.id }) : [];
-    const nv = nivelDe(soc);
+    const nv = nivelDe(soc), gestiona = mio && await A.puedeGestionar();
     const botones = mio
       ? `<a class="boton suave" href="#editar">Editar perfil</a><a class="boton" href="#publicar">${I.camara} Subir foto</a>`
       : `${rel === "ok" ? `<button class="boton suave" data-dejar="${esc(u.id)}">Siguiendo</button>` : rel === "pendiente" ? `<button class="boton suave" disabled>Solicitado</button>` : `<button class="boton" data-seguir="${esc(u.id)}">Seguir</button>`}
@@ -603,6 +634,7 @@
         <p class="lugar">${[u.tipo, u.ciudad].filter(Boolean).map(esc).join(", ")}${u.oficial ? "" : `. Socio ${esc(nv.nombre)}`}</p>
         ${u.bio ? `<p class="bio">${esc(u.bio)}</p>` : mio ? `<p class="bio"><a class="enlace" href="#editar">Añade una biografía</a></p>` : ""}
         <div class="botones-perfil">${botones}</div>
+        ${mio && gestiona ? `<a class="boton contorno ancho" style="margin-top:10px" href="#gestion">Panel de ${esc(C.marca)}${A.demo ? " (simulación)" : ""}</a>` : ""}
       </section>
       ${ver ? `<div class="rejilla">
           ${mio ? `<label for="subir">${I.camara}<span>Subir foto</span></label><input type="file" id="subir" class="oculto" accept="image/*">` : ""}
@@ -658,8 +690,42 @@
     const r = document.getElementById("reiniciar"); if (r) r.onclick = async () => { if (await confirmar("Se borra todo lo que has hecho en esta demostración.", "Reiniciar")) { await A.reiniciarDemo(); location.hash = "#"; router(); } };
   }
 
+  // ================================================================ PANEL DE DOÑA COL (confirmar pedidos y verificar fotos)
+  async function vGestion() {
+    if (!(await A.puedeGestionar())) { location.hash = "#inicio"; return; }
+    const d = await A.panel();
+    const fecha = f => f ? new Date(f + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
+    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}
+      ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
+      <h3 class="seccion-titulo">Pedidos por confirmar (${d.pedidos.length})</h3>
+      ${d.pedidos.length ? d.pedidos.map(p => {
+        const real = nivelDe(p.socio), sobra = (p.descuentoPct || 0) > real.descuento;
+        return `<div class="gestion-item">
+          <div class="gestion-cab">${avatar(p.perfil)}<div><b>${esc(p.perfil.nombre)}</b><small>${esc(p.perfil.empresa || p.perfil.tipo || "")}. Socio ${esc(numeroSocio(p.perfil))}</small></div></div>
+          <p><b>${esc(p.menu)}</b> para ${p.personas} personas en ${esc(p.sede)}, ${fecha(p.fechaEvento)}.</p>
+          <p>Total ${euros(p.total)} con ${p.descuentoPct} % de descuento. Pedido por ${esc(p.canal || "la app")}.</p>
+          <p class="${sobra ? "aviso-rojo" : "nota"}">Nivel real del cliente: ${esc(real.nombre)} (${real.descuento} %).${sobra ? " ¡El descuento aplicado es mayor del que le corresponde!" : ""}</p>
+          <div class="gestion-botones"><button class="boton mini" data-confirmar="${esc(p.id)}">Confirmar pedido</button><button class="boton mini suave" data-cancelar="${esc(p.id)}">Cancelar</button></div>
+        </div>`; }).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`}
+      <h3 class="seccion-titulo">Fotos por verificar (${d.fotos.length})</h3>
+      ${d.fotos.length ? d.fotos.map(f => `<div class="gestion-item">
+          <div class="gestion-cab">${avatar(f.perfil)}<div><b>${esc(f.perfil.nombre)}</b><small>${esc(f.perfil.empresa || f.perfil.tipo || "")}, ${hace(f.fecha)}</small></div></div>
+          <img class="gestion-foto" src="${esc(optim(f.foto, 800))}" alt="">
+          ${f.texto ? `<p>${esc(f.texto)}</p>` : ""}
+          <p class="nota">${esc(f.evento || "Sin tipo de evento")}. ${f.pedido ? `Dice que es del pedido «${esc(f.pedido.menu)}» del ${fecha(f.pedido.fechaEvento)} (${esc(f.pedido.estado)}).` : "No ha indicado el pedido."}</p>
+          <div class="gestion-botones"><button class="boton mini" data-verificar="${esc(f.id)}">Es nuestro: verificar</button><button class="boton mini suave" data-rechazar-foto="${esc(f.id)}">No es nuestro</button></div>
+        </div>`).join("") : `<p class="vacio">No hay fotos pendientes.</p>`}`;
+    await pintar(html, "perfil");
+    const hecho = async (fn, texto) => { try { await fn(); aviso(texto); vGestion(); } catch (e) { aviso(e.message); } };
+    document.querySelectorAll("[data-confirmar]").forEach(b => b.onclick = () => hecho(() => A.confirmarPedido(b.dataset.confirmar, "Confirmado"), "Pedido confirmado. El cliente ya tiene sus puntos."));
+    document.querySelectorAll("[data-cancelar]").forEach(b => b.onclick = async () => { if (await confirmar("¿Cancelar este pedido? No sumará puntos.", "Cancelar pedido")) hecho(() => A.confirmarPedido(b.dataset.cancelar, "Cancelado"), "Pedido cancelado."); });
+    document.querySelectorAll("[data-verificar]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.verificar, true), "Foto verificada. El cliente ya tiene sus puntos."));
+    document.querySelectorAll("[data-rechazar-foto]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.rechazarFoto, false), "Foto marcada como no verificada."));
+  }
+
   // ================================================================ PUBLICAR FOTO
   async function vPublicar() {
+    const misPedidos = (await A.pedidos()).filter(p => p.estado !== "Cancelado");
     app.classList.add("sin-nav");
     app.innerHTML = `${barra("Subir foto", "", "javascript:history.back()")}
       <form class="formulario" id="f">
@@ -667,19 +733,28 @@
         <input type="file" id="foto" class="oculto" accept="image/*">
         <div class="campo"><span>Tipo de evento</span><select class="entrada" name="evento">${C.tiposEvento.map(t => `<option>${esc(t)}</option>`).join("")}</select></div>
         <label class="campo"><span>Cuéntalo <small>Opcional</small></span><textarea class="entrada" name="texto" maxlength="400" placeholder="Ej.: Desayuno de equipo en la oficina de Madrid"></textarea></label>
+        <label class="casilla etiqueta-dc"><input type="checkbox" name="etiqueta" checked><span><b>Es un evento de ${esc(C.marca)}.</b> La etiquetas y, cuando ${esc(C.marca)} lo compruebe, sumas ${puntosTxt(C.puntos.porFoto)}.</span></label>
+        ${misPedidos.length ? `<div class="campo" id="cPedido"><span>¿De qué pedido es? <small>Opcional, así se verifica antes</small></span>
+          <select class="entrada" name="pedido"><option value="">No lo sé</option>${misPedidos.map(p => `<option value="${esc(p.id)}">${esc(p.menu)}, ${new Date(p.fechaEvento + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</option>`).join("")}</select></div>` : ""}
         <p class="error" id="err"></p>
-        <button class="boton ancho" style="margin-top:12px">Publicar (+${C.puntos.porFoto} puntos)</button>
+        <button class="boton ancho" style="margin-top:12px">Publicar</button>
         <p class="nota" style="margin-top:12px">Publica solo fotos tuyas y con permiso de quien salga en ellas.</p>
       </form>`;
     let foto = null;
     const cargar = async f => { if (!f) return; try { foto = await comprimir(f, 1400, .75, 650000); document.getElementById("vista").innerHTML = `<img src="${foto}" alt="">`; } catch (e) { document.getElementById("err").textContent = e.message; } };
     document.getElementById("foto").onchange = e => cargar(e.target.files[0]);
     if (S.fotoPendiente) { cargar(S.fotoPendiente); S.fotoPendiente = null; }
+    const et = document.querySelector("[name=etiqueta]"), cp = document.getElementById("cPedido");
+    if (cp) et.onchange = () => { cp.hidden = !et.checked; };
     document.getElementById("f").onsubmit = async e => {
       e.preventDefault(); const f = e.target, err = document.getElementById("err");
       const b = f.querySelector("button"); b.disabled = true; b.textContent = "Subiendo…";
-      try { await A.publicar({ foto, texto: f.texto.value, evento: f.evento.value }); vibrar(); aviso(`Foto publicada. +${C.puntos.porFoto} puntos`); location.hash = "#inicio"; }
-      catch (er) { err.textContent = er.message; const b = f.querySelector("button"); b.disabled = false; b.textContent = `Publicar (+${C.puntos.porFoto} puntos)`; }
+      const etiqueta = f.etiqueta.checked;
+      try {
+        await A.publicar({ foto, texto: f.texto.value, evento: f.evento.value, etiqueta, pedidoId: etiqueta && f.pedido ? f.pedido.value : "" });
+        vibrar(); aviso(etiqueta ? `Foto publicada. ${C.marca} la revisará para darte los puntos.` : "Foto publicada."); location.hash = "#inicio";
+      }
+      catch (er) { err.textContent = er.message; const b = f.querySelector("button"); b.disabled = false; b.textContent = "Publicar"; }
     };
   }
 
