@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reglas del Club</title>
+<style>
+  :root{--fondo:#F3EDE3;--cacao:#1B1411;--cafe:#61422A;--suave:#6B6058}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--cacao);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:720px;margin:0 auto;padding:22px 16px 40px}
+  h1{margin:0;font:500 30px/1.1 Georgia,serif}
+  p{color:var(--suave)}
+  ol{padding-left:20px}
+  li{margin:6px 0}
+  button{position:sticky;top:10px;z-index:2;width:100%;min-height:54px;border:0;border-radius:14px;background:var(--cafe);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer}
+  button.ok{background:#2C7448}
+  textarea{width:100%;height:60vh;margin-top:14px;padding:12px;border:0;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;color:var(--cacao)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Reglas de seguridad del Club Doña Col</h1>
+  <p>Para el paso 5 de la guía de Firebase.</p>
+  <ol>
+    <li>Pulsa <b>Copiar las reglas</b>.</li>
+    <li>En la consola de Firebase, abre Firestore Database y la pestaña <b>Reglas</b>.</li>
+    <li>Borra todo lo que haya, pega y pulsa <b>Publicar</b>.</li>
+  </ol>
+  <button id="copiar">Copiar las reglas</button>
+  <textarea id="reglas" readonly spellcheck="false">rules_version = &#x27;2&#x27;;
+// Reglas de seguridad del Club Doña Col (Firestore).
+// Se pegan en la consola de Firebase: Firestore Database &gt; Reglas &gt; Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Ayudas ----------
+    function dentro() { return request.auth != null; }
+    function soy(uid) { return dentro() &amp;&amp; request.auth.uid == uid; }
+    function texto(v, max) { return v is string &amp;&amp; v.size() &lt;= max; }
+    function usuario(uid) { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
+    function esPrivado(uid) { return usuario(uid).privado == true; }
+    function seguimiento(de, a) { return /databases/$(database)/documents/seguimientos/$(de + &#x27;_&#x27; + a); }
+    function sigoA(autor) { return exists(seguimiento(request.auth.uid, autor)) &amp;&amp; get(seguimiento(request.auth.uid, autor)).data.estado == &#x27;ok&#x27;; }
+    // Una foto la ve cualquiera del club si el perfil es público; si es privado, solo su dueño y quien él ha aceptado
+    function puedeLeer(p) { return p.autorPrivado == false || p.autor == request.auth.uid || sigoA(p.autor); }
+    function esOficial() { return dentro() &amp;&amp; usuario(request.auth.uid).oficial == true; }
+    function soloCambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos); }
+
+    // ---------- Perfiles ----------
+    // foto: hasta ~100 KB y portada hasta ~280 KB si van dentro de Firestore (o una dirección de Cloudinary)
+    function perfilValido(d) {
+      return texto(d.nombre, 80) &amp;&amp; d.nombre.size() &gt; 0 &amp;&amp; texto(d.tipo, 20) &amp;&amp; texto(d.empresa, 80) &amp;&amp; texto(d.cargo, 80)
+        &amp;&amp; texto(d.ciudad, 60) &amp;&amp; texto(d.bio, 300) &amp;&amp; d.privado is bool
+        &amp;&amp; texto(d.foto, 140000) &amp;&amp; texto(d.portada, 380000);
+    }
+    match /usuarios/{uid} {
+      allow read: if dentro();
+      // El número de socio sale del contador (que se sube en la misma operación). Nadie puede hacerse «oficial»
+      allow create: if soy(uid) &amp;&amp; perfilValido(request.resource.data) &amp;&amp; !(&#x27;oficial&#x27; in request.resource.data)
+        &amp;&amp; request.resource.data.socio == getAfter(/databases/$(database)/documents/contadores/socios).data.n;
+      allow update: if soy(uid) &amp;&amp; perfilValido(request.resource.data)
+        &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny([&#x27;oficial&#x27;, &#x27;socio&#x27;, &#x27;creado&#x27;]);
+      allow delete: if soy(uid);
+      match /bloqueos/{otro} { allow read, write: if soy(uid); }
+    }
+    match /contadores/socios {
+      allow read: if dentro();
+      allow create: if dentro() &amp;&amp; request.resource.data.n == 1001;
+      allow update: if dentro() &amp;&amp; request.resource.data.n == resource.data.n + 1;
+    }
+
+    // ---------- Seguir ----------
+    match /seguimientos/{id} {
+      allow read: if dentro();
+      // A un perfil privado se le «pide» seguir (pendiente); a uno público se le sigue directamente
+      allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
+        &amp;&amp; id == request.auth.uid + &#x27;_&#x27; + request.resource.data.a
+        &amp;&amp; ((esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;pendiente&#x27;)
+            || (!esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;));
+      // Solo el perfil seguido acepta la solicitud
+      allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;estado&#x27;]) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;;
+      allow delete: if dentro() &amp;&amp; (resource.data.de == request.auth.uid || resource.data.a == request.auth.uid);
+    }
+
+    // ---------- Fotos, compartidas y comentarios ----------
+    function fotoNueva(d) { return d.repostDe == null &amp;&amp; d.foto is string &amp;&amp; d.foto.size() &gt; 0 &amp;&amp; d.foto.size() &lt;= 700000; }
+    function compartidaNueva(d) {
+      let o = get(/databases/$(database)/documents/publicaciones/$(d.repostDe)).data;
+      return d.repostDe is string &amp;&amp; d.foto == &#x27;&#x27; &amp;&amp; o.autor != request.auth.uid &amp;&amp; o.autorPrivado == false &amp;&amp; o.repostDe == null;
+    }
+    function publicacionNueva(d) {
+      return d.autor == request.auth.uid &amp;&amp; d.autorPrivado == esPrivado(request.auth.uid)
+        &amp;&amp; d.meGusta.size() == 0 &amp;&amp; d.nComentarios == 0 &amp;&amp; d.nCompartida == 0
+        &amp;&amp; texto(d.texto, 400) &amp;&amp; texto(d.evento, 40) &amp;&amp; d.fecha is string
+        &amp;&amp; (fotoNueva(d) || compartidaNueva(d))
+        // Etiquetar a Doña Col deja la foto «pendiente»; NADIE puede publicarla ya «verificada»
+        &amp;&amp; d.etiquetaDonaCol is bool
+        &amp;&amp; ((d.etiquetaDonaCol == true &amp;&amp; d.verificacion == &#x27;pendiente&#x27;) || (d.etiquetaDonaCol == false &amp;&amp; d.verificacion == &#x27;sin&#x27;))
+        &amp;&amp; (d.pedidoId == null || d.pedidoId is string);
+    }
+    // «Me gusta»: cada uno solo puede poner o quitar el suyo
+    function soloMiMeGusta() {
+      let antes = resource.data.meGusta.toSet();
+      let despues = request.resource.data.meGusta.toSet();
+      return soloCambia([&#x27;meGusta&#x27;]) &amp;&amp; despues.difference(antes).union(antes.difference(despues)).hasOnly([request.auth.uid]);
+    }
+    function contador(campo) {
+      return soloCambia([campo]) &amp;&amp; (request.resource.data[campo] == resource.data[campo] + 1 || request.resource.data[campo] == resource.data[campo] - 1);
+    }
+    match /publicaciones/{id} {
+      allow read: if dentro() &amp;&amp; (puedeLeer(resource.data) || esOficial());
+      allow create: if dentro() &amp;&amp; publicacionNueva(request.resource.data);
+      allow update: if dentro() &amp;&amp; (
+        (resource.data.autor == request.auth.uid &amp;&amp; soloCambia([&#x27;texto&#x27;, &#x27;evento&#x27;, &#x27;autorPrivado&#x27;]))
+        || (puedeLeer(resource.data) &amp;&amp; (soloMiMeGusta() || contador(&#x27;nComentarios&#x27;) || contador(&#x27;nCompartida&#x27;)))
+        // Solo Doña Col verifica (o rechaza) las fotos que la etiquetan
+        || (esOficial() &amp;&amp; resource.data.etiquetaDonaCol == true &amp;&amp; soloCambia([&#x27;verificacion&#x27;, &#x27;verificadaEn&#x27;])
+            &amp;&amp; request.resource.data.verificacion in [&#x27;verificada&#x27;, &#x27;rechazada&#x27;]));
+      allow delete: if dentro() &amp;&amp; resource.data.autor == request.auth.uid;
+
+      match /comentarios/{cid} {
+        function laFoto() { return get(/databases/$(database)/documents/publicaciones/$(id)).data; }
+        allow read: if dentro() &amp;&amp; puedeLeer(laFoto());
+        allow create: if dentro() &amp;&amp; request.resource.data.autor == request.auth.uid &amp;&amp; texto(request.resource.data.texto, 500)
+          &amp;&amp; request.resource.data.texto.size() &gt; 0 &amp;&amp; request.resource.data.fecha is string &amp;&amp; puedeLeer(laFoto());
+        allow delete: if dentro() &amp;&amp; (resource.data.autor == request.auth.uid || laFoto().autor == request.auth.uid);
+      }
+    }
+
+    // ---------- Pedidos (cada uno ve los suyos; Doña Col los ve desde la consola) ----------
+    match /pedidos/{id} {
+      allow read: if dentro() &amp;&amp; (resource.data.uid == request.auth.uid || esOficial());
+      // El cliente solo puede crearlo «Solicitado»; confirmarlo (y que sume puntos) es cosa de Doña Col
+      allow create: if dentro() &amp;&amp; request.resource.data.uid == request.auth.uid &amp;&amp; request.resource.data.estado == &#x27;Solicitado&#x27;;
+      allow update: if esOficial() &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;confirmadoEn&#x27;]) &amp;&amp; request.resource.data.estado in [&#x27;Confirmado&#x27;, &#x27;Entregado&#x27;, &#x27;Cancelado&#x27;];
+    }
+
+    // ---------- Mensajes ----------
+    match /mensajes/{id} {
+      allow read: if dentro() &amp;&amp; request.auth.uid in resource.data.participantes;
+      allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
+        &amp;&amp; request.resource.data.participantes.size() == 2
+        &amp;&amp; request.resource.data.participantes.hasAll([request.resource.data.de, request.resource.data.a])
+        &amp;&amp; request.resource.data.leido == false &amp;&amp; texto(request.resource.data.texto, 2000) &amp;&amp; request.resource.data.texto.size() &gt; 0;
+      allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;leido&#x27;]);
+    }
+
+    // ---------- Denuncias (solo se crean; Doña Col las revisa en la consola) ----------
+    match /denuncias/{id} {
+      allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid;
+      allow read: if esOficial();
+    }
+  }
+}
+</textarea>
+</main>
+<script>
+  const b = document.getElementById("copiar"), t = document.getElementById("reglas");
+  b.onclick = async () => {
+    try { await navigator.clipboard.writeText(t.value); }
+    catch (e) { t.focus(); t.setSelectionRange(0, t.value.length); document.execCommand("copy"); }
+    b.textContent = "Copiadas. Ya puedes pegarlas en Firebase"; b.classList.add("ok");
+  };
+</script>
+</body>
+</html>
