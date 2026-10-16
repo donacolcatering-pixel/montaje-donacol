@@ -147,6 +147,31 @@ service cloud.firestore {
       allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;leido&#x27;]);
     }
 
+    // ---------- Historias: solo las publica Doña Col; las ve cualquiera del club y caducan solas ----------
+    match /historias/{id} {
+      allow read: if dentro();
+      allow create: if esOficial() &amp;&amp; request.resource.data.autor == request.auth.uid
+        &amp;&amp; request.resource.data.foto is string &amp;&amp; request.resource.data.foto.size() &gt; 0 &amp;&amp; request.resource.data.foto.size() &lt;= 700000
+        &amp;&amp; texto(request.resource.data.texto, 160) &amp;&amp; texto(request.resource.data.menu, 120)
+        &amp;&amp; request.resource.data.fecha is string &amp;&amp; request.resource.data.caduca is string;
+      allow delete: if esOficial();
+      // Quién la ha visto: cada uno apunta solo su propia visita; el recuento lo ve Doña Col
+      match /vistas/{uid} {
+        allow create, update: if soy(uid);
+        allow read: if soy(uid) || esOficial();
+      }
+    }
+
+    // ---------- Opinión en Google: una por cliente; solo Doña Col la da por buena (y entonces suma puntos) ----------
+    match /resenas/{uid} {
+      allow read: if soy(uid) || esOficial();
+      allow create: if soy(uid) &amp;&amp; request.resource.data.uid == uid &amp;&amp; request.resource.data.estado == &#x27;pendiente&#x27;
+        &amp;&amp; texto(request.resource.data.nombreGoogle, 80) &amp;&amp; request.resource.data.nombreGoogle.size() &gt; 1 &amp;&amp; request.resource.data.fecha is string;
+      allow update: if (esOficial() &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;verificadaEn&#x27;]) &amp;&amp; request.resource.data.estado in [&#x27;verificada&#x27;, &#x27;rechazada&#x27;])
+        || (soy(uid) &amp;&amp; resource.data.estado == &#x27;rechazada&#x27; &amp;&amp; request.resource.data.estado == &#x27;pendiente&#x27;
+            &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;nombreGoogle&#x27;, &#x27;fecha&#x27;]) &amp;&amp; texto(request.resource.data.nombreGoogle, 80));
+    }
+
     // ---------- Denuncias (solo se crean; Doña Col las revisa en la consola) ----------
     match /denuncias/{id} {
       allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid;

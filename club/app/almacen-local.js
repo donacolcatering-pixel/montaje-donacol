@@ -24,7 +24,7 @@
 
   // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
   // compartidas de esas fotos y seguidores (con tope)
-  function calcularPuntos(pedidos, fotos, seguidores) {
+  function calcularPuntos(pedidos, fotos, seguidores, resena) {
     const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
     const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
     const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
@@ -32,7 +32,8 @@
     const verificadas = fotos.filter(f => !f.repostDe && f.verificacion === "verificada" && f.fecha >= desde);
     const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
     const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
-    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0), pedidos: ok.length };
+    const porResena = resena && resena.estado === "verificada" && (resena.verificadaEn || "") >= desde ? (P.porResena || 0) : 0;
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena, pedidos: ok.length };
   }
 
   function semilla() {
@@ -47,7 +48,7 @@
       ],
       seguimientos: [],
       publicaciones: FOTOS_OFICIALES.map(f => ({ ...f, autor: "u_donacol", fecha: hace(f.h), meGusta: [], comentarios: [], etiquetaDonaCol: false, verificacion: "sin" })),
-      pedidos: [], mensajes: [], bloqueos: [], denuncias: []
+      pedidos: [], mensajes: [], bloqueos: [], denuncias: [], historias: [], resenas: []
     };
   }
 
@@ -58,6 +59,7 @@
     catch (e) { throw new Error("El móvil no tiene más espacio para la demostración. Borra alguna foto."); }
   }
   function migrar() {
+    db.historias = db.historias || []; db.resenas = db.resenas || [];
     db.publicaciones.forEach(p => { p.comentarios = p.comentarios || []; p.meGusta = p.meGusta || []; });
     // 1.2: se borran los perfiles inventados de versiones anteriores (y todo lo suyo); tu cuenta se conserva
     const falsos = new Set(db.usuarios.filter(x => x.ejemplo && !x.oficial).map(x => x.id));
@@ -258,7 +260,7 @@
     // Puntos y pedidos de los últimos 12 meses (lo que decide el nivel)
     async socio(id = db.sesion) {
       const fotos = db.publicaciones.filter(p => p.autor === id).map(p => ({ ...p, nCompartida: db.publicaciones.filter(x => x.repostDe === p.id && x.autor !== id).length }));
-      return calcularPuntos(db.pedidos.filter(p => p.uid === id), fotos, db.seguimientos.filter(s => s.a === id && s.estado === "ok").length);
+      return calcularPuntos(db.pedidos.filter(p => p.uid === id), fotos, db.seguimientos.filter(s => s.a === id && s.estado === "ok").length, db.resenas.find(r => r.uid === id));
     },
     _desde() { const d = new Date(); d.setMonth(d.getMonth() - (window.CLUB.puntos.caducanMeses || 12)); return d.toISOString(); },
     async puntos(id = db.sesion) { return (await this.socio(id)).puntos; },
@@ -270,8 +272,37 @@
         .map(async p => ({ ...p, perfil: publico(usuario(p.uid)), socio: await this.socio(p.uid) })));
       const fotos = db.publicaciones.filter(p => p.verificacion === "pendiente").sort((a, b) => a.fecha.localeCompare(b.fecha))
         .map(p => ({ ...p, perfil: publico(usuario(p.autor)), pedido: p.pedidoId ? db.pedidos.find(x => x.id === p.pedidoId) || null : null }));
-      return { pedidos: pedidos.filter(p => p.perfil), fotos: fotos.filter(p => p.perfil) };
+      const resenas = db.resenas.filter(r => r.estado === "pendiente").map(r => ({ ...r, perfil: publico(usuario(r.uid)) })).filter(r => r.perfil);
+      return { pedidos: pedidos.filter(p => p.perfil), fotos: fotos.filter(p => p.perfil), resenas };
     },
+    async verificarResena(uid, ok) { const r = db.resenas.find(x => x.uid === uid); if (r) { r.estado = ok ? "verificada" : "rechazada"; r.verificadaEn = ahora(); guardar(); avisar(); } },
+
+    // ---------- Opinión en Google ----------
+    async miResena() { return db.resenas.find(r => r.uid === db.sesion) || null; },
+    async avisarResena(nombreGoogle) {
+      nombreGoogle = String(nombreGoogle || "").trim(); if (nombreGoogle.length < 2) throw new Error("Escribe el nombre con el que aparece tu opinión en Google.");
+      const r = db.resenas.find(x => x.uid === db.sesion);
+      if (r && r.estado !== "rechazada") throw new Error("Ya nos habías avisado de tu opinión.");
+      if (r) Object.assign(r, { nombreGoogle, estado: "pendiente", fecha: ahora() });
+      else db.resenas.push({ uid: db.sesion, nombreGoogle, estado: "pendiente", fecha: ahora() });
+      guardar(); avisar();
+    },
+
+    // ---------- Historias (en la demostración se publican como la cuenta oficial) ----------
+    async historias() {
+      const t = ahora();
+      return db.historias.filter(h => h.caduca > t).sort((a, b) => a.fecha.localeCompare(b.fecha)).map(h => ({ ...h, perfil: publico(usuario(h.autor)) }));
+    },
+    async publicarHistoria({ foto, texto, menu }) {
+      if (!foto) throw new Error("Elige una foto.");
+      const f = new Date(), c = new Date(f.getTime() + (window.CLUB.historias.horas || 12) * 3600e3);
+      db.historias.push({ id: nuevoId("h_"), autor: "u_donacol", foto, texto: String(texto || "").trim().slice(0, 160), menu: menu || "", fecha: f.toISOString(), caduca: c.toISOString(), vistas: [] });
+      db.historias = db.historias.filter(h => h.caduca > ahora());   // las caducadas no ocupan sitio en el móvil
+      guardar(); avisar();
+    },
+    async verHistoria(id) { const h = db.historias.find(x => x.id === id); if (h && !h.vistas.includes(db.sesion)) { h.vistas.push(db.sesion); guardar(); } },
+    async vistasHistoria(id) { const h = db.historias.find(x => x.id === id); return h ? h.vistas.length : 0; },
+    async borrarHistoria(id) { db.historias = db.historias.filter(x => x.id !== id); guardar(); avisar(); },
     async confirmarPedido(id, estado) { const p = db.pedidos.find(x => x.id === id); if (p) { p.estado = estado; p.confirmadoEn = ahora(); guardar(); avisar(); } },
     async verificarFoto(id, ok) { const p = db.publicaciones.find(x => x.id === id); if (p && p.etiquetaDonaCol) { p.verificacion = ok ? "verificada" : "rechazada"; p.verificadaEn = ahora(); guardar(); avisar(); } },
 

@@ -107,7 +107,7 @@
 
   // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
   // compartidas de esas fotos y seguidores (con tope)
-  function calcularPuntos(pedidos, fotos, seguidores) {
+  function calcularPuntos(pedidos, fotos, seguidores, resena) {
     const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
     const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
     const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
@@ -115,7 +115,8 @@
     const verificadas = fotos.filter(f => !f.repostDe && f.verificacion === "verificada" && f.fecha >= desde);
     const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
     const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
-    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0), pedidos: ok.length };
+    const porResena = resena && resena.estado === "verificada" && (resena.verificadaEn || "") >= desde ? (P.porResena || 0) : 0;
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena, pedidos: ok.length };
   }
 
   const Almacen = {
@@ -349,8 +350,8 @@
     async socio(id = yo) {
       if (id !== yo) { const u = await usuario(id); return { puntos: (u && u.puntos) || 0, pedidos: (u && u.pedidos12) || 0 }; }
       if (cacheSocio && Date.now() - cacheSocio.t < 30000) return cacheSocio.v;
-      const [peds, mias] = await Promise.all([this.pedidos(), db.collection("publicaciones").where("autor", "==", yo).get()]);
-      const v = calcularPuntos(peds, mias.docs.map(x => x.data()), meSiguen.filter(s => s.estado === "ok").length);
+      const [peds, mias, res] = await Promise.all([this.pedidos(), db.collection("publicaciones").where("autor", "==", yo).get(), this.miResena()]);
+      const v = calcularPuntos(peds, mias.docs.map(x => x.data()), meSiguen.filter(s => s.estado === "ok").length, res);
       cacheSocio = { t: Date.now(), v };
       // Se copia en el perfil para que los demás vean tu nivel (es informativo; el descuento lo confirma Doña Col)
       if (perfilYo && (perfilYo.puntos !== v.puntos || perfilYo.pedidos12 !== v.pedidos)) db.doc(`usuarios/${yo}`).update({ puntos: v.puntos, pedidos12: v.pedidos }).catch(() => {});
@@ -362,16 +363,18 @@
     async puedeGestionar() { await listo; return !!(perfilYo && perfilYo.oficial); },
     // Nivel REAL de un cliente, calculado con sus datos (la oficina puede leerlos)
     async _socioDe(uid) {
-      const [peds, fotos, segs] = await Promise.all([
+      const [peds, fotos, segs, res] = await Promise.all([
         db.collection("pedidos").where("uid", "==", uid).get(),
         db.collection("publicaciones").where("autor", "==", uid).get(),
-        db.collection("seguimientos").where("a", "==", uid).where("estado", "==", "ok").get()]);
-      return calcularPuntos(peds.docs.map(d => d.data()), fotos.docs.map(d => d.data()), segs.size);
+        db.collection("seguimientos").where("a", "==", uid).where("estado", "==", "ok").get(),
+        db.doc(`resenas/${uid}`).get().catch(() => null)]);
+      return calcularPuntos(peds.docs.map(d => d.data()), fotos.docs.map(d => d.data()), segs.size, res && res.exists ? res.data() : null);
     },
     async panel() {
-      const [qp, qf] = await Promise.all([
+      const [qp, qf, qr] = await Promise.all([
         db.collection("pedidos").where("estado", "==", "Solicitado").limit(100).get(),
-        db.collection("publicaciones").where("verificacion", "==", "pendiente").limit(100).get()]);
+        db.collection("publicaciones").where("verificacion", "==", "pendiente").limit(100).get(),
+        db.collection("resenas").where("estado", "==", "pendiente").limit(100).get()]);
       const pedidos = await Promise.all(qp.docs.map(async d => { const p = { id: d.id, ...d.data() }; return { ...p, perfil: await usuario(p.uid), socio: await this._socioDe(p.uid) }; }));
       const fotos = await Promise.all(qf.docs.map(async d => {
         const p = { id: d.id, ...d.data() };
@@ -379,9 +382,45 @@
         return { ...p, perfil: await usuario(p.autor), pedido };
       }));
       const orden = (a, b) => a.fecha.localeCompare(b.fecha);
-      return { pedidos: pedidos.filter(p => p.perfil).sort(orden), fotos: fotos.filter(p => p.perfil).sort(orden) };
+      const resenas = (await Promise.all(qr.docs.map(async d => ({ ...d.data(), uid: d.id, perfil: await usuario(d.id) })))).filter(r => r.perfil).sort(orden);
+      return { pedidos: pedidos.filter(p => p.perfil).sort(orden), fotos: fotos.filter(p => p.perfil).sort(orden), resenas };
     },
     async confirmarPedido(id, estado) { try { await db.doc(`pedidos/${id}`).update({ estado, confirmadoEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
+    async verificarResena(uid, ok) { try { await db.doc(`resenas/${uid}`).update({ estado: ok ? "verificada" : "rechazada", verificadaEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
+
+    // ---------- Opinión en Google (un documento por cliente: resenas/{uid}) ----------
+    async miResena() { try { const d = await db.doc(`resenas/${yo}`).get(); return d.exists ? d.data() : null; } catch (e) { return null; } },
+    async avisarResena(nombreGoogle) {
+      nombreGoogle = String(nombreGoogle || "").trim(); if (nombreGoogle.length < 2) throw new Error("Escribe el nombre con el que aparece tu opinión en Google.");
+      const r = await this.miResena();
+      if (r && r.estado !== "rechazada") throw new Error("Ya nos habías avisado de tu opinión.");
+      try {
+        if (r) await db.doc(`resenas/${yo}`).update({ nombreGoogle, estado: "pendiente", fecha: ahora() });
+        else await db.doc(`resenas/${yo}`).set({ uid: yo, nombreGoogle, estado: "pendiente", fecha: ahora() });
+      } catch (e) { throw traducir(e); }
+      cacheSocio = null; avisar();
+    },
+
+    // ---------- Historias (solo las publica la cuenta oficial; caducan solas) ----------
+    async historias() {
+      try {
+        const q = await db.collection("historias").where("caduca", ">", ahora()).orderBy("caduca").limit(30).get();
+        const hs = q.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+        return Promise.all(hs.map(async h => ({ ...h, perfil: await usuario(h.autor) })));
+      } catch (e) { console.warn(e); return []; }
+    },
+    async publicarHistoria({ foto, texto, menu }) {
+      if (!foto) throw new Error("Elige una foto.");
+      const url = await subirImagen(foto, "historias");
+      const f = new Date(), c = new Date(f.getTime() + (C.historias.horas || 12) * 3600e3);
+      try { await db.collection("historias").add({ autor: yo, foto: url, texto: String(texto || "").trim().slice(0, 160), menu: menu || "", fecha: f.toISOString(), caduca: c.toISOString() }); }
+      catch (e) { throw traducir(e); }
+      avisar();
+    },
+    async verHistoria(id) { if (yo) db.doc(`historias/${id}/vistas/${yo}`).set({ fecha: ahora() }).catch(() => {}); },
+    async vistasHistoria(id) { try { return (await db.collection(`historias/${id}/vistas`).get()).size; } catch (e) { return 0; } },
+    async borrarHistoria(id) { try { await db.doc(`historias/${id}`).delete(); } catch (e) { throw traducir(e); } avisar(); },
+
     async verificarFoto(id, ok) { try { await db.doc(`publicaciones/${id}`).update({ verificacion: ok ? "verificada" : "rechazada", verificadaEn: ahora() }); } catch (e) { throw traducir(e); } fotoCache.delete(id); avisar(); }
   };
   window.AlmacenFirebase = Almacen;

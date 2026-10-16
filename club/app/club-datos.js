@@ -20,7 +20,15 @@ window.CLUB = {
   // Todo cuenta solo durante «caducanMeses»: para mantener el nivel hay que seguir pidiendo.
   // Los pedidos solo suman cuando Doña Col los confirma, y las fotos cuando Doña Col las verifica (desde su panel).
   // Seguidores: con tope al año, para que no se suba de nivel con cuentas falsas.
-  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, topeSeguidores: 50, porCompartida: 2, caducanMeses: 12 },
+  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, topeSeguidores: 50, porCompartida: 2, porResena: 20, caducanMeses: 12 },
+  // Opinión en Google: una vez por cliente; suma cuando Doña Col la encuentra en su ficha (porResena: 0 la quita de la app).
+  // Mejor el enlace directo «escribir reseña» de la ficha (Google Business > Pedir reseñas); mientras, abre la ficha.
+  enlaceResena: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Doña Col Catering, Paseo de la Castellana 40, Madrid"),
+  // Historias: solo las publica Doña Col y desaparecen a las X horas
+  historias: { horas: 12, segundos: 6 },
+  // La carta es la de la app central: la exporta herramientas/exportar_carta.py y la app la descarga al abrirse.
+  // Si no hay conexión, usa la última descargada y, si no, la que va dentro de la app (www/carta.json).
+  carta: { url: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/carta.json" },
   estadosConPuntos: ["Confirmado", "Entregado"],
 
   // Pago con tarjeta. Pega aquí un «Payment Link» de Stripe cuando esté montado
@@ -49,7 +57,7 @@ window.CLUB = {
   cloudinary: { cloud: "drfjs9u7p", preset: "club_donacol2", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "1.5", codigo: 7, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "1.6", codigo: 8, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: false

@@ -1,0 +1,2507 @@
+{
+ "huella": "792fd6056dfd7b21",
+ "generada": "2026-10-16T12:46:44",
+ "iva": 10,
+ "carta": [
+  {
+   "categoria": "Catering Box®",
+   "descripcion": "Catering automontable con menaje desechable incluido. Pedido mínimo: 10 personas.",
+   "foto": "media/box-lunch.jpg",
+   "menus": [
+    {
+     "id": 18,
+     "nombre": "Lunch 1",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Bocatín lechuga, huevo duro, tomate, atún y salsa ligera",
+      "Bocatín de Jamón Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Empanada de bonito",
+      "Empanada de york y queso",
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Bolita de queso azul",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 13.9
+    },
+    {
+     "id": 19,
+     "nombre": "Lunch 2",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Montadito de Jamón ibérico con tomate natural batido y AOVE",
+      "Taquitos de tortilla de patata",
+      "Empanada de york y queso",
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Bocatín vegetal",
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Bolita de queso azul",
+      "Cola de langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 13.9
+    },
+    {
+     "id": 20,
+     "nombre": "Lunch 3",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Bocatín de tortilla de patata",
+      "Empanada de york y queso",
+      "Empanada de bonito",
+      "Croquetas de cocido",
+      "Croquetas de jamón",
+      "Bolita de ajoarriero",
+      "Bolita de queso azul",
+      "Cola de langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 15.9
+    },
+    {
+     "id": 21,
+     "nombre": "Lunch 4",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo. Selección de nuestros panes",
+      "Montadito de Jamón ibérico con tomate natural batido con AOVE",
+      "Taquitos de tortilla de patata",
+      "Empanada de bonito",
+      "Croquetas de cocido",
+      "Croquetas de jamón",
+      "Bolita de ajoarriero",
+      "Bolita de queso azul",
+      "Cola de langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 16.9
+    },
+    {
+     "id": 22,
+     "nombre": "Lunch 5",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Caña de lomo ibérico D.O. Guijuelo con pan soplado",
+      "Bocatín lechuga, tomate, huevo duro, atún y salsa ligera",
+      "Brioche de jamón ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Empanada de bonito",
+      "Empanada de york, crema suave de queso y emmental",
+      "Croquetas de cocido",
+      "Croquetas de jamón",
+      "Bolita de queso azul",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 19.9
+    },
+    {
+     "id": 23,
+     "nombre": "Lunch 6",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo. Selección de nuestros panes",
+      "Montadito de Jamón ibérico con tomate natural batido con AOVE",
+      "Brioche lechuga, tomate, huevo duro, atún y salsa ligera",
+      "Empanada de bonito",
+      "Croquetas de cocido",
+      "Croquetas de jamón",
+      "Bolita de ajoarriero",
+      "Bolita de queso azul",
+      "Langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Bizcocho de limón",
+      "Brownie",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 21.9
+    },
+    {
+     "id": 24,
+     "nombre": "Lunch 7",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Mini ensalada de canónigos, tomatitos asados, mozzarella, pesto y pistachos",
+      "Mini hamburguesa con queso, cebolla crujiente y kétchup",
+      "Canapé de crema suave de queso azul con pera y nueces",
+      "Bocatín de tortilla de patata",
+      "Empanada de bonito",
+      "Empanada de rulo de cabra y tomate caramelizado",
+      "Montadito de Jamón ibérico con tomate natural batido con AOVE",
+      "Brioche de atún, tomate, huevo duro, lechuga y salsa ligera",
+      "Croqueta de jamón",
+      "Bolita de ajoarriero",
+      "Bolita de queso azul",
+      "Langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Cremosa de gulas y gambas",
+      "Bizcocho de limón",
+      "Brownie",
+      "Leche frita",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 23.9
+    },
+    {
+     "id": 25,
+     "nombre": "Lunch 8",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo. Selección de nuestros panes",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Montadito de jamón ibérico en pan cristal con tomate y AOVE",
+      "Brioche lechuga, tomate, huevo duro, atún y salsa ligera",
+      "Bocatín de tortilla de patata",
+      "Empanada de bonito",
+      "Empanada de york, crema suave de queso y emmental",
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Bolita de ajoarriero",
+      "Bolita de queso azul",
+      "Langostino crujiente",
+      "Cremosa de boletus a la trufa",
+      "Mini tartaletas artesanas dulces",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 26.9
+    },
+    {
+     "id": 26,
+     "nombre": "Lunch 9",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Jamón Ibérico 100% Bellota D.O. Guijuelo con tostaditas de mini chapata",
+      "Ensalada César (base de lechugas, daditos de pollo asado, picatostes, parmesano y salsa César)",
+      "Mini hamburguesa con queso de cabra y tomate caramelizado",
+      "Empanada de crema suave de queso, york y emmental",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Brioche de sobrasada mallorquina con hilitos de miel",
+      "Canapé de crema suave de queso azul con pera y nueces",
+      "Brioche de queso, salmón, eneldo y lechuga rizada",
+      "Langostino crujiente",
+      "Croquetita de jamón",
+      "Cremosa de boletus",
+      "Mini tartaletas artesanas dulces",
+      "Brocheta de frutas",
+      "Menaje desechable (vaso 1 Ud., platito 1 Ud., tenedor 1 Ud., servilletas 2 Uds.)"
+     ],
+     "precio": 31.9
+    },
+    {
+     "id": 27,
+     "nombre": "Lunch 10",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Jamón Ibérico 100% Bellota D.O. Guijuelo con tostaditas de mini chapata",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, pan soplado, nueces y pasas",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo. Selección de nuestros panes",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Brocheta de perlas de mozzarella, tomatito asado y pesto",
+      "Canapé de crema suave de queso azul con pera y nueces",
+      "Canapé de crema suave de queso, salmón y eneldo",
+      "Mini hamburguesa con queso Havarti, cebolla frita, tomate, lechuga rizada y kétchup",
+      "Empanada de queso de cabra con tomate confitado",
+      "Croquetita de jamón Ibérico",
+      "Croqueta de cocido",
+      "Langostino crujiente",
+      "Cremosa de boletus",
+      "Cremosa de gulas y gambas",
+      "Croqueta de chipirón en su tinta",
+      "Leche frita con canela",
+      "Tarta de manzana",
+      "Brocheta de plátano bañado en chocolate",
+      "Menaje desechable (vaso 1 Ud., platito 1 Ud., tenedor 1 Ud., servilletas 2 Uds.)"
+     ],
+     "precio": 36.9
+    },
+    {
+     "id": 28,
+     "nombre": "Lunch healthy 1",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Botellita de gazpacho o ensaladita de tomate asado, perlas de mozzarella, pesto y pistachos",
+      "Jamón Ibérico 100% Bellota D.O. Guijuelo con tostaditas de mini chapata",
+      "Hummus con crudites",
+      "Brioche de crema suave de queso, salmón y eneldo",
+      "Brioche de pavo, lechuga rizada y tomate",
+      "Cremosa de boletus",
+      "Croquetita de jamón",
+      "Brocheta de fruta de temporada",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 19.9
+    },
+    {
+     "id": 29,
+     "nombre": "Lunch healthy 2",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Jamón Ibérico 100% Bellota D.O. Guijuelo con tostaditas de mini chapata",
+      "Tostadita de queso con miel y nueces",
+      "Poke de Pollo (arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de pollo y salsa teriyaki)",
+      "Brocheta de perlas de mozzarella, tomatito asado y pesto",
+      "Brioche de crema suave de queso, salmón y eneldo",
+      "Bocatín de tomate, lechuga, huevo duro, atún, maíz y salsa ligera",
+      "Hummus con crudités",
+      "Yogurt griego con granola y cereza caramelizada",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 21.9
+    },
+    {
+     "id": 30,
+     "nombre": "Sin gluten",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con nueces, pasas y picos",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo acompañados de picos",
+      "Botellita de gazpacho",
+      "Mini hamburguesa con cebolla caramelizada, canónigos y mostaza de Dijon",
+      "Bocatín lechuga, tomate, huevo duro, atún y salsa ligera",
+      "Caracola con pasas",
+      "Brocheta de fruta",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 19.9
+    },
+    {
+     "id": 31,
+     "nombre": "Vegano",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Botellita de gazpacho",
+      "Hummus con nachos",
+      "Mini hamburguesa de legumbres con cebolla caramelizada, canónigos y mostaza de Dijon",
+      "Pizza artesana de vegetales (1 porción)",
+      "Empanada de verduras",
+      "Croquetita de boletus a la trufa",
+      "Brocheta de frutas de temporada",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 19.9
+    },
+    {
+     "id": 32,
+     "nombre": "Vegetariano",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Botellita de gazpacho",
+      "Empanada de verduras",
+      "Bocatín de tortilla de patata",
+      "Bocatines vegetales (tomate, lechuga, huevo duro y mahonesa)",
+      "Mini hamburguesa de legumbres con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Croquetas de boletus",
+      "Cremosas de queso azul",
+      "Surtido de Bizcocho de manzana con nueces",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 17.9
+    },
+    {
+     "id": 33,
+     "nombre": "Sin lactosa",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo acompañados de picos sin gluten",
+      "Botellita de gazpacho",
+      "Mini pizza",
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Hummus con nachos",
+      "Bocatín tortilla de patata",
+      "Brocheta de fruta",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 19.9
+    }
+   ]
+  },
+  {
+   "categoria": "Coffee break",
+   "descripcion": "Coffee break en caja, con menaje desechable incluido. Pedido mínimo: 10 personas.",
+   "foto": "media/coffee.jpg",
+   "menus": [
+    {
+     "id": 1,
+     "nombre": "Coffee break 1",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bizcocho de limón",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 9.9
+    },
+    {
+     "id": 2,
+     "nombre": "Coffee break 2",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Brochetas de fruta de temporada",
+      "Bizcocho de limón",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 10.9
+    },
+    {
+     "id": 3,
+     "nombre": "Coffee break 3",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Empanada de york, crema suave de queso y emmental",
+      "Brownie",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 10.9
+    },
+    {
+     "id": 4,
+     "nombre": "Coffee break 4",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Empanada de bonito",
+      "Bocatín de tortilla de patata",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 10.9
+    },
+    {
+     "id": 5,
+     "nombre": "Coffee break 5",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Brochetas de fruta de temporada",
+      "Brownie",
+      "Bocatín de tortilla de patata",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 11.9
+    },
+    {
+     "id": 6,
+     "nombre": "Coffee break 6",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Empanada de bonito",
+      "Bizcocho de limón",
+      "Bocatín de queso con tomate y AOVE",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 11.9
+    },
+    {
+     "id": 7,
+     "nombre": "Coffee break 7",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Brochetas de fruta de temporada",
+      "Bizcocho de limón",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 12.9
+    },
+    {
+     "id": 8,
+     "nombre": "Coffee break 8",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Brochetas de fruta de temporada",
+      "Bizcocho de limón",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 13.9
+    },
+    {
+     "id": 9,
+     "nombre": "Coffee break 9",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bizcocho natural",
+      "Brownie",
+      "Empanada de bonito",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 15.9
+    },
+    {
+     "id": 10,
+     "nombre": "Coffee break 10",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Brochetas de fruta de temporada",
+      "Mini berlina de azúcar",
+      "Bolita de chocolate blanco",
+      "Bolita de chocolate negro",
+      "Empanada de york, crema suave de queso y emmental",
+      "Empanada de bonito",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 17.9
+    },
+    {
+     "id": 11,
+     "nombre": "Coffee break 11",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Piruleta de gofre bañada en chocolate",
+      "Mini croissant de mantequilla",
+      "Brocheta de plátano bañado en chocolate",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Empanada de york, crema suave de queso y emmental",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 17.9
+    },
+    {
+     "id": 12,
+     "nombre": "Coffee break 12",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Cookie pepitas choco",
+      "Mini berlina de azúcar",
+      "Bolita bañada en chocolate blanco",
+      "Bolita bañada en chocolate negro",
+      "Brocheta de plátano bañado en chocolate",
+      "Bocatín de jamón Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Empanada de york, crema suave de queso y emmental",
+      "Zumo de naranja natural Bag in Box",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 17.9
+    },
+    {
+     "id": 13,
+     "nombre": "Coffee break healthy",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bocatín pavo, lechuga rizada y tomate",
+      "Brocheta de fruta de temporada",
+      "Jamón ibérico bellota D.O. Guijuelo cortado a cuchillo",
+      "Queso con miel y nueces",
+      "Yogurt griego con mango",
+      "Grissinis semillas",
+      "Mini croissant multicereales",
+      "Zumo de naranja natural Bag in Box",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 20.9
+    },
+    {
+     "id": 14,
+     "nombre": "Sin gluten",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bocatín de jamón de Ibérico con tomate natural batido con AOVE",
+      "Bocatín de tortilla de patata",
+      "Mini caracola con pasas",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 18.9
+    },
+    {
+     "id": 15,
+     "nombre": "Vegano",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bocatín de guacamole, tomate, maíz y canónigos",
+      "Bizcocho vegano de limón",
+      "Brocheta de fruta",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Bebida vegetal Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 15.9
+    },
+    {
+     "id": 16,
+     "nombre": "Vegetariano",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bocatín de huevo duro, tomate, lechuga, maíz y salsa ligera",
+      "Bocatín de tortilla de patata",
+      "Brocheta de fruta de temporada",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Bebida vegetal Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 14.9
+    },
+    {
+     "id": 17,
+     "nombre": "Sin lactosa",
+     "unidad": "persona",
+     "minimo": 10,
+     "platos": [
+      "Bocatín de jamón de Ibérico con tomate y AOVE",
+      "Bocatín de tortilla de patata",
+      "Mini berlina de azúcar",
+      "Zumo de naranja natural",
+      "Café Bag in Box",
+      "Leche sin lactosa Bag in Box",
+      "Azúcar Moreno",
+      "Vasos",
+      "Servilletas",
+      "Paletinas"
+     ],
+     "precio": 15.9
+    }
+   ]
+  },
+  {
+   "categoria": "Cócteles",
+   "descripcion": "Cócteles con montaje Sport o Elegante.",
+   "foto": "media/elegante.jpg",
+   "menus": [
+    {
+     "id": 68,
+     "nombre": "Cóctel 1",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Copa de cava o Copa de vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja",
+      "Agua mineral",
+      "A elegir entre:",
+      "Surtido de: • Petits fours surtidos (bocaditos dulces artesanos) • Brochetas de fruta natural o",
+      "Surtido de: • Montadito de jamón ibérico con tomate natural y AOVE • Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado"
+     ],
+     "precio": 12.5
+    },
+    {
+     "id": 69,
+     "nombre": "Cóctel 2",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de ibéricos D.O. Guijuelo (Chorizo, Salchichón y Lomo)",
+      "Montadito de Jamón Ibérico con tomate natural y AOVE",
+      "Langostino crujiente",
+      "Croqueta de jamón",
+      "Cremosa de boletus a la trufa",
+      "Surtido de nuestros dulces, brocheta de plátano bañado en chocolate y leche frita con canela",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos variados • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 19.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 21.9
+      }
+     ]
+    },
+    {
+     "id": 70,
+     "nombre": "Cóctel 3",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo",
+      "Canapé de crema de queso Agour de oveja con mermelada de higos",
+      "Canapé de stracciatella de burrata, anchoa de Santoña y almendra",
+      "Canapé de tartar de salchichón ibérico con huevas de trucha de El Grado",
+      "Canapé de sobrasada ibérica, queso brie y miel de azahar",
+      "Croqueta de jamón",
+      "Cremosa de gulas y gambas",
+      "Cremosa de boletus a la trufa",
+      "Petits fours surtidos de crema pastelera con frutas de temporada",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 19.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 21.9
+      }
+     ]
+    },
+    {
+     "id": 71,
+     "nombre": "Cóctel 4",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Montadito de Jamón Ibérico con tomate natural y AOVE",
+      "Surtido de ibéricos D.O. Guijuelo con selección de nuestros panes (chorizo, salchichón y lomo)",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Empanada de bonito",
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Bocatín de sobrasada ibérica, queso brie, miel de azahar y rúcula",
+      "Langostino crujiente",
+      "Croqueta de gulas y gambas",
+      "Cremosa de boletus a la trufa",
+      "Surtido de tarta fina de manzana, petits fours de crema pastelera con frutas de temporada, leche frita con canela y brocheta de frutas de temporada",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 23.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 25.9
+      }
+     ]
+    },
+    {
+     "id": 72,
+     "nombre": "Cóctel 5",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de ibéricos D.O. Guijuelo con selección de nuestros panes (chorizo, salchichón y lomo)",
+      "Canapé de sobrasada ibérica, queso brie y miel de azahar",
+      "Canapé de stracciatella de burrata, anchoa de Santoña y almendra",
+      "Empanada de bonito",
+      "Bocatín de papada ibérica, queso de cabra, cebolla dulce y rúcula",
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Langostino crujiente",
+      "Cremosa de chipirón",
+      "Cremosa de boletus a la trufa",
+      "Surtido de tarta fina de manzana, petits fours de crema pastelera con frutas de temporada, leche frita con canela y brocheta de frutas de temporada",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 29.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 31.9
+      }
+     ]
+    },
+    {
+     "id": 73,
+     "nombre": "Cóctel 6",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "A elegir entre:",
+      "Bloody Mary con zumo natural de tomate rosa o",
+      "Vasito de crema de calabacín con mascarpone",
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo",
+      "Surtido de ibéricos D.O. Guijuelo con selección de nuestros panes (chorizo, salchichón y lomo)",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Mini lingote de sobrasada ibérica con queso brie y miel de azahar",
+      "Canapé de crema de queso Agour de oveja con mermelada de higos",
+      "Canapé de stracciatella de burrata, anchoa de Santoña y almendras",
+      "Langostino crujiente",
+      "Croqueta de cocido",
+      "Cremosa de boletus",
+      "Surtido de tarta fina de manzana, leche frita con canela, petits fours de crema pastelera con frutas de temporada y brochetas de fruta de temporada",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 49.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 51.9
+      }
+     ]
+    },
+    {
+     "id": 74,
+     "nombre": "Cóctel 7",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Bloody Mary con zumo natural de tomate rosa",
+      "Vasito de crema de calabacín con mascarpone",
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo",
+      "Surtido de ibéricos D.O. Guijuelo con selección de nuestros panes (chorizo, salchichón y lomo)",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Bocatín de sobrasada ibérica, queso brie, miel de azahar y rúcula",
+      "Empanada de bonito",
+      "Canapé de crema de queso Agour de oveja con mermelada de higos",
+      "Canapé de stracciatella de burrata, anchoa de Santoña y almendras",
+      "Langostino crujiente",
+      "Croqueta de cocido",
+      "Cremosa de boletus a la trufa",
+      "Risotto con salsa de setas",
+      "Milhojas de cabrito con parmentier de patata",
+      "Surtido de tarta fina de manzana, petits fours de crema pastelera con frutas de temporada, leche frita con canela y brocheta de frutas de temporada",
+      "Bebidas: • Vino tinto Altanza Reserva 100% barrica francesa D.O. Ca. Rioja • Vino blanco Altanza Sauvignon Blanc D.O. Ca. Rioja • Cervezas • Refrescos • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 49.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 51.9
+      }
+     ]
+    },
+    {
+     "id": 75,
+     "nombre": "Cóctel menú aragonés 1",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Chupito de sopa fría de borraja",
+      "Jamón de Teruel D.O.P. con pan cristal, tomate de Zaragoza y AOVE",
+      "Canapé de crema de queso del Pirineo Aragonés con mermelada de tomate rosa de Barbastro",
+      "Canapé de tartar de fuet bodega extra de Graus con huevas de trucha de El Grado",
+      "Mini lingote de sobrasada de Graus con miel del Campo de Borja",
+      "Croqueta de jamón",
+      "Bolita de ajoarriero",
+      "Mousse de melocotón de Calanda D.O.P.",
+      "Bebidas: • Vino blanco Chardonnay Viñedo Seleccionado 2024 Bodega Pirineos D.O.P. Somontano • Vino tinto 3404 Tuca D’Aneto D.O.P. Somontano • Cervezas Ambar • Refrescos variados • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 23.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 25.9
+      }
+     ]
+    },
+    {
+     "id": 76,
+     "nombre": "Cóctel menú aragonés 2",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Vasito de Bloody Mary con zumo de Tomate Rosa de Barbastro",
+      "Chupito de sopa fría de borraja",
+      "Jamón de Teruel D.O.P. con pan cristal, tomate de Zaragoza y AOVE",
+      "Surtido de quesos aragoneses con nueces del Bajo Aragón, pan soplado y AOVE del Bajo Aragón D.O.P.",
+      "Milhojas de Ternasco de Aragón D.O.P. con parmentier de patata",
+      "Canapé de crema de queso del Pirineo Aragonés con mermelada de tomate rosa de Basbastro.",
+      "Canapé de tartar de fuet bodega extra de Graus con huevas de trucha de El Grado",
+      "Mini lingote de sobrasada de Graus con miel del Campo de Borja",
+      "Croqueta de jamón",
+      "Mousse de melocotón de Calanda D.O.P.",
+      "Bebidas: • Vino blanco Chardonnay Viñedo Seleccionado 2024 Bodega Pirineos D.O.P. Somontano • Vino tinto 3404 Tuca D’Aneto D.O.P. Somontano • Cervezas Ambar • Refrescos variados • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 29.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 31.9
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "categoria": "Coffee con montaje",
+   "descripcion": "Coffee breaks con montaje.",
+   "foto": "media/congresos.jpg",
+   "menus": [
+    {
+     "id": 61,
+     "nombre": "Coffee break de bienvenida",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Pastas de té",
+      "Café",
+      "Leche",
+      "Leche sin lactosa",
+      "Bebida vegetal",
+      "Azúcar y sacarina",
+      "Vasos",
+      "Servilletas",
+      "Paletinas",
+      "Sobres de café descafeinado",
+      "Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 5.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 6.9
+      }
+     ]
+    },
+    {
+     "id": 62,
+     "nombre": "Coffee break 1",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Surtido de: • Bocatín de jamón ibérico con tomate triturado y AOVE • Bocatín de tortilla de patata • Cake de limón • Cake de chocolate * 1 pieza salada y 1 pieza dulce por persona",
+      "Bebidas: • Zumo de naranja natural • Café • Leche • Leche sin lactosa • Bebida vegetal • Sobres de café descafeinado • Agua caliente con infusiones • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 10.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 12.9
+      }
+     ]
+    },
+    {
+     "id": 63,
+     "nombre": "Coffee break 2",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Bocatín de jamón ibérico con tomate triturado y AOVE",
+      "Bocatín de tortilla de patata",
+      "Brocheta de fruta",
+      "Surtido de: • Cake de limón • Cake de chocolate * 2 piezas saladas y 2 piezas dulces por persona",
+      "Bebidas: • Zumo de naranja natural • Café • Leche • Leche sin lactosa • Bebida vegetal • Sobres de café descafeinado • Agua caliente con infusiones • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 12.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 14.9
+      }
+     ]
+    },
+    {
+     "id": 64,
+     "nombre": "Coffee break 3",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Surtido de: • Bocatín de jamón ibérico con tomate triturado y AOVE • Bocatín de tortilla de patata • Brioche lechuga, tomate, huevo duro, atún y salsa ligera • Cake de limón • Cake de chocolate • Mini tartaletas artesanas de crema pastelera con cereza y mango • Empanada de bonito • Empanada de crema suave de queso, emmental y york * 3 piezas saladas y 2 piezas dulces por persona",
+      "Bebidas: • Zumo de naranja natural • Café • Leche • Leche sin lactosa • Bebida vegetal • Sobres de café descafeinado • Agua caliente con infusiones • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 15.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 17.9
+      }
+     ]
+    },
+    {
+     "id": 65,
+     "nombre": "Coffee break 4",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Jamón Ibérico Bellota D.O. Guijuelo cortado a cuchillo con tostaditas de mini chapata",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Bocatines de tortilla",
+      "Brioche lechuga, tomate, huevo duro, atún y salsa ligera",
+      "Empanada de bonito",
+      "Empanada de crema suave de queso, emmental y york",
+      "Tapita de ensaladilla rusa con ventresca de bonito y langostinos",
+      "Croqueta de jamón",
+      "Cremosa de boletus",
+      "Cake de limón",
+      "Cake de chocolate",
+      "Mini tartaletas artesanas de crema pastelera con cereza y mango",
+      "Bebidas: • Zumo de naranja natural • Café • Leche • Leche sin lactosa • Bebida vegetal • Sobres de café descafeinado • Agua caliente con infusiones • Vino tinto D.O Rioja • Vino blanco Verdejo • Cervezas • Refrescos variados • Agua mineral"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 25.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 27.9
+      }
+     ]
+    },
+    {
+     "id": 66,
+     "nombre": "Coffee break healthy",
+     "unidad": "persona",
+     "minimo": 50,
+     "platos": [
+      "Jamón ibérico bellota D.O. Guijuelo cortado a cuchillo",
+      "Bocatín de pavo, lechuga rizada y tomate",
+      "Brioche de salmón, crema suave de queso, canónigos y eneldo",
+      "Brocheta de fruta de temporada",
+      "Queso con miel y nueces",
+      "Yogur griego con mango",
+      "Mini croissant multicereales",
+      "Grissinis semillas",
+      "Bebidas: • Zumo de naranja natural • Café • Leche • Leche sin lactosa • Bebida vegetal • Sobres de café descafeinado • Agua caliente con infusiones"
+     ],
+     "variantes": [
+      {
+       "nombre": "Sport",
+       "precio": 20.9
+      },
+      {
+       "nombre": "Elegante",
+       "precio": 22.9
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "categoria": "Comuniones",
+   "descripcion": "",
+   "foto": "media/comuniones.jpg",
+   "menus": [
+    {
+     "id": 88,
+     "nombre": "Entrantes 1",
+     "unidad": "persona",
+     "minimo": 30,
+     "platos": [
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo con tostaditas de mini chapata",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de fritos (croqueta jamón, croqueta de cocido, cremosa de boletus, cremosa de queso azul, bolita de ajoarriero y cola de langostino)"
+     ],
+     "precio": 18.0
+    },
+    {
+     "id": 89,
+     "nombre": "Entrantes 2",
+     "unidad": "persona",
+     "minimo": 30,
+     "platos": [
+      "Jamón de bellota D.O. Guijuelo cortado a cuchillo con tostaditas de mini chapata",
+      "Surtido de ibéricos D.O Guijuelo con pan soplado (lomo, chorizo y salchichón)",
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Empanada de bonito",
+      "Empanada de queso de cabra con tomate confitado",
+      "Brocheta de mozzarella con tomatito asado y pesto",
+      "Surtido de fritos (croqueta de jamón, croqueta de cocido, cremosa de boletus, cremosa de queso azul, bolita de ajoarriero y cola de langostino)"
+     ],
+     "precio": 25.0
+    },
+    {
+     "id": 91,
+     "nombre": "Menú infantil 1",
+     "unidad": "persona",
+     "minimo": 30,
+     "platos": [
+      "Penne rigatoni con salsa de tomate",
+      "Pechuga Villaroy con patatas fritas",
+      "Brioche de cacao con topping de Oreo"
+     ],
+     "precio": 19.9
+    },
+    {
+     "id": 92,
+     "nombre": "Menú infantil 2",
+     "unidad": "persona",
+     "minimo": 30,
+     "platos": [
+      "Surtido de : • Pizza de york y queso • Mini perrito caliente • Mini hamburguesa • Nuggets de pollo • Croquetas de jamón • Patatas fritas • Brioche de cacao con topping de Oreo"
+     ],
+     "precio": 17.9
+    }
+   ]
+  },
+  {
+   "categoria": "Infantiles",
+   "descripcion": "",
+   "foto": "media/particulares.jpg",
+   "menus": [
+    {
+     "id": 55,
+     "nombre": "Infantil 1",
+     "unidad": "niño",
+     "minimo": 10,
+     "platos": [
+      "Hamburguesa con queso y kétchup",
+      "Fingers de pollo",
+      "Cono de patatas fritas",
+      "Brioche relleno de crema de cacao",
+      "Salsas (barbacoa, kétchup, mahonesa)",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 14.0
+    },
+    {
+     "id": 56,
+     "nombre": "Infantil 2",
+     "unidad": "niño",
+     "minimo": 10,
+     "platos": [
+      "Mini pizza de york y queso",
+      "Fingers de pollo",
+      "Mini hamburguesa con queso y kétchup",
+      "Mini perrito caliente",
+      "Bizcocho natural",
+      "Chuches",
+      "Salsas (barbacoa, kétchup, mahonesa)",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., servilletas 3 Uds.)"
+     ],
+     "precio": 16.0
+    },
+    {
+     "id": 57,
+     "nombre": "Infantil sin gluten",
+     "unidad": "niño",
+     "minimo": 10,
+     "platos": [
+      "Hamburguesa con queso y kétchup",
+      "Nuggets de pollo",
+      "Palmera bañada en chocolate",
+      "Menaje desechable (vasos 1 Ud., platitos 1 Ud., palillos 2 Uds., servilletas 3 Uds.)"
+     ],
+     "precio": 18.0
+    }
+   ]
+  },
+  {
+   "categoria": "Picnic",
+   "descripcion": "",
+   "foto": "media/empresas.jpg",
+   "menus": [
+    {
+     "id": 78,
+     "nombre": "Picnic 1",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Brioche de tortilla de patata",
+      "Empanada de bonito",
+      "Bizcocho de limón",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 12.0
+    },
+    {
+     "id": 79,
+     "nombre": "Picnic 2",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Brioche de tortilla de patata",
+      "Empanada de bonito",
+      "Bizcocho de limón",
+      "CoffeCol – Bebida fría de café con azúcar de caña y esencia de vainilla",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 13.0
+    },
+    {
+     "id": 80,
+     "nombre": "Picnic 3",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Brioche de jamón ibérico con tomate natural y AOVE",
+      "Empanada de bonito",
+      "Bizcocho con pepitas choco",
+      "CoffeCol – Bebida fría de café con azúcar de caña y esencia de vainilla",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 15.0
+    },
+    {
+     "id": 81,
+     "nombre": "Picnic 4",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Ensalada César (lechuga, daditos de pollo asado, picatostes, parmesano y salsa César)",
+      "Brioche de tortilla de patata",
+      "Empanada de york y queso",
+      "Brownie",
+      "Pieza de fruta",
+      "Botella de agua 0,50 cl.",
+      "Servilletas",
+      "Tenedor"
+     ],
+     "precio": 17.0
+    },
+    {
+     "id": 82,
+     "nombre": "Picnic 5",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo con selección de nuestros panes",
+      "Brioche de jamón ibérico",
+      "Bizcocho de limón",
+      "Botellita de vino 20 cc. D.O.P. Ribera del Duero",
+      "Botella de agua 0,50 cl.",
+      "Servilletas",
+      "Vaso"
+     ],
+     "precio": 20.0
+    },
+    {
+     "id": 83,
+     "nombre": "Picnic infantil 1",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Hamburguesa grande con queso y kétchup",
+      "Cono de patatas",
+      "Surtido de salsas (barbacoa, kétchup, mahonesa)",
+      "Piruleta de gofre rallada con chocolate",
+      "Chuches",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 14.0
+    },
+    {
+     "id": 84,
+     "nombre": "Picnic infantil 2",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Perrito caliente",
+      "Cono de patatas fritas",
+      "Fingers de pollo",
+      "Surtido de salsas (barbacoa, kétchup, mahonesa)",
+      "Bizcocho natural",
+      "Chuches",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 16.0
+    },
+    {
+     "id": 85,
+     "nombre": "Picnic sin gluten",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Bocadillo de jamón ibérico con tomate natural y AOVE",
+      "Napolitana de chocolate",
+      "Fruta de temporada",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 17.0
+    },
+    {
+     "id": 86,
+     "nombre": "Picnic vegana",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Mollete de guacamole, tomate, maíz y lechuga",
+      "Botellita de gazpacho",
+      "Fruta de temporada",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 14.0
+    },
+    {
+     "id": 87,
+     "nombre": "Picnic vegetariana",
+     "unidad": "persona",
+     "minimo": 1,
+     "platos": [
+      "Brioche de tortilla de patata",
+      "Ensalada Caprese (tomatitos asados, perlas de mozzarella, salsa de pesto y pistachos)",
+      "Cake de limón",
+      "Manzana",
+      "Botella de agua 0,50 cl.",
+      "Servilletas"
+     ],
+     "precio": 14.0
+    }
+   ]
+  },
+  {
+   "categoria": "Super Simply",
+   "descripcion": "Packs para compartir.",
+   "foto": "media/cateringbox.jpg",
+   "menus": [
+    {
+     "id": 34,
+     "nombre": "Super simply bocatines 1",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Bocatines de tortilla",
+      "Bocatines de jamón Ibérico con tomate natural y AOVE",
+      "Bocatines York y queso",
+      "Bocatines de huevo duro, atún, tomate, lechuga y salsa ligera",
+      "Menaje desechable (platitos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 140.0
+    },
+    {
+     "id": 35,
+     "nombre": "Super simply bocatines 2",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Bocatines de jamón ibérico con tomate natural y AOVE",
+      "Bocatines de crema suave de queso con salmón, eneldo y lechuga rizada",
+      "Bocatines de huevo duro, atún, tomate, lechuga y salsa ligera",
+      "Bocatines de lomo asado con salsa tártara y rúcula",
+      "Menaje desechable (servilletas 40 Uds.)"
+     ],
+     "precio": 160.0
+    },
+    {
+     "id": 36,
+     "nombre": "Super simply bocatines 3",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Bocatines de salchichón ibérico D.O Guijuelo, parmesano, pesto y rúcula",
+      "Bocatines de mozzarella, pesto rojo y rúcula",
+      "Bocatines de papada ibérica D.O Guijuelo, queso de cabra, cebolla caramelizada y rúcula",
+      "Bocatines de sobrasada ibérica, queso brie, miel de azahar y rúcula",
+      "Menaje desechable (servilletas 40 Uds.)"
+     ],
+     "precio": 200.0
+    },
+    {
+     "id": 37,
+     "nombre": "Super simply fritos 120 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Croqueta de langostino",
+      "Cremosa de boletus",
+      "Cremosa de queso azul",
+      "Cremosa de gulas",
+      "Menaje desechable (platitos 20 Uds., palillos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 100.0
+    },
+    {
+     "id": 38,
+     "nombre": "Super simply fritos 240 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Croqueta de langostino",
+      "Cremosa de boletus",
+      "Cremosa de queso azul",
+      "Cremosa de gulas",
+      "Menaje desechable (platitos 40 Uds., palillos 40 Uds., servilletas 80 Uds.)"
+     ],
+     "precio": 180.0
+    },
+    {
+     "id": 39,
+     "nombre": "Super simply mini burgers 80 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Mini hamburguesa con cebolla carameliza, mostaza de Dijon y canónigos",
+      "Mini hamburguesa con queso havarti, cebolla frita, tomate, lechuga rizada y kétchup",
+      "Mini hamburguesa con queso de cabra, tomate caramelizado y rúcula",
+      "Mini hamburguesa con queso emmental, cebolla caramelizada, lechuga rizada y salsa barbacoa",
+      "Menaje desechable (platitos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 175.0
+    },
+    {
+     "id": 40,
+     "nombre": "Super simply empanadas 80 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Empanada de bonito",
+      "Empanada de york, crema suave de queso y emmental",
+      "Empanada de queso de cabra con tomate confitado",
+      "Menaje desechable (platitos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 140.0
+    },
+    {
+     "id": 41,
+     "nombre": "Super simply curados",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Surtido de quesos con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado",
+      "Surtido de chorizo, salchichón y caña de lomo ibéricos D.O. Guijuelo con selección de nuestros panes",
+      "Montaditos de jamón ibérico con tomate natural batido con AOVE",
+      "Envoltini de papada ibérica D.O. Guijuelo",
+      "Menaje desechable (platitos 20 Uds., palillos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 120.0
+    },
+    {
+     "id": 42,
+     "nombre": "Super simply canapés 200 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Crema suave de queso azul Agour de oveja con mermelada de higos",
+      "Tartar de salchichón de D.O ibérico con huevas de trucha de El Grado",
+      "Sobrasada ibérica, queso brie y miel de azahar",
+      "Stracciatella de burrata con anchoa de Santoña y almendra",
+      "Menaje desechable (servilletas 50 Uds.)"
+     ],
+     "precio": 200.0
+    },
+    {
+     "id": 43,
+     "nombre": "Super simply tradicional 1 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Risotto de setas con lascas de parmesano",
+      "Lasaña de carne gratinada con bechamel",
+      "Menaje desechable (tenedores 40 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 220.0
+    },
+    {
+     "id": 44,
+     "nombre": "Super simply tradicional 2 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Albóndigas con salsa casera de tomate",
+      "Albóndigas con salsa casera de almendras",
+      "Menaje desechable (tenedores 40 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 220.0
+    },
+    {
+     "id": 45,
+     "nombre": "Super simply buffet de ensaladas 10 pax.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Mezclum de lechugas (1 bandeja)",
+      "Espirales de pasta (1 bandeja)",
+      "Tomatitos cherry",
+      "Maíz",
+      "Aceitunas negras",
+      "Picatostes",
+      "Daditos de pollo asados al horno",
+      "Mozzarella",
+      "Atún",
+      "Huevo duro",
+      "AOVE",
+      "Vinagre",
+      "Sal",
+      "Menaje desechable (Pinzas para servir 2 Uds., Bowls 10 Uds., tenedores 10 Uds., servilletas 20 Uds.)"
+     ],
+     "precio": 120.0
+    },
+    {
+     "id": 46,
+     "nombre": "Super simply mini ensaladas 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Ensaladitas de rulo de cabra (lechuga, queso de cabra, parmesano, picatostes y vinagreta suave de mostaza y miel)",
+      "Ensalada Caprese (base de canónigos, rúcula, tomate Cherry, perlas de mozzarella y salsa pesto)",
+      "Ensalada César (base de lechugas, daditos de pollo asado, picatostes, parmesano y salsa César)",
+      "Ensalada Quinoa (quinoa, tomate, maíz, zanahoria y aove)",
+      "Menaje desechable (tenedores 40 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 140.0
+    },
+    {
+     "id": 47,
+     "nombre": "Super simply pokes 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Poke Vegetariano (arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de tofu y salsa teriyaki)",
+      "Poke Salmón (arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de Salmon y salsa teriyaki)",
+      "Poke de Pollo (arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de pollo y salsa teriyaki)",
+      "Poke de Langostinos (arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, langostinos y salsa teriyaki)",
+      "Menaje desechable (tenedores 40 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 160.0
+    },
+    {
+     "id": 48,
+     "nombre": "Super simply brioche 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Brioche grande de mantequilla con jamón ibérico, tomate triturado y AOVE",
+      "Menaje desechable (servilletas 40 Uds.)"
+     ],
+     "precio": 260.0
+    },
+    {
+     "id": 49,
+     "nombre": "Super simply preñaos 40 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Chorizo",
+      "Longaniza",
+      "Menaje desechable (servilletas 40 Uds.)"
+     ],
+     "precio": 160.0
+    },
+    {
+     "id": 50,
+     "nombre": "Super simply combinada 1",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Bocatines de jamón de ibérico con tomate natural y AOVE",
+      "Bocatines york, queso y lechuga rizada",
+      "Bocatines tortilla de patata",
+      "Bocatines vegetales con tomate, lechuga, huevo duro, atún y salsa ligera",
+      "Empanada de bonito",
+      "Empanada de york, crema suave de queso y emmental",
+      "Bizcocho de manzana",
+      "Brownie",
+      "Menaje desechable (servilletas 60 Uds.)"
+     ],
+     "precio": 160.0
+    },
+    {
+     "id": 51,
+     "nombre": "Super simply mini tartaletas con base de chocolate 200 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Mini tartaleta bañada en chocolate blanco con crema pastelera y mango",
+      "Mini tartaleta bañada en chocolate blanco con crema pastelera y cereza",
+      "Mini tartaleta bañada en chocolate negro con crema pastelera con frutos del bosque",
+      "Mini tartaleta bañada en chocolate negro con crema pastelera y manzana",
+      "Menaje desechable (servilletas 40 Uds.)"
+     ],
+     "precio": 200.0
+    },
+    {
+     "id": 52,
+     "nombre": "Super simply mini croissants 60 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Mini croissant rallado con chocolate negro",
+      "Mini croissant rallado con chocolate blanco",
+      "Mini croissant natural de mantequilla",
+      "Mini croissant con chocolate blanco y yogurt",
+      "Mini croissant semi bañado con chocolate blanco",
+      "Mini croissant semi bañado con chocolate negro",
+      "Menaje desechable (servilletas 60 Uds.)"
+     ],
+     "precio": 100.0
+    },
+    {
+     "id": 53,
+     "nombre": "Super simply brochetas de frutas de temporada 60 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Brochetas de frutas de temporada",
+      "Menaje desechable (tenedorcitos 60 Uds., servilletas 60 Uds.)"
+     ],
+     "precio": 110.0
+    },
+    {
+     "id": 54,
+     "nombre": "Super simply dulce 1 120 uds.",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Piruletas de gofre bañadas en chocolate",
+      "Bizcocho pepitas choco",
+      "Brownie",
+      "Mini berlinas de azúcar",
+      "Bocadito de plátano bañado en chocolate",
+      "Leche frita con canela",
+      "Chuches variadas",
+      "Menaje desechable (platitos 20 Uds., servilletas 40 Uds.)"
+     ],
+     "precio": 120.0
+    }
+   ]
+  },
+  {
+   "categoria": "Mini Box",
+   "descripcion": "",
+   "foto": "media/cateringbox.jpg",
+   "menus": [
+    {
+     "id": 93,
+     "nombre": "Ensaladilla rusa con langostino",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Ensaladilla rusa acompañada de langostino"
+     ],
+     "grupo": "Frías",
+     "precio": 6.0
+    },
+    {
+     "id": 94,
+     "nombre": "Ensalada de mozzarella con tomatitos asados, canónigos, salsa pesto y pistachos",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Mozzarella con tomatitos asados, canónigos, salsa pesto y pistachos"
+     ],
+     "grupo": "Frías",
+     "precio": 5.5
+    },
+    {
+     "id": 95,
+     "nombre": "Ensalada César",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Base de lechuga, daditos de pollo, picatostes, queso parmesano y salsa César"
+     ],
+     "grupo": "Frías",
+     "precio": 5.5
+    },
+    {
+     "id": 96,
+     "nombre": "Ensalada de quinoa",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Quinoa, tomate, maíz, zanahoria rallada, aceituna negra y AOVE"
+     ],
+     "grupo": "Frías",
+     "precio": 5.5
+    },
+    {
+     "id": 97,
+     "nombre": "Poke vegetariano",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de tofu y salsa teriyaki"
+     ],
+     "grupo": "Frías",
+     "precio": 6.6
+    },
+    {
+     "id": 98,
+     "nombre": "Poke vegano",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Arroz, tomate Cherry, pepino, maíz, zanahoria, proteína vegetal y salsa teriyaki"
+     ],
+     "grupo": "Frías",
+     "precio": 6.6
+    },
+    {
+     "id": 99,
+     "nombre": "Poke Salmón",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de salmón y salsa teriyaki"
+     ],
+     "grupo": "Frías",
+     "precio": 6.6
+    },
+    {
+     "id": 100,
+     "nombre": "Poke de Pollo",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Arroz, tomate Cherry, pepino, maíz, zanahoria, huevo duro, daditos de pollo y salsa teriyaki"
+     ],
+     "grupo": "Frías",
+     "precio": 6.6
+    },
+    {
+     "id": 101,
+     "nombre": "Risotto de setas con lascas de parmesano y salsa de trufa",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Risotto de setas con lascas de parmesano y salsa de trufa"
+     ],
+     "grupo": "Calientes",
+     "precio": 6.6
+    },
+    {
+     "id": 102,
+     "nombre": "Penne rigatoni con salsa carbonara y guanciale",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Pasta penne rigatoni con salsa carbonara y guanciale"
+     ],
+     "grupo": "Calientes",
+     "precio": 6.6
+    },
+    {
+     "id": 103,
+     "nombre": "Lasaña de setas gratinada con bechamel trufada y lascas de parmesano",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Lasaña de setas gratinada con bechamel trufada y lascas de parmesano"
+     ],
+     "grupo": "Calientes",
+     "precio": 6.6
+    },
+    {
+     "id": 104,
+     "nombre": "Milhojas de lechazo con gratén de patata y romero",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Milhojas de lechazo acompañado de gratén de patata y romero"
+     ],
+     "grupo": "Calientes",
+     "precio": 12.9
+    },
+    {
+     "id": 105,
+     "nombre": "Carrillera de cerdo con gratén de patata",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Carrillera de cerdo servida con gratén de patata"
+     ],
+     "grupo": "Calientes",
+     "precio": 9.9
+    },
+    {
+     "id": 106,
+     "nombre": "Albóndigas con salsa de tomate",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Albóndigas acompañadas de salsa de tomate"
+     ],
+     "grupo": "Calientes",
+     "precio": 8.9
+    },
+    {
+     "id": 107,
+     "nombre": "Tarta artesana de manzana",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Hojaldre, crema pastelera, manzana caramelizada"
+     ],
+     "grupo": "Dulces",
+     "precio": 3.9
+    },
+    {
+     "id": 108,
+     "nombre": "Frutas de temporada troceadas",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Frutas de temporada troceadas"
+     ],
+     "grupo": "Dulces",
+     "precio": 4.9
+    },
+    {
+     "id": 109,
+     "nombre": "Bizcocho de limón y brownie",
+     "unidad": "unidad",
+     "minimo": 10,
+     "platos": [
+      "Bizcocho de limón y brownie"
+     ],
+     "grupo": "Dulces",
+     "precio": 3.9
+    }
+   ]
+  },
+  {
+   "categoria": "Bandejas",
+   "descripcion": "Bandejas para compartir. Pedido mínimo: 4 bandejas.",
+   "foto": "media/campana.jpg",
+   "menus": [
+    {
+     "id": 110,
+     "nombre": "Bandeja bocatines · 35,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bocatines de tortilla",
+      "Bocatines de huevo duro, atún, tomate, lechuga y salsa ligera",
+      "Bocatines de york y queso"
+     ],
+     "grupo": "Bocatines",
+     "precio": 35.9
+    },
+    {
+     "id": 111,
+     "nombre": "Bandeja bocatines · 39,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bocatines de york, queso, tomate natural y lechuga rizada",
+      "Bocatines de salchichón ibérico D.O. Guijuelo, parmesano, pesto y rúcula",
+      "Bocatines de sobrasada ibérica, queso brie, miel de azahar y rúcula",
+      "Bocatines de queso curado con tomate natural y AOVE",
+      "Bocatines de hummus de remolacha y pistachos",
+      "Bocatines de hummus, tomate seco y rúcula"
+     ],
+     "grupo": "Bocatines",
+     "precio": 39.9
+    },
+    {
+     "id": 112,
+     "nombre": "Bandeja bocatines · 49,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bocatines de jamón ibérico con tomate natural y AOVE",
+      "Bocatines de crema suave de queso con salmón, eneldo y lechuga rizada",
+      "Bocatines de calamar bravo, mahonesa y tabasco",
+      "Bocatines de papada ibérica D.O. Guijuelo, queso de cabra, cebolla caramelizada y rúcula",
+      "Bocatines de mortadela italiana con toque de pimienta",
+      "Bocatines de queso azul con confitura de higos y nueces",
+      "Bocatines de mozzarella, pesto rojo y rúcula",
+      "Bocatines de chorizo ibérico con queso Brie, tomate natural, AOVE y rúcula",
+      "Bocatines de lomo D.O. Guijuelo, tomate Cherry confitado y rúcula",
+      "Bocatines de Heura, tomate Cherry confitado, pesto y rúcula"
+     ],
+     "grupo": "Bocatines",
+     "precio": 49.9
+    },
+    {
+     "id": 113,
+     "nombre": "Bandeja mini hamburguesas · 39,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Mini hamburguesa con cebolla caramelizada, mostaza de Dijon y canónigos",
+      "Mini hamburguesa con queso"
+     ],
+     "grupo": "Mini hamburguesas",
+     "precio": 39.9
+    },
+    {
+     "id": 114,
+     "nombre": "Bandeja mini hamburguesas · 44,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Mini hamburguesa con queso havarti, cebolla frita, tomate natural, lechuga rizada y kétchup",
+      "Mini hamburguesa con queso emmental, cebolla caramelizada, lechuga rizada y salsa barbacoa"
+     ],
+     "grupo": "Mini hamburguesas",
+     "precio": 44.9
+    },
+    {
+     "id": 115,
+     "nombre": "Bandeja mini hamburguesas · 50,00 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Mini hamburguesa con queso de cabra, tomate caramelizado y rúcula",
+      "Mini hamburguesa vegetal con tomate cherry confitado, cebolla crujiente y rúcula"
+     ],
+     "grupo": "Mini hamburguesas",
+     "precio": 50.0
+    },
+    {
+     "id": 116,
+     "nombre": "Bandeja empanadas · 35,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Empanada de bonito",
+      "Empanada de york, crema suave de queso y emmental"
+     ],
+     "grupo": "Empanadas",
+     "precio": 35.9
+    },
+    {
+     "id": 117,
+     "nombre": "Bandeja empanadas · 49,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Empanada de espinacas, mozzarella y ricota",
+      "Empanada de queso de cabra con tomate confitado",
+      "Empanada de mozzarella, tomate, anchoas y pesto"
+     ],
+     "grupo": "Empanadas",
+     "precio": 49.9
+    },
+    {
+     "id": 118,
+     "nombre": "Bandeja quiches · 49,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Quiche de jamón ibérico y tomatitos cherry",
+      "Quiche de bacon y queso",
+      "Quiche de ricota y espinacas",
+      "Quiche de chorizo ibérico"
+     ],
+     "grupo": "Quiches",
+     "precio": 49.9
+    },
+    {
+     "id": 119,
+     "nombre": "Bandeja curados · 19,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Papada ibérica D.O. Guijuelo (200 gr) con grissinis cristal",
+      "Envoltini de papada ibérica D.O. Guijuelo (20 unidades)",
+      "Salchichón ibérico D.O. Guijuelo (200 gr) con pan soplado",
+      "Chorizo ibérico D.O. Guijuelo (200 gr) con pan soplado",
+      "Mortadela italiana con toque de pimienta y grissinis"
+     ],
+     "grupo": "Curados, chacinas y quesos",
+     "precio": 19.9
+    },
+    {
+     "id": 120,
+     "nombre": "Bandeja curados · 20,90 € (20 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Montaditos de jamón ibérico con tomate natural y AOVE"
+     ],
+     "grupo": "Curados, chacinas y quesos",
+     "precio": 20.9
+    },
+    {
+     "id": 121,
+     "nombre": "Bandeja curados · 29,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Surtido ibérico: salchichón, chorizo, lomo y papada ibérica D.O. Guijuelo (80 gr de cada referencia), tomate natural rayado con AOVE y tostaditas",
+      "Surtido de quesos (curado y brie) con galletitas rellenas de queso de cabra, nueces, pasas y pan soplado"
+     ],
+     "grupo": "Curados, chacinas y quesos",
+     "precio": 29.9
+    },
+    {
+     "id": 122,
+     "nombre": "Bandeja curados · 33,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Surtido de 4 quesos: parmesano, brie, manchego y gouda, con membrillo, dátiles y pan soplado",
+      "Jamón Bellota D.O. Guijuelo cortado a cuchillo (80 gr), tomate natural rayado con AOVE y tostaditas",
+      "Jamón ibérico D.O. Guijuelo (200 gr), tomate natural rayado con AOVE y tostaditas",
+      "Lomo ibérico D.O. Guijuelo (200 gr), tomate natural rayado con AOVE y tostaditas"
+     ],
+     "grupo": "Curados, chacinas y quesos",
+     "precio": 33.9
+    },
+    {
+     "id": 123,
+     "nombre": "Bandeja curados · 49,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bocados de lomo de salmón noruego ahumado (350 gr)"
+     ],
+     "grupo": "Curados, chacinas y quesos",
+     "precio": 49.9
+    },
+    {
+     "id": 124,
+     "nombre": "Bandeja gildas · 75,00 € (30 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Gilda de anchoa"
+     ],
+     "grupo": "Gildas",
+     "precio": 75.0
+    },
+    {
+     "id": 125,
+     "nombre": "Bandeja canapés · 50,00 € (50 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Crema suave de queso azul Agour de oveja con mermelada de higos",
+      "Tartar de salchichón ibérico D.O. Guijuelo con huevas de trucha del Grado",
+      "Sobrasada ibérica, queso brie y miel de azahar",
+      "Crema suave de queso, salmón y eneldo"
+     ],
+     "grupo": "Canapés",
+     "precio": 50.0
+    },
+    {
+     "id": 126,
+     "nombre": "Bandeja fritos · 49,90 € (60 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Surtida: croqueta de cocido (10 uds), croqueta de jamón (10 uds), cremosa de boletus (10 uds), cremosa de queso azul (10 uds), cremosa de gulas (10 uds), langostino crujiente",
+      "Croqueta de cocido",
+      "Croqueta de jamón",
+      "Cremosa de boletus",
+      "Cremosa de queso azul",
+      "Cremosa de gulas"
+     ],
+     "grupo": "Fritos",
+     "precio": 49.9
+    },
+    {
+     "id": 127,
+     "nombre": "Bandeja fritos · 59,90 € (60 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Langostino crujiente"
+     ],
+     "grupo": "Fritos",
+     "precio": 59.9
+    },
+    {
+     "id": 128,
+     "nombre": "Bandeja mini ensaladas · 49,90 € (10 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Capresse: mozzarella, tomatitos asados, canónigos y salsa pesto",
+      "3 Quesos: queso de cabra, queso feta, parmesano, picatostes, lechuga y vinagreta de mostaza y miel",
+      "De pasta: espirales de pasta, tomatitos asados, aceituna negra, atún, huevo duro, vinagre balsámico y AOVE",
+      "Ibérica: tomatitos asados, huevo duro, daditos de jamón ibérico, rúcula y AOVE",
+      "César: daditos de pollo asado, parmesano, picatostes, lechuga y salsa César",
+      "De quinoa: quinoa, tomate, aceituna negra, maíz, zanahoria y AOVE"
+     ],
+     "grupo": "Mini ensaladas",
+     "precio": 49.9
+    },
+    {
+     "id": 129,
+     "nombre": "Bandeja pokes · 69,90 € (10 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Poke vegetariano: arroz, tomate cherry, pepino, maíz, zanahoria, huevo duro, daditos de tofu y salsa teriyaki",
+      "Poke de salmón: arroz, tomate cherry, pepino, maíz, zanahoria, huevo duro, daditos de salmón y salsa teriyaki",
+      "Poke de pollo: arroz, tomate cherry, pepino, maíz, zanahoria, huevo duro, daditos de pollo y salsa teriyaki",
+      "Poke de langostinos: arroz, tomate cherry, pepino, maíz, zanahoria, huevo duro, langostinos y salsa teriyaki"
+     ],
+     "grupo": "Pokes",
+     "precio": 69.9
+    },
+    {
+     "id": 130,
+     "nombre": "Bandeja humus · 24,90 € (10 uds)",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Humus de garbanzo con crudités y nachos",
+      "Guacamole con nachos y picos"
+     ],
+     "grupo": "Humus",
+     "precio": 24.9
+    },
+    {
+     "id": 131,
+     "nombre": "Bandeja dulce · 19,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Croissant de mantequilla con almíbar y gelatina"
+     ],
+     "grupo": "Dulce",
+     "precio": 19.9
+    },
+    {
+     "id": 132,
+     "nombre": "Bandeja dulce · 21,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bandeja de chuches Corazones"
+     ],
+     "grupo": "Dulce",
+     "precio": 21.9
+    },
+    {
+     "id": 133,
+     "nombre": "Bandeja dulce · 25,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Croissant de mantequilla sin almíbar, con chocolate",
+      "Mini berlinas de azúcar"
+     ],
+     "grupo": "Dulce",
+     "precio": 25.9
+    },
+    {
+     "id": 134,
+     "nombre": "Bandeja dulce · 29,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Cookies con pepitas de chocolate",
+      "Mini palmeritas de mantequilla",
+      "Mini palmeritas bañadas en chocolate",
+      "Pastas de té",
+      "Bandeja de chuches Margaritas",
+      "Leche frita con canela"
+     ],
+     "grupo": "Dulce",
+     "precio": 29.9
+    },
+    {
+     "id": 135,
+     "nombre": "Bandeja dulce · 35,90 €",
+     "unidad": "bandeja",
+     "minimo": 4,
+     "platos": [
+      "Bizcocho de limón",
+      "Brownie",
+      "Mini gofre con chocolate",
+      "Tarta de manzana",
+      "Tarta de naranja con chocolate",
+      "Brocheta de plátano bañado en chocolate",
+      "Brochetas de fruta de temporada"
+     ],
+     "grupo": "Dulce",
+     "precio": 35.9
+    }
+   ]
+  },
+  {
+   "categoria": "Bebidas",
+   "descripcion": "",
+   "foto": "",
+   "menus": [
+    {
+     "id": 58,
+     "nombre": "Bebidas 00",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Coca Cola Lata 33 cl.",
+      "Coca Cola Zero Lata 33 cl.",
+      "Aquarius Lata 33 cl.",
+      "Cerveza Ambar 00 Lata 33 cl.",
+      "Agua mineral Bag in Box (2 L.)",
+      "Vasos"
+     ],
+     "grupo": "Bebidas",
+     "precio": 45.0
+    },
+    {
+     "id": 59,
+     "nombre": "Bebidas 1",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Coca Cola Lata 33 cl.",
+      "Coca Cola Zero Lata 33 cl.",
+      "Cerveza Ambar",
+      "Cerveza Ambar 00",
+      "Vino tinto Altanza Edulis 2020 D.O. Rioja 75 cl.",
+      "Vino blanco Altanza Sauvignon Blanc D.O. CA. Rioja",
+      "Agua mineral Bag in Box (2 L.)",
+      "Vasos"
+     ],
+     "grupo": "Bebidas",
+     "precio": 80.0
+    },
+    {
+     "id": 60,
+     "nombre": "Bebidas coffee",
+     "unidad": "pack",
+     "minimo": 1,
+     "platos": [
+      "Café Bag in Box 2 L.",
+      "Leche Bag in Box 2 L.",
+      "Agua mineral Bag in Box 2 L.",
+      "Zumo de naranja natural Bag in Box 2 L.",
+      "Menaje desechable"
+     ],
+     "grupo": "Bebidas",
+     "precio": 55.0
+    },
+    {
+     "id": 136,
+     "nombre": "Copa de cava desechable",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 1.0
+    },
+    {
+     "id": 137,
+     "nombre": "Botella agua mineral 50 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 1.8
+    },
+    {
+     "id": 138,
+     "nombre": "Refrescos lata 33 cl. (Coca Cola, Coca Cola Zero, Aquarius Limón, Fanta Naranja)",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 2.3
+    },
+    {
+     "id": 139,
+     "nombre": "Cerveza Ámbar, Ámbar 00 y Radler lata 33 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 2.3
+    },
+    {
+     "id": 140,
+     "nombre": "Cajita de agua 50 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 2.5
+    },
+    {
+     "id": 141,
+     "nombre": "Zumo de naranja natural botella 33 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 3.9
+    },
+    {
+     "id": 142,
+     "nombre": "Zumo de piña 1 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 4.5
+    },
+    {
+     "id": 143,
+     "nombre": "Agua mineral Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 6.0
+    },
+    {
+     "id": 144,
+     "nombre": "Leche Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 8.0
+    },
+    {
+     "id": 145,
+     "nombre": "Café Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [
+      "Incluye 20 paletinas, 20 vasos y 20 azucarillos"
+     ],
+     "grupo": "Bebidas",
+     "precio": 12.0
+    },
+    {
+     "id": 146,
+     "nombre": "Agua Caliente Bag in Box 2 L. con caja de infusiones (té)",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [
+      "Incluye 20 paletinas, 20 vasos y 20 azucarillos"
+     ],
+     "grupo": "Bebidas",
+     "precio": 12.0
+    },
+    {
+     "id": 147,
+     "nombre": "Leche sin lactosa Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 12.0
+    },
+    {
+     "id": 148,
+     "nombre": "Leche vegetal Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 12.0
+    },
+    {
+     "id": 149,
+     "nombre": "Vino blanco Altanza Sauvignon Blanc D.O.Ca. Rioja",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 12.0
+    },
+    {
+     "id": 150,
+     "nombre": "Cava Reyes de Aragón 75 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 15.0
+    },
+    {
+     "id": 151,
+     "nombre": "Vino tinto Altanza Reserva 2018 D.O. Rioja",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 18.0
+    },
+    {
+     "id": 152,
+     "nombre": "Cava Freixenet Ice 75 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 18.0
+    },
+    {
+     "id": 153,
+     "nombre": "Cava Anna de Codorníu 75 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 18.0
+    },
+    {
+     "id": 154,
+     "nombre": "Zumo de naranja natural Bag in Box 2 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [
+      "Incluye 20 vasos"
+     ],
+     "grupo": "Bebidas",
+     "precio": 25.0
+    },
+    {
+     "id": 155,
+     "nombre": "Vermouth Blanco Petroni 1 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 25.0
+    },
+    {
+     "id": 156,
+     "nombre": "Vermouth Rojo Petroni 1 L.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 25.0
+    },
+    {
+     "id": 157,
+     "nombre": "Champagne Veuve Clicquot",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 90.0
+    },
+    {
+     "id": 158,
+     "nombre": "Moët & Chandon Brut Impérial 75 cl.",
+     "unidad": "unidad",
+     "minimo": 4,
+     "platos": [],
+     "grupo": "Bebidas",
+     "precio": 90.0
+    }
+   ]
+  }
+ ]
+}

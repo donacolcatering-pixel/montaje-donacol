@@ -161,7 +161,7 @@
     window.scrollTo(0, 0);
     app.classList.toggle("completa", !U);
     if (!U) return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
-    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion };
+    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion, historia: vNuevaHistoria };
     try { await (V[ruta] || vInicio)(arg ? decodeURIComponent(arg) : null); }
     catch (e) { console.error(e); app.innerHTML = `<div class="vacio">Algo ha fallado: ${esc(e.message)}<br><a class="enlace" href="#inicio">Volver al inicio</a></div>`; }
   }
@@ -287,7 +287,9 @@
     const faltan = [!U.foto && "la foto de perfil", !U.portada && "la foto de portada", !U.bio && "la biografía"].filter(Boolean);
     const html = `
       ${barra(esc(C.marca), `<a class="icono-btn" href="#publicar" aria-label="Subir foto">${I.mas}</a>`)}
-      <section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${puntosTxt(pts)}. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>
+      ${await tiraHistorias()}
+      ${U.oficial ? `<section class="saludo"><h2>${esc(C.marca)}</h2><p>Cuenta oficial. Publica historias y gestiona pedidos, fotos y opiniones desde el <a class="enlace" href="#gestion">Panel</a>.</p></section>`
+        : `<section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${puntosTxt(pts)}. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>`}
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
         ${ult ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
@@ -299,7 +301,114 @@
     await pintar(html, "inicio");
     document.querySelectorAll("#filtro button").forEach(b => b.onclick = () => { S.filtroFeed = b.dataset.f; vInicio(); });
     const rep = document.getElementById("repetir"); if (rep) rep.onclick = () => { S.repetir = ult; location.hash = "#pedir"; };
+    document.querySelectorAll("[data-historia]").forEach(b => b.onclick = () => abrirHistorias(+b.dataset.historia));
     enlazarPosts();
+  }
+
+  // ================================================================ HISTORIAS (de Doña Col, duran 12 horas)
+  const VISTAS_K = "club_historias_vistas";
+  const vistasLocal = () => { try { return JSON.parse(localStorage.getItem(VISTAS_K)) || []; } catch (e) { return []; } };
+  const marcarVista = id => { try { localStorage.setItem(VISTAS_K, JSON.stringify([...new Set([...vistasLocal(), id])].slice(-200))); } catch (e) {} };
+  const quedan = iso => { const h = Math.max(0, (new Date(iso) - Date.now()) / 3600e3); return h >= 1 ? `quedan ${Math.floor(h)} h` : `quedan ${Math.max(1, Math.round(h * 60))} min`; };
+  async function tiraHistorias() {
+    const [hs, gestiona] = await Promise.all([A.historias(), A.puedeGestionar()]);
+    S.historias = hs;
+    if (!hs.length && !gestiona) return "";
+    const vistas = new Set(vistasLocal());
+    return `<div class="historias" aria-label="Historias de ${esc(C.marca)}">
+      ${gestiona ? `<a class="historia nueva" href="#historia">${I.mas}<span>Nueva historia${A.demo ? " (simulación)" : ""}</span></a>` : ""}
+      ${hs.map((h, i) => `<button class="historia${vistas.has(h.id) ? " vista" : ""}" data-historia="${i}">
+        <img src="${esc(optim(h.foto, 320))}" alt="" loading="lazy"><span>${esc(h.texto || C.marca)}<small>${quedan(h.caduca)}</small></span></button>`).join("")}
+    </div>`;
+  }
+  async function abrirHistorias(inicio) {
+    const hs = S.historias || []; if (!hs.length) return;
+    const gestiona = await A.puedeGestionar(), seg = (C.historias.segundos || 6) * 1000;
+    let i = inicio, t0 = 0, raf = 0, pausa = false;
+    const v = document.createElement("div"); v.className = "visor-historia";
+    document.body.appendChild(v); document.body.style.overflow = "hidden";
+    const cerrar = () => { cancelAnimationFrame(raf); v.remove(); document.body.style.overflow = ""; if (location.hash.startsWith("#inicio") || !location.hash) vInicio(); };
+    const buscarMenu = ref => buscarProducto(ref);
+    const pintarUna = async () => {
+      const h = hs[i]; marcarVista(h.id); if (!gestiona) A.verHistoria(h.id);
+      const dest = h.menu && buscarMenu(h.menu);
+      v.innerHTML = `<div class="vh-barras">${hs.map((_, j) => `<i><b style="width:${j < i ? 100 : 0}%"></b></i>`).join("")}</div>
+        <div class="vh-cab">${avatar(h.perfil)}<b>${esc((h.perfil && h.perfil.nombre) || C.marca)}</b><small>${hace(h.fecha)}</small><button class="vh-cerrar" aria-label="Cerrar">×</button></div>
+        <img class="vh-foto" src="${esc(optim(h.foto, 1080))}" alt="">
+        <button class="vh-zona vh-atras" aria-label="Anterior"></button><button class="vh-zona vh-sig" aria-label="Siguiente"></button>
+        <div class="vh-pie">${h.texto ? `<p>${esc(h.texto)}</p>` : ""}
+          ${dest ? `<button class="boton vh-pedir">Pedir ${esc(N.carta[dest[0]].menus[dest[1]].nombre)}</button>` : ""}
+          ${gestiona ? `<p class="vh-gestion"><span id="vhVistas">Vista por …</span> · ${quedan(h.caduca)} · <button class="vh-borrar">Borrar</button></p>` : ""}</div>`;
+      v.querySelector(".vh-cerrar").onclick = cerrar;
+      v.querySelector(".vh-atras").onclick = () => { if (i > 0) { i--; pintarUna(); } else { t0 = performance.now(); } };
+      v.querySelector(".vh-sig").onclick = () => { if (i < hs.length - 1) { i++; pintarUna(); } else cerrar(); };
+      const pd = v.querySelector(".vh-pedir");
+      if (pd) pd.onclick = async () => { const [ci, mi] = dest, soc = await A.socio(); cerrar(); S.categoria = ci; location.hash = "#pedir"; setTimeout(() => hojaPedido(ci, mi, nivelDe(soc).descuento), 350); };
+      if (gestiona) {
+        A.vistasHistoria(h.id).then(n => { const e = v.querySelector("#vhVistas"); if (e) e.textContent = `Vista por ${n} ${n === 1 ? "persona" : "personas"}`; });
+        v.querySelector(".vh-borrar").onclick = async () => { pausa = true; if (await confirmar("¿Borrar esta historia? Dejará de verse ya.", "Borrar")) { await A.borrarHistoria(h.id); aviso("Historia borrada"); cerrar(); } else pausa = false; };
+      }
+      t0 = performance.now();
+    };
+    const tic = ahora => {
+      if (!v.isConnected) return;
+      if (pausa) t0 += 16; else {
+        const k = Math.min(1, (ahora - t0) / seg), b = v.querySelectorAll(".vh-barras b")[i];
+        if (b) b.style.width = k * 100 + "%";
+        if (k >= 1) { if (i < hs.length - 1) { i++; pintarUna(); } else return cerrar(); }
+      }
+      raf = requestAnimationFrame(tic);
+    };
+    v.addEventListener("pointerdown", e => { if (e.target.closest(".vh-zona")) pausa = true; });
+    v.addEventListener("pointerup", () => { pausa = false; });
+    await pintarUna(); raf = requestAnimationFrame(tic);
+  }
+  async function vNuevaHistoria() {
+    if (!(await A.puedeGestionar())) { location.hash = "#inicio"; return; }
+    app.classList.add("sin-nav");
+    app.innerHTML = `${barra("Nueva historia", "", "#inicio")}
+      <form class="formulario" id="f">
+        <label class="elegir-foto vertical" for="foto" id="vista">${I.camara}<span>Elige una foto, mejor en vertical</span></label>
+        <input type="file" id="foto" class="oculto" accept="image/*">
+        <label class="campo"><span>Texto <small>Opcional, hasta 160 caracteres</small></span><textarea class="entrada" name="texto" maxlength="160" placeholder="Ej.: Solo hoy, un 10 % extra en coffee break para mañana"></textarea></label>
+        <div class="campo"><span>Botón «Pedir» <small>Opcional: lleva al menú de la carta</small></span>
+          <select class="entrada" name="menu"><option value="">Sin botón</option>${N.carta.map(c => `<optgroup label="${esc(c.categoria)}">${c.menus.map(m => `<option value="${esc(m.id ?? m.nombre)}">${esc(m.nombre)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+        <p class="error" id="err"></p>
+        <button class="boton ancho" style="margin-top:12px">Publicar historia</button>
+        <p class="nota" style="margin-top:12px">La verán todos los socios durante ${C.historias.horas} horas y luego desaparecerá.${A.demo ? " En la demostración se publica como la cuenta de " + esc(C.marca) + "." : ""}</p>
+      </form>`;
+    let foto = null;
+    document.getElementById("foto").onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { foto = await comprimir(f, 1400, .78, 650000); document.getElementById("vista").innerHTML = `<img src="${foto}" alt="">`; }
+      catch (er) { document.getElementById("err").textContent = er.message; }
+    };
+    document.getElementById("f").onsubmit = async e => {
+      e.preventDefault(); const f = e.target, b = f.querySelector("button"); b.disabled = true; b.textContent = "Publicando…";
+      try { await A.publicarHistoria({ foto, texto: f.texto.value, menu: f.menu.value }); vibrar(); aviso("Historia publicada"); location.hash = "#inicio"; }
+      catch (er) { document.getElementById("err").textContent = er.message; b.disabled = false; b.textContent = "Publicar historia"; }
+    };
+  }
+
+  // ================================================================ OPINIÓN EN GOOGLE (suma puntos cuando Doña Col la encuentra)
+  function hojaResena(previa) {
+    const h = document.createElement("div"); h.className = "hoja-menu";
+    h.innerHTML = `<form class="hoja-larga hoja-resena">
+        <h3>Tu opinión en Google</h3>
+        <p>Cuéntanos qué tal fue en la ficha de ${esc(C.marca)} en Google. Cuando la encontremos, te sumamos ${puntosTxt(C.puntos.porResena)}, sea cual sea tu opinión.</p>
+        <a class="boton ancho" href="${esc(C.enlaceResena)}" target="_blank" rel="noopener">1. Abrir la ficha de ${esc(C.marca)}</a>
+        <label class="campo"><span>2. ¿Con qué nombre aparece tu opinión?</span><input class="entrada" name="nombre" maxlength="80" placeholder="Ej.: Laura M." value="${esc(previa || "")}"></label>
+        <p class="error" id="errR"></p>
+        <button class="boton ancho contorno" type="submit">3. Ya la he publicado</button>
+        <button type="button" data-cerrar class="hoja-cancelar">Cancelar</button>
+      </form>`;
+    h.onclick = e => { if (e.target === h || e.target.closest("[data-cerrar]")) h.remove(); };
+    h.querySelector("form").onsubmit = async e => {
+      e.preventDefault();
+      try { await A.avisarResena(e.target.nombre.value); h.remove(); aviso(`Gracias. ${C.marca} la comprobará y te sumará los puntos.`); vTarjeta(); }
+      catch (er) { h.querySelector("#errR").textContent = er.message; }
+    };
+    document.body.appendChild(h);
   }
   async function tarjetaPost(p) {
     if (p.repostDe) {
@@ -399,22 +508,26 @@
   // ================================================================ PEDIR (carta con descuento de socio)
   async function vPedir() {
     const soc = await A.socio(), nv = nivelDe(soc), dto = nv.descuento;
-    if (S.repetir) { const r = S.repetir; S.repetir = null; return hojaPedido(r.cat, r.idx, dto, r); }
+    if (S.repetir) {
+      const r = S.repetir; S.repetir = null;
+      const pos = buscarProducto({ productoId: r.productoId, nombreMenu: r.nombreMenu }) || [r.cat, r.idx];
+      return hojaPedido(pos[0], pos[1], dto, r);
+    }
     const cats = N.carta;
     const cat = cats[S.categoria] || cats[0];
     const precioDe = m => m.variantes ? Math.min(...m.variantes.map(v => v.precio)) : m.precio;
-    const fotoCat = (cat.menus.find(x => x.foto) || {}).foto;   // los menús sin foto usan la de su categoría
+    const fotoCat = cat.foto || (cat.menus.find(x => x.foto) || {}).foto;   // los menús sin foto usan la de su categoría
     const html = `
       ${barra("Pedir", `<a class="boton mini suave" href="#pedidos">Mis pedidos</a>`)}
       <div class="categorias" id="cats">${cats.map((c, i) => `<button data-i="${i}" class="${c === cat ? "on" : ""}">${esc(c.categoria)}</button>`).join("")}</div>
       <p class="descuento-banda">Como ${esc(nv.nombre)} tienes un ${dto} % de descuento en todos los menús.</p>
       ${cat.descripcion ? `<p class="nota zona" style="margin:12px 0 0">${esc(cat.descripcion)}</p>` : ""}
-      <div>${cat.menus.map((m, j) => `
+      <div>${cat.menus.map((m, j) => `${m.grupo && m.grupo !== (cat.menus[j - 1] || {}).grupo && m.grupo !== cat.categoria ? `<h4 class="subgrupo">${esc(m.grupo)}</h4>` : ""}
         <div class="menu" data-j="${j}">${(m.foto || fotoCat) ? `<img src="${esc(m.foto || fotoCat)}" alt="" loading="lazy">` : `<span class="sin-foto"></span>`}
           <div><b>${esc(m.nombre)}</b><small>${esc(m.platos.slice(0, 3).join(", "))}${m.platos.length > 3 ? "…" : ""}</small></div>
-          <div class="precio">${m.variantes ? "<s>desde</s>" : `<s>${euros(precioDe(m))}</s>`}<strong>${euros(precioDe(m) * (1 - dto / 100))}</strong></div>
+          <div class="precio">${m.variantes ? "<s>desde</s>" : `<s>${euros(precioDe(m))}</s>`}<strong>${euros(precioDe(m) * (1 - dto / 100))}</strong>${m.unidad && m.unidad !== "persona" ? `<em>por ${esc(unidadTxt(m.unidad, 1))}</em>` : ""}</div>
         </div>`).join("")}</div>
-      <p class="nota zona" style="margin-top:14px">Precios por persona, sin IVA (${N.iva} %).</p>`;
+      <p class="nota zona" style="margin-top:14px">Precios sin IVA (${N.iva} %), por persona salvo que se indique otra cosa.</p>`;
     await pintar(html, "pedir");
     document.querySelectorAll("#cats button").forEach(b => b.onclick = () => { S.categoria = +b.dataset.i; vPedir(); });
     document.querySelectorAll(".menu").forEach(el => el.onclick = () => hojaPedido(N.carta.indexOf(cat), +el.dataset.j, dto));
@@ -426,6 +539,7 @@
     let sede = previo?.sede || N.sedes[0].nombre, variante = previo?.variante ?? 0;
     const minimo = () => !m.minimo ? 1 : typeof m.minimo === "number" ? m.minimo : (m.minimo[sede] ?? Math.min(...Object.values(m.minimo)));
     let personas = Math.max(previo?.personas || minimo(), minimo());
+    const paso = !m.unidad || m.unidad === "persona" || m.unidad === "niño" ? 5 : 1;
     const html = `
       ${barra("", "", "#pedir")}
       <section class="hoja">
@@ -434,8 +548,8 @@
         <ul class="platos">${m.platos.map(p => `<li>${esc(p)}</li>`).join("")}</ul>
         ${N.sedes.length > 1 ? `<div class="campo"><span>Ciudad</span><div class="segmentos" id="sede">${N.sedes.map(s => `<button data-s="${esc(s.nombre)}" class="${s.nombre === sede ? "on" : ""}">${esc(s.nombre)}</button>`).join("")}</div></div>` : ""}
         ${m.variantes ? `<div class="campo"><span>Montaje</span><div class="segmentos" id="var">${m.variantes.map((v, k) => `<button data-v="${k}" class="${k === variante ? "on" : ""}">${esc(v.nombre)}</button>`).join("")}</div></div>` : ""}
-        <div class="campo"><span>Personas <small id="min"></small></span>
-          <div class="personas"><button class="redondo" data-p="-5" aria-label="Cinco menos">−</button><b id="pers"></b><button class="redondo" data-p="5" aria-label="Cinco más">+</button></div></div>
+        <div class="campo"><span>${esc(unidadTxt(m.unidad).replace(/^./, c => c.toUpperCase()))} <small id="min"></small></span>
+          <div class="personas"><button class="redondo" data-p="-${paso}" aria-label="Menos">−</button><b id="pers"></b><button class="redondo" data-p="${paso}" aria-label="Más">+</button></div></div>
         <label class="campo"><span>Fecha del evento</span><input class="entrada" type="date" id="fecha" value="${esc(previo?.fechaEvento || "")}"></label>
         <div class="resumen" id="res"></div>
         <p class="error" id="err"></p>
@@ -472,9 +586,9 @@
       const err = document.getElementById("err");
       if (!fechaEl.value) { err.textContent = "Elige la fecha del evento."; fechaEl.focus(); return null; }
       const c = calc(), sedeObj = N.sedes.find(s => s.nombre === sede) || N.sedes[0];
-      const p = await A.crearPedido({ cat: ci, idx: mi, menu: m.nombre + (m.variantes ? ` (${m.variantes[variante].nombre})` : ""), variante, personas, sede, fechaEvento: fechaEl.value, base: c.neto, descuentoPct: dto, ahorro: c.ahorro, total: c.total, canal });
+      const p = await A.crearPedido({ cat: ci, idx: mi, productoId: m.id ?? null, nombreMenu: m.nombre, unidad: m.unidad || "persona", menu: m.nombre + (m.variantes ? ` (${m.variantes[variante].nombre})` : ""), variante, personas, sede, fechaEvento: fechaEl.value, base: c.neto, descuentoPct: dto, ahorro: c.ahorro, total: c.total, canal });
       const fechaTxt = new Date(fechaEl.value + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
-      const texto = [`Hola ${N.nombre} ${sede}, hago este pedido desde la app del club:`, `• Menú: ${p.menu}`, `• Personas: ${personas}`, `• Fecha: ${fechaTxt}`,
+      const texto = [`Hola ${N.nombre} ${sede}, hago este pedido desde la app del club:`, `• Menú: ${p.menu}`, `• ${unidadTxt(m.unidad).replace(/^./, c => c.toUpperCase())}: ${personas}`, `• Fecha: ${fechaTxt}`,
         `• Total con descuento de socio (${dto} %) e IVA: ${euros(c.total)}`, `• Socio: ${U.nombre}${U.empresa ? ", " + U.empresa : ""} (${numeroSocio(U)})`].join("\n");
       return { p, texto, sedeObj };
     }
@@ -511,7 +625,8 @@
 
   // ================================================================ TARJETA DE SOCIO
   async function vTarjeta() {
-    const soc = await A.socio(), pts = soc.puntos, nv = nivelDe(soc), sig = siguienteNivel(soc);
+    const [soc, res] = await Promise.all([A.socio(), C.puntos.porResena ? A.miResena() : null]);
+    const pts = soc.puntos, nv = nivelDe(soc), sig = siguienteNivel(soc);
     const faltaP = sig ? Math.max(0, sig.desde - pts) : 0, faltaO = sig ? Math.max(0, (sig.pedidos || 0) - soc.pedidos) : 0;
     const falta = listaNatural([faltaP && puntosTxt(faltaP), faltaO && `${faltaO} ${faltaO === 1 ? "pedido" : "pedidos"}`].filter(Boolean));
     let qr = "";
@@ -533,10 +648,16 @@
       <h3 class="seccion-titulo">Cómo ganar puntos</h3>
       <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA, cuando Doña Col los confirma.</small></div></li>
         <li><div><b>${puntosTxt(C.puntos.porFoto)} por foto verificada</b><small>Etiqueta a ${esc(C.marca)} en las fotos de vuestros eventos. Cuentan cuando ${esc(C.marca)} comprueba que son suyos.</small></div></li>
+        ${C.puntos.porResena ? `<li><div><b>${puntosTxt(C.puntos.porResena)} por tu opinión en Google</b><small>Una vez. Cuenta cuando ${esc(C.marca)} la encuentra en su ficha, sea cual sea tu opinión.</small>
+          ${!res ? `<button class="boton mini" id="resena" style="margin-top:8px">Dejar mi opinión</button>`
+            : res.estado === "pendiente" ? `<span class="chip pend-chip">Pendiente de comprobar</span>`
+            : res.estado === "verificada" ? `<span class="chip ok-chip">Comprobada, +${puntosTxt(C.puntos.porResena)}</span>`
+            : `<span class="chip">No la hemos encontrado</span> <button class="boton mini suave" id="resena" style="margin-top:8px">Volver a avisar</button>`}</div></li>` : ""}
         <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Hasta ${puntosTxt(C.puntos.topeSeguidores)} al año.</small></div></li>
         <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Solo en fotos verificadas por ${esc(C.marca)}.</small></div></li>
         <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>`;
     await pintar(html, "tarjeta");
+    const br = document.getElementById("resena"); if (br) br.onclick = () => hojaResena(res && res.nombreGoogle);
   }
 
   // ================================================================ RED (personas, mensajes, solicitudes)
@@ -697,6 +818,7 @@
     const fecha = f => f ? new Date(f + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
     const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}
       ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
+      <div class="zona" style="margin-top:14px"><a class="boton ancho" href="#historia">${I.camara} Publicar una historia</a></div>
       <h3 class="seccion-titulo">Pedidos por confirmar (${d.pedidos.length})</h3>
       ${d.pedidos.length ? d.pedidos.map(p => {
         const real = nivelDe(p.socio), sobra = (p.descuentoPct || 0) > real.descuento;
@@ -714,13 +836,22 @@
           ${f.texto ? `<p>${esc(f.texto)}</p>` : ""}
           <p class="nota">${esc(f.evento || "Sin tipo de evento")}. ${f.pedido ? `Dice que es del pedido «${esc(f.pedido.menu)}» del ${fecha(f.pedido.fechaEvento)} (${esc(f.pedido.estado)}).` : "No ha indicado el pedido."}</p>
           <div class="gestion-botones"><button class="boton mini" data-verificar="${esc(f.id)}">Es nuestro: verificar</button><button class="boton mini suave" data-rechazar-foto="${esc(f.id)}">No es nuestro</button></div>
-        </div>`).join("") : `<p class="vacio">No hay fotos pendientes.</p>`}`;
+        </div>`).join("") : `<p class="vacio">No hay fotos pendientes.</p>`}
+      ${C.puntos.porResena ? `<h3 class="seccion-titulo">Opiniones en Google por comprobar (${(d.resenas || []).length})</h3>
+      ${(d.resenas || []).length ? d.resenas.map(r => `<div class="gestion-item">
+          <div class="gestion-cab">${avatar(r.perfil)}<div><b>${esc(r.perfil.nombre)}</b><small>${esc(r.perfil.empresa || r.perfil.tipo || "")}, ${hace(r.fecha)}</small></div></div>
+          <p>Dice que ha dejado su opinión en Google como <b>«${esc(r.nombreGoogle)}»</b>.</p>
+          <p class="nota">Búscala en vuestra ficha de Google. Si está, da ${puntosTxt(C.puntos.porResena)}, sea buena o mala.</p>
+          <div class="gestion-botones"><a class="boton mini suave" href="${esc(C.enlaceResena)}" target="_blank" rel="noopener">Abrir la ficha</a><button class="boton mini" data-resena-ok="${esc(r.uid)}">La he encontrado</button><button class="boton mini suave" data-resena-no="${esc(r.uid)}">No está</button></div>
+        </div>`).join("") : `<p class="vacio">No hay opiniones pendientes.</p>`}` : ""}`;
     await pintar(html, "perfil");
     const hecho = async (fn, texto) => { try { await fn(); aviso(texto); vGestion(); } catch (e) { aviso(e.message); } };
     document.querySelectorAll("[data-confirmar]").forEach(b => b.onclick = () => hecho(() => A.confirmarPedido(b.dataset.confirmar, "Confirmado"), "Pedido confirmado. El cliente ya tiene sus puntos."));
     document.querySelectorAll("[data-cancelar]").forEach(b => b.onclick = async () => { if (await confirmar("¿Cancelar este pedido? No sumará puntos.", "Cancelar pedido")) hecho(() => A.confirmarPedido(b.dataset.cancelar, "Cancelado"), "Pedido cancelado."); });
     document.querySelectorAll("[data-verificar]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.verificar, true), "Foto verificada. El cliente ya tiene sus puntos."));
     document.querySelectorAll("[data-rechazar-foto]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.rechazarFoto, false), "Foto marcada como no verificada."));
+    document.querySelectorAll("[data-resena-ok]").forEach(b => b.onclick = () => hecho(() => A.verificarResena(b.dataset.resenaOk, true), "Opinión comprobada. El cliente ya tiene sus puntos."));
+    document.querySelectorAll("[data-resena-no]").forEach(b => b.onclick = () => hecho(() => A.verificarResena(b.dataset.resenaNo, false), "Marcada como no encontrada. El cliente podrá volver a avisar."));
   }
 
   // ================================================================ PUBLICAR FOTO
@@ -774,5 +905,29 @@
     } catch (e) {}
   })();
 
-  router();
+  // ---------- La carta: la de la app central (publicada), con respaldo sin conexión ----------
+  const CARTA_K = "club_carta";
+  const usarCarta = d => { if (d && Array.isArray(d.carta) && d.carta.length) { N.carta = d.carta; if (d.iva) N.iva = d.iva; return true; } return false; };
+  async function cargarCarta() {
+    try { usarCarta(JSON.parse(localStorage.getItem(CARTA_K))); } catch (e) {}
+    const traer = async url => { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); return r.json(); };
+    const conTiempo = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("tiempo")), ms))]);
+    try {
+      const d = await conTiempo(traer((C.carta && C.carta.url) + "?t=" + Math.floor(Date.now() / 300000)), 5000);
+      if (usarCarta(d)) { try { localStorage.setItem(CARTA_K, JSON.stringify(d)); } catch (e) {} return; }
+    } catch (e) {}
+    if (!localStorage.getItem(CARTA_K)) { try { usarCarta(await traer("carta.json")); } catch (e) {} }   // la que va dentro de la app
+  }
+  const unidadTxt = (u, n = 2) => ({ persona: n === 1 ? "persona" : "personas", "niño": n === 1 ? "niño" : "niños", pack: n === 1 ? "pack" : "packs", bandeja: n === 1 ? "bandeja" : "bandejas", unidad: n === 1 ? "unidad" : "unidades" }[u || "persona"] || u);
+  // Para «repetir pedido» y el botón de las historias: el producto por su id de la central (o por el nombre)
+  function buscarProducto(ref) {
+    if (ref == null || ref === "") return null;
+    for (let ci = 0; ci < N.carta.length; ci++) {
+      const mi = N.carta[ci].menus.findIndex(m => (m.id != null && String(m.id) === String(ref.productoId ?? ref)) || m.nombre === (ref.nombreMenu ?? ref));
+      if (mi >= 0) return [ci, mi];
+    }
+    return null;
+  }
+
+  cargarCarta().finally(router);
 })();
