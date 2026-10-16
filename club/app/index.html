@@ -5,21 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#F3EDE3">
 <meta name="color-scheme" content="light">
+<!-- Web instalable (iPhone: Compartir > Añadir a pantalla de inicio) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="media/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="media/icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Club Doña Col">
 <title>Club Doña Col</title>
-<link rel="stylesheet" href="club.css?v=1.8">
+<link rel="stylesheet" href="club.css?v=1.9">
 </head>
 <body>
 <main id="app"></main>
-<script src="negocio.js?v=1.8"></script>
-<script src="club-datos.js?v=1.8"></script>
+<script src="negocio.js?v=1.9"></script>
+<script src="club-datos.js?v=1.9"></script>
 <script src="vendor/qrcode.js"></script>
 <!-- Firebase (incluido en la app para que funcione también en la APK) -->
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-auth-compat.js"></script>
 <script src="vendor/firebase-firestore-compat.js"></script>
 <!-- Si club-datos.js tiene la configuración de Firebase se usan usuarios reales; si no, la demostración en el móvil -->
-<script src="almacen-local.js?v=1.8"></script>
-<script src="almacen-firebase.js?v=1.8"></script>
-<script src="club.js?v=1.8"></script>
+<script src="almacen-local.js?v=1.9"></script>
+<script src="almacen-firebase.js?v=1.9"></script>
+<script src="club.js?v=1.9"></script>
 </body>
 </html>

@@ -79,6 +79,14 @@
     "permission-denied": "No tienes permiso para hacer eso.",
     "unavailable": "No hay conexión. Revisa internet y vuelve a probar."
   };
+  // Publicar, comentar, seguir y escribir piden el correo confirmado (las reglas también lo exigen)
+  async function exigirCorreo() {
+    if (perfilYo && perfilYo.oficial) return;
+    const u = auth.currentUser; if (!u || u.emailVerified) return;
+    await u.reload().catch(() => {});
+    if (!auth.currentUser.emailVerified) throw new Error("Primero confirma tu correo: te hemos enviado un enlace. Si no lo encuentras, pide otro desde Inicio.");
+    await auth.currentUser.getIdToken(true);
+  }
   const traducir = e => new Error(errores[e && e.code] || (e && e.message) || "Algo ha fallado.");
 
   // Fotos: a Cloudinary si está configurado; si no, la foto (ya comprimida en el móvil) se guarda tal cual
@@ -151,6 +159,7 @@
         throw new Error("No se ha podido crear tu perfil. Inténtalo de nuevo.");
       }
       cacheU.delete(uid); perfilYo = null;
+      cred.user.sendEmailVerification().catch(() => {});
       return this.sesion();
     },
     async entrar(email, clave) {
@@ -182,6 +191,33 @@
       return perfilYo;
     },
     // ---------- Datos de facturación (mismos campos que la ficha de cliente de la app central) ----------
+    // ---------- Correo confirmado ----------
+    async correoVerificado() { await listo; return !!(perfilYo && perfilYo.oficial) || !!(auth.currentUser && auth.currentUser.emailVerified); },
+    async comprobarCorreo() {
+      const u = auth.currentUser; if (!u) return false;
+      await u.reload().catch(() => {}); if (auth.currentUser.emailVerified) await auth.currentUser.getIdToken(true);
+      return auth.currentUser.emailVerified;
+    },
+    async reenviarCorreo() { try { await auth.currentUser.sendEmailVerification(); } catch (e) { throw traducir(e); } },
+
+    // ---------- Panel: socios, ficha y cifras (solo la cuenta oficial) ----------
+    async socios() {
+      try { return (await db.collection("usuarios").limit(3000).get()).docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) { return []; }
+    },
+    async facturacionDe(uid) { try { const d = await db.doc(`usuarios/${uid}/privado/facturacion`).get(); return d.exists ? d.data() : null; } catch (e) { return null; } },
+    async socioReal(uid) { return this._socioDe(uid); },
+    async cifras() {
+      const ahoraMs = Date.now(), hace = dias => new Date(ahoraMs - dias * 864e5).toISOString();
+      const [us, ps, hs] = await Promise.all([db.collection("usuarios").limit(3000).get(), db.collection("publicaciones").limit(3000).get(),
+        db.collection("historias").where("caduca", ">", new Date().toISOString()).get().catch(() => ({ docs: [] }))]);
+      const usuarios = us.docs.map(d => d.data()), pubs = ps.docs.map(d => d.data()).filter(p => !p.repostDe);
+      const vistas = await Promise.all(hs.docs.map(d => db.collection(`historias/${d.id}/vistas`).get().then(q => q.size).catch(() => 0)));
+      return { socios: usuarios.filter(u => !u.oficial).length, nuevos7: usuarios.filter(u => !u.oficial && (u.creado || "") >= hace(7)).length,
+        nuevos30: usuarios.filter(u => !u.oficial && (u.creado || "") >= hace(30)).length, fotos: pubs.length,
+        verificadas: pubs.filter(p => p.verificacion === "verificada").length, pendientes: pubs.filter(p => p.verificacion === "pendiente").length,
+        historias: hs.docs.length, vistas: vistas.reduce((a, b) => a + b, 0) };
+    },
+
     async facturacion() { try { const d = await db.doc(`usuarios/${yo}/privado/facturacion`).get(); return d.exists ? d.data() : null; } catch (e) { return null; } },
     async guardarFacturacion(f) {
       try { await db.doc(`usuarios/${yo}/privado/facturacion`).set({ ...f, email: (auth.currentUser && auth.currentUser.email) || "", actualizado: ahora() }); }
@@ -211,6 +247,7 @@
     },
     async relacion(id) { return sigo.get(id) || "no"; },
     async seguir(id) {
+      await exigirCorreo();
       const otro = await usuario(id); if (!otro || sigo.has(id)) return sigo.get(id);
       const estado = otro.privado ? "pendiente" : "ok";
       try { await db.doc(`seguimientos/${yo}_${id}`).set({ de: yo, a: id, estado, fecha: ahora() }); } catch (e) { throw traducir(e); }
@@ -269,6 +306,7 @@
     },
     async publicacion(id) { fotoCache.delete(id); const p = await fotoPorId(id); return p && !p.repostDe ? enriquecer(p) : null; },
     async publicar({ foto, texto, evento, etiqueta, pedidoId }) {
+      await exigirCorreo();
       if (!foto) throw new Error("Elige una foto.");
       const url = await subirImagen(foto, "fotos");
       try {
@@ -308,6 +346,7 @@
       fotoCache.delete(id); return !ya;
     },
     async compartir(id, texto) {
+      await exigirCorreo();
       const o = await fotoPorId(id);
       if (!o) throw new Error("Esa foto ya no está disponible.");
       if (o.autor === yo) throw new Error("Esta foto ya está en tu perfil.");
@@ -326,6 +365,7 @@
       return (await Promise.all(cs.map(async c => ({ ...c, perfil: await usuario(c.autor) })))).filter(c => c.perfil);
     },
     async comentar(id, texto) {
+      await exigirCorreo();
       texto = String(texto || "").trim(); if (!texto) return;
       const lote = db.batch();
       lote.set(db.collection(`publicaciones/${id}/comentarios`).doc(), { autor: yo, texto, fecha: ahora() });
@@ -367,6 +407,7 @@
       return ms;
     },
     async enviarMensaje(otro, texto) {
+      await exigirCorreo();
       texto = String(texto || "").trim(); if (!texto) return;
       const m = { de: yo, a: otro, participantes: [yo, otro], texto, fecha: ahora(), leido: false };
       try { const r = await db.collection("mensajes").add(m); if (!mensajes.some(x => x.id === r.id)) mensajes.push({ id: r.id, ...m }); } catch (e) { throw traducir(e); }

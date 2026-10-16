@@ -45,7 +45,9 @@ service cloud.firestore {
     function sigoA(autor) { return exists(seguimiento(request.auth.uid, autor)) &amp;&amp; get(seguimiento(request.auth.uid, autor)).data.estado == &#x27;ok&#x27;; }
     // Una foto la ve cualquiera del club si el perfil es público; si es privado, solo su dueño y quien él ha aceptado
     function puedeLeer(p) { return p.autorPrivado == false || p.autor == request.auth.uid || sigoA(p.autor); }
-    function esOficial() { return dentro() &amp;&amp; usuario(request.auth.uid).oficial == true; }
+    function esOficial() { return dentro() &amp;&amp; usuario(request.auth.uid).get(&#x27;oficial&#x27;, false) == true; }
+    // Publicar, comentar, seguir y escribir: con el correo confirmado (la cuenta oficial no lo necesita)
+    function verificado() { return request.auth.token.email_verified == true || esOficial(); }
     function soloCambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos); }
 
     // ---------- Perfiles ----------
@@ -88,7 +90,7 @@ service cloud.firestore {
     match /seguimientos/{id} {
       allow read: if dentro();
       // A un perfil privado se le «pide» seguir (pendiente); a uno público se le sigue directamente
-      allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
+      allow create: if dentro() &amp;&amp; verificado() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
         &amp;&amp; id == request.auth.uid + &#x27;_&#x27; + request.resource.data.a
         &amp;&amp; ((esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;pendiente&#x27;)
             || (!esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;));
@@ -124,7 +126,7 @@ service cloud.firestore {
     }
     match /publicaciones/{id} {
       allow read: if dentro() &amp;&amp; (puedeLeer(resource.data) || esOficial());
-      allow create: if dentro() &amp;&amp; publicacionNueva(request.resource.data);
+      allow create: if dentro() &amp;&amp; verificado() &amp;&amp; publicacionNueva(request.resource.data);
       allow update: if dentro() &amp;&amp; (
         (resource.data.autor == request.auth.uid &amp;&amp; soloCambia([&#x27;texto&#x27;, &#x27;evento&#x27;, &#x27;autorPrivado&#x27;]))
         || ((puedeLeer(resource.data) || esOficial()) &amp;&amp; (soloMiMeGusta() || contador(&#x27;nComentarios&#x27;) || contador(&#x27;nCompartida&#x27;)))
@@ -137,7 +139,7 @@ service cloud.firestore {
       match /comentarios/{cid} {
         function laFoto() { return get(/databases/$(database)/documents/publicaciones/$(id)).data; }
         allow read: if dentro() &amp;&amp; puedeLeer(laFoto());
-        allow create: if dentro() &amp;&amp; request.resource.data.autor == request.auth.uid &amp;&amp; texto(request.resource.data.texto, 500)
+        allow create: if dentro() &amp;&amp; verificado() &amp;&amp; request.resource.data.autor == request.auth.uid &amp;&amp; texto(request.resource.data.texto, 500)
           &amp;&amp; request.resource.data.texto.size() &gt; 0 &amp;&amp; request.resource.data.fecha is string &amp;&amp; puedeLeer(laFoto());
         allow delete: if dentro() &amp;&amp; (resource.data.autor == request.auth.uid || laFoto().autor == request.auth.uid || esOficial());
       }
@@ -147,14 +149,17 @@ service cloud.firestore {
     match /pedidos/{id} {
       allow read: if dentro() &amp;&amp; (resource.data.uid == request.auth.uid || esOficial());
       // El cliente solo puede crearlo «Solicitado»; confirmarlo (y que sume puntos) es cosa de Doña Col
-      allow create: if dentro() &amp;&amp; request.resource.data.uid == request.auth.uid &amp;&amp; request.resource.data.estado == &#x27;Solicitado&#x27;;
+      // Los puntos salen del importe sin IVA («base»): tiene que cuadrar con el total con IVA del 10 % que ve la oficina
+      allow create: if dentro() &amp;&amp; request.resource.data.uid == request.auth.uid &amp;&amp; request.resource.data.estado == &#x27;Solicitado&#x27;
+        &amp;&amp; request.resource.data.base is number &amp;&amp; request.resource.data.total is number &amp;&amp; request.resource.data.base &gt; 0
+        &amp;&amp; request.resource.data.total &gt;= request.resource.data.base * 1.09 &amp;&amp; request.resource.data.total &lt;= request.resource.data.base * 1.11 + 1;
       allow update: if esOficial() &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;confirmadoEn&#x27;]) &amp;&amp; request.resource.data.estado in [&#x27;Confirmado&#x27;, &#x27;Entregado&#x27;, &#x27;Cancelado&#x27;];
     }
 
     // ---------- Mensajes ----------
     match /mensajes/{id} {
       allow read: if dentro() &amp;&amp; request.auth.uid in resource.data.participantes;
-      allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
+      allow create: if dentro() &amp;&amp; verificado() &amp;&amp; request.resource.data.de == request.auth.uid &amp;&amp; request.resource.data.a != request.auth.uid
         &amp;&amp; request.resource.data.participantes.size() == 2
         &amp;&amp; request.resource.data.participantes.hasAll([request.resource.data.de, request.resource.data.a])
         &amp;&amp; request.resource.data.leido == false &amp;&amp; texto(request.resource.data.texto, 2000) &amp;&amp; request.resource.data.texto.size() &gt; 0;

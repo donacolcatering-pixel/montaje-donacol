@@ -110,6 +110,13 @@
   const numeroSocio = u => `${C.prefijoSocio}-${String(u.socio || 0).padStart(6, "0")}`;
   let avisoT;
   function aviso(t) { let a = document.querySelector(".aviso"); if (!a) { a = document.createElement("div"); a.className = "aviso"; document.body.appendChild(a); } a.textContent = t; a.classList.add("visible"); clearTimeout(avisoT); avisoT = setTimeout(() => a.classList.remove("visible"), 2600); }
+  // Cualquier error que se escape (por ejemplo, seguir sin el correo confirmado) se enseña en un aviso
+  window.addEventListener("unhandledrejection", e => { const m = e.reason && e.reason.message; if (m) aviso(m); });
+  const cargarScript = src => new Promise((ok, no) => {
+    if (document.querySelector(`script[data-src="${src}"]`)) return ok();
+    const s = document.createElement("script"); s.src = src; s.dataset.src = src; s.onload = ok; s.onerror = () => no(new Error("No se ha podido cargar el lector."));
+    document.head.appendChild(s);
+  });
   function vibrar() { try { navigator.vibrate && navigator.vibrate(25); } catch (e) {} }
   function abrirFuera(url) { const a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
   // Fotos: se reducen en el móvil antes de guardarlas (más rápido y ocupa menos)
@@ -383,24 +390,42 @@
     const pts = soc.puntos, nv = nivelDe(soc), ult = pedidos[0];
     const faltan = [!U.foto && "la foto de perfil", !U.portada && "la foto de portada", !U.bio && "la biografía"].filter(Boolean);
     if (!U.oficial && !S.factOk) S.factOk = !!(await A.facturacion());
+    const correoOk = await A.correoVerificado(), sig = siguienteNivel(soc);
+    const progreso = sig ? Math.round((Math.min(1, pts / Math.max(1, sig.desde)) + Math.min(1, soc.pedidos / Math.max(1, sig.pedidos || 1))) * 50) : 100;
+    let iosVisto = false; try { iosVisto = !!localStorage.getItem("club_ios_instalar"); } catch (e) {}
+    const iosInstalar = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && !window.Capacitor && !iosVisto;
     const html = `
       ${barra(esc(C.marca), `<a class="icono-btn" href="#publicar" aria-label="Subir foto">${I.mas}</a>`)}
       ${await tiraHistorias()}
       ${U.oficial ? `<section class="saludo"><h2>${esc(C.marca)}</h2><p>Cuenta oficial. Publica historias y gestiona pedidos, fotos y opiniones desde el <a class="enlace" href="#gestion">Panel</a>.</p></section>`
-        : `<section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${puntosTxt(pts)}. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>`}
+        : `<a class="resumen-socio" href="#tarjeta"><span class="rs-hola">Hola, ${esc(U.nombre.split(" ")[0])}</span>
+            <span class="rs-fila"><b>${esc(nv.nombre)}</b><strong>${nv.descuento} %</strong></span>
+            <small>${puntosTxt(pts)}${sig ? `. Siguiente nivel: ${esc(sig.nombre)}` : ". Nivel máximo"}</small>
+            <span class="rs-barra"><i style="width:${Math.max(4, progreso)}%"></i></span>
+            <img src="${esc(N.logo || "media/logo.png")}" alt="" class="rs-logo"></a>`}
+      ${!correoOk ? `<section class="aviso-correo"><b>Confirma tu correo</b><span>Te hemos enviado un enlace a tu correo. Hasta que lo confirmes no podrás publicar, comentar, seguir ni escribir mensajes.</span>
+          <span class="gestion-botones"><button class="boton mini" id="yaVerif">Ya lo he confirmado</button><button class="boton mini suave" id="reenviar">Reenviar el correo</button></span></section>` : ""}
+      ${iosInstalar ? `<section class="instalar-ios"><b>Instala el club en tu iPhone</b><span>Pulsa el botón Compartir de Safari y luego «Añadir a pantalla de inicio». Se abrirá como una app.</span><button id="iosCerrar" aria-label="Cerrar">×</button></section>` : ""}
       ${!U.oficial && !S.factOk ? `<a class="completar" href="#facturacion"><b>Completa tus datos de facturación</b><span>Los mismos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</span></a>` : ""}
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
-        ${ult ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
+        ${ult && ult.menu && ult.personas ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
               : `<a class="atajo oscuro" href="#pedir"><b>${C.pedidos.activos ? "Hacer un pedido" : "Ver la carta"}</b><span>${C.pedidos.activos ? `Con tu ${nv.descuento} % de descuento de socio` : `Con tus precios de socio. Pedidos desde la app, muy pronto`}</span></a>`}
         <a class="atajo" href="#publicar"><b>Subir fotos</b><span>Etiqueta a ${esc(C.marca)} y suma ${C.puntos.porFoto} puntos cuando la verifique</span></a>
       </div>
       <div class="filtro-feed"><div class="segmentos" id="filtro"><button data-f="todos" class="${S.filtroFeed === "todos" ? "on" : ""}">Todo el club</button><button data-f="siguiendo" class="${S.filtroFeed === "siguiendo" ? "on" : ""}">A quién sigo</button></div></div>
-      ${posts.length ? (await Promise.all(posts.map(tarjetaPost))).join("") : `<p class="vacio">${S.filtroFeed === "siguiendo" ? "Aún no sigues a nadie que haya publicado. Busca empresas en «Red»." : "Todavía no hay fotos. ¡Sube la primera!"}</p>`}`;
+      ${posts.length ? (await Promise.all(posts.map(tarjetaPost))).join("") : S.filtroFeed === "siguiendo" ? `<p class="vacio">Aún no sigues a nadie que haya publicado. Busca empresas en «Red».</p>`
+        : `<a class="vacio-foto" href="#publicar" style="background-image:url('media/elegante.jpg')"><b>Las fotos del club aparecerán aquí</b><span>Sube la de tu último evento con ${esc(C.marca)}.</span><span class="boton">Subir una foto</span></a>`}`;
     await pintar(html, "inicio");
     document.querySelectorAll("#filtro button").forEach(b => b.onclick = () => { S.filtroFeed = b.dataset.f; vInicio(); });
     const rep = document.getElementById("repetir"); if (rep) rep.onclick = () => { S.repetir = ult; location.hash = "#pedir"; };
     document.querySelectorAll("[data-historia]").forEach(b => b.onclick = () => abrirHistorias(+b.dataset.historia));
+    const yv = document.getElementById("yaVerif");
+    if (yv) yv.onclick = async () => { if (await A.comprobarCorreo()) { aviso("Correo confirmado. ¡Ya puedes publicar!"); vInicio(); } else aviso("Aún no nos consta. Abre el enlace del correo y vuelve a pulsar."); };
+    const rv = document.getElementById("reenviar");
+    if (rv) rv.onclick = async () => { try { await A.reenviarCorreo(); aviso(`Te lo hemos enviado otra vez a ${U.email || "tu correo"}. Mira también en spam.`); } catch (e) { aviso(e.message); } };
+    const ic = document.getElementById("iosCerrar");
+    if (ic) ic.onclick = () => { try { localStorage.setItem("club_ios_instalar", "1"); } catch (e) {} ic.parentElement.remove(); };
     enlazarPosts();
   }
 
@@ -620,12 +645,13 @@
     const html = `
       ${barra("Pedir", `<a class="boton mini suave" href="#pedidos">Mis pedidos</a>`)}
       <div class="categorias" id="cats">${cats.map((c, i) => `<button data-i="${i}" class="${c === cat ? "on" : ""}">${esc(c.categoria)}</button>`).join("")}</div>
+      <div class="cat-hero"${fotoCat ? ` style="background-image:url('${esc(fotoCat)}')"` : ""}><span>${esc(cat.categoria)}</span>${cat.descripcion ? `<small>${esc(cat.descripcion)}</small>` : ""}<em>${cat.menus.length} ${cat.menus.length === 1 ? "opción" : "opciones"}</em></div>
       <p class="descuento-banda">Como ${esc(nv.nombre)} tienes un ${dto} % de descuento en todos los menús.</p>
       ${C.pedidos.activos ? "" : `<p class="aviso-pedidos">Muy pronto podrás pedir desde la app. Mientras, consulta la carta con tus precios de socio y pide como siempre.</p>`}
       <button class="fila-alergenos" id="alergenos">Alérgenos de todos los platos <span>Ver carta de alérgenos</span></button>
-      ${cat.descripcion ? `<p class="nota zona" style="margin:12px 0 0">${esc(cat.descripcion)}</p>` : ""}
+
       <div>${cat.menus.map((m, j) => `${m.grupo && m.grupo !== (cat.menus[j - 1] || {}).grupo && m.grupo !== cat.categoria ? `<h4 class="subgrupo">${esc(m.grupo)}</h4>` : ""}
-        <div class="menu" data-j="${j}">${(m.foto || fotoCat) ? `<img src="${esc(m.foto || fotoCat)}" alt="" loading="lazy">` : `<span class="sin-foto"></span>`}
+        <div class="menu" data-j="${j}">${m.foto && m.foto !== fotoCat ? `<img src="${esc(m.foto)}" alt="" loading="lazy">` : ""}
           <div><b>${esc(m.nombre)}</b><small>${esc(m.platos.slice(0, 3).join(", "))}${m.platos.length > 3 ? "…" : ""}</small></div>
           <div class="precio">${m.variantes ? "<s>desde</s>" : `<s>${euros(precioDe(m))}</s>`}<strong>${euros(precioDe(m) * (1 - dto / 100))}</strong>${m.unidad && m.unidad !== "persona" ? `<em>por ${esc(unidadTxt(m.unidad, 1))}</em>` : ""}</div>
         </div>`).join("")}</div>
@@ -654,6 +680,10 @@
         <div class="campo"><span>${esc(unidadTxt(m.unidad).replace(/^./, c => c.toUpperCase()))} <small id="min"></small></span>
           <div class="personas"><button class="redondo" data-p="-${paso}" aria-label="Menos">−</button><b id="pers"></b><button class="redondo" data-p="${paso}" aria-label="Más">+</button></div></div>
         <label class="campo"><span>Fecha del evento</span><input class="entrada" type="date" id="fecha" value="${esc(previo?.fechaEvento || "")}"></label>
+        ${C.pedidos.activos ? `<label class="campo"><span>Hora de entrega</span><input class="entrada" type="time" id="hora" value="${esc(previo?.entrega?.hora || "")}"></label>
+          <label class="campo"><span>Dirección de entrega</span><input class="entrada" id="dirEntrega" autocomplete="street-address" placeholder="Calle, número, planta y ciudad" value="${esc(previo?.entrega?.direccion || "")}"></label>
+          <div class="dos-campos"><label class="campo"><span>Quién lo recibe</span><input class="entrada" id="recibe" value="${esc(previo?.entrega?.persona || U.nombre)}"></label>
+          <label class="campo"><span>Su teléfono</span><input class="entrada" id="telRecibe" type="tel" value="${esc(previo?.entrega?.telefono || "")}"></label></div>` : ""}
         <div class="resumen" id="res"></div>
         <p class="error" id="err"></p>
         <p class="nota" style="margin-top:12px">¿Alergias o intolerancias? <a class="enlace" href="#" id="alergenosH">Consulta los alérgenos</a> y cuéntanoslo al pedir.</p>
@@ -692,10 +722,14 @@
     async function registrar(canal) {
       const err = document.getElementById("err");
       if (!fechaEl.value) { err.textContent = "Elige la fecha del evento."; fechaEl.focus(); return null; }
+      const val = id => (document.getElementById(id) || {}).value || "";
+      const entrega = { hora: val("hora"), direccion: val("dirEntrega").trim(), persona: val("recibe").trim(), telefono: val("telRecibe").trim() };
+      if (!entrega.hora) { err.textContent = "Elige la hora de entrega."; return null; }
+      if (entrega.direccion.length < 5) { err.textContent = "Escribe la dirección de entrega."; return null; }
       const c = calc(), sedeObj = N.sedes.find(s => s.nombre === sede) || N.sedes[0];
-      const p = await A.crearPedido({ cat: ci, idx: mi, productoId: m.id ?? null, nombreMenu: m.nombre, unidad: m.unidad || "persona", menu: m.nombre + (m.variantes ? ` (${m.variantes[variante].nombre})` : ""), variante, personas, sede, fechaEvento: fechaEl.value, base: c.neto, descuentoPct: dto, ahorro: c.ahorro, total: c.total, canal });
+      const p = await A.crearPedido({ cat: ci, idx: mi, productoId: m.id ?? null, nombreMenu: m.nombre, unidad: m.unidad || "persona", menu: m.nombre + (m.variantes ? ` (${m.variantes[variante].nombre})` : ""), variante, personas, sede, fechaEvento: fechaEl.value, entrega, base: c.neto, descuentoPct: dto, ahorro: c.ahorro, total: c.total, canal });
       const fechaTxt = new Date(fechaEl.value + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
-      const texto = [`Hola ${N.nombre} ${sede}, hago este pedido desde la app del club:`, `• Menú: ${p.menu}`, `• ${unidadTxt(m.unidad).replace(/^./, c => c.toUpperCase())}: ${personas}`, `• Fecha: ${fechaTxt}`,
+      const texto = [`Hola ${N.nombre} ${sede}, hago este pedido desde la app del club:`, `• Menú: ${p.menu}`, `• ${unidadTxt(m.unidad).replace(/^./, c => c.toUpperCase())}: ${personas}`, `• Fecha: ${fechaTxt} a las ${entrega.hora}`, `• Entrega: ${entrega.direccion}`, `• Recibe: ${entrega.persona}${entrega.telefono ? " (" + entrega.telefono + ")" : ""}`,
         `• Total con descuento de socio (${dto} %) e IVA: ${euros(c.total)}`, `• Socio: ${U.nombre}${U.empresa ? ", " + U.empresa : ""} (${numeroSocio(U)})`].join("\n");
       return { p, texto, sedeObj };
     }
@@ -935,11 +969,16 @@
   }
 
   // ================================================================ PANEL DE DOÑA COL (confirmar pedidos y verificar fotos)
-  async function vGestion() {
+  const navPanel = act => `<nav class="segmentos panel-nav">${[["", "Pendientes"], ["socios", "Socios"], ["qr", "Escanear"], ["cifras", "Cifras"]]
+    .map(([k, t]) => `<a href="#gestion${k ? "/" + k : ""}" class="${act === k ? "on" : ""}">${t}</a>`).join("")}</nav>`;
+  async function vGestion(sub) {
     if (!(await A.puedeGestionar())) { location.hash = "#inicio"; return; }
+    if (sub === "socios") return vGestionSocios();
+    if (sub === "qr") return vGestionQR();
+    if (sub === "cifras") return vGestionCifras();
     const [d, dens] = await Promise.all([A.panel(), A.denuncias()]);
     const fecha = f => f ? new Date(f + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
-    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}
+    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("")}
       ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
       <div class="zona" style="margin-top:14px"><a class="boton ancho" href="#historia">${I.camara} Publicar una historia</a></div>
       <h3 class="seccion-titulo">Denuncias (${dens.length})</h3>
@@ -954,7 +993,8 @@
         return `<div class="gestion-item">
           <div class="gestion-cab">${avatar(p.perfil)}<div><b>${esc(p.perfil.nombre)}</b><small>${esc(p.perfil.empresa || p.perfil.tipo || "")}. Socio ${esc(numeroSocio(p.perfil))}</small></div></div>
           <p><b>${esc(p.menu)}</b> para ${p.personas} personas en ${esc(p.sede)}, ${fecha(p.fechaEvento)}.</p>
-          <p>Total ${euros(p.total)} con ${p.descuentoPct} % de descuento. Pedido por ${esc(p.canal || "la app")}.</p>
+          <p>Total ${euros(p.total)} con ${p.descuentoPct} % de descuento. Pedido por ${esc(p.canal || "la app")}. Al confirmarlo sumará ${puntosTxt(Math.floor((p.base || 0) * C.puntos.porEuro))}.</p>
+          ${p.entrega ? `<p class="nota">Entrega a las ${esc(p.entrega.hora)} en ${esc(p.entrega.direccion)}. Recibe ${esc(p.entrega.persona)}${p.entrega.telefono ? ", " + esc(p.entrega.telefono) : ""}.</p>` : ""}
           <p class="${sobra ? "aviso-rojo" : "nota"}">Nivel real del cliente: ${esc(real.nombre)} (${real.descuento} %).${sobra ? " ¡El descuento aplicado es mayor del que le corresponde!" : ""}</p>
           <div class="gestion-botones"><button class="boton mini" data-confirmar="${esc(p.id)}">Confirmar pedido</button><button class="boton mini suave" data-cancelar="${esc(p.id)}">Cancelar</button></div>
         </div>`; }).join("") : `<p class="vacio">No hay pedidos pendientes.</p>`}
@@ -983,6 +1023,91 @@
     document.querySelectorAll("[data-rechazar-foto]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.rechazarFoto, false), "Foto marcada como no verificada."));
     document.querySelectorAll("[data-resena-ok]").forEach(b => b.onclick = () => hecho(() => A.verificarResena(b.dataset.resenaOk, true), "Opinión comprobada. El cliente ya tiene sus puntos."));
     document.querySelectorAll("[data-resena-no]").forEach(b => b.onclick = () => hecho(() => A.verificarResena(b.dataset.resenaNo, false), "Marcada como no encontrada. El cliente podrá volver a avisar."));
+  }
+
+  // ---------- Panel: socios ----------
+  async function vGestionSocios() {
+    const todos = (await A.socios()).filter(u => !u.oficial).sort((a, b) => (b.socio || 0) - (a.socio || 0));
+    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("socios")}
+      <div class="zona" style="margin-top:12px"><input class="entrada" id="buscaSocio" type="search" placeholder="Buscar por nombre, empresa o número de socio"></div>
+      <p class="nota zona" id="nSocios" style="margin:8px 0 0"></p>
+      <div id="listaSocios" class="lista-socios"></div>`;
+    await pintar(html, "perfil");
+    const lista = t => {
+      t = t.trim().toLowerCase();
+      const xs = todos.filter(u => !t || [u.nombre, u.empresa, u.ciudad, numeroSocio(u), String(u.socio)].join(" ").toLowerCase().includes(t));
+      document.getElementById("nSocios").textContent = `${xs.length} de ${todos.length} socios`;
+      document.getElementById("listaSocios").innerHTML = xs.slice(0, 300).map(u => `<button class="fila-socio" data-uid="${esc(u.id)}">${avatar(u)}<span><b>${esc(u.nombre)}</b><small>${esc(numeroSocio(u))} · ${puesto(u) || esc(u.tipo || "")}${u.ciudad ? ", " + esc(u.ciudad) : ""}</small></span><em>${hace(u.creado)}</em></button>`).join("")
+        || `<p class="vacio">No hay socios con ese nombre.</p>`;
+      document.querySelectorAll(".fila-socio").forEach(b => b.onclick = () => fichaSocio(b.dataset.uid));
+    };
+    document.getElementById("buscaSocio").oninput = e => lista(e.target.value); lista("");
+  }
+  async function fichaSocio(uid) {
+    const [u, f, soc] = await Promise.all([A.perfil(uid), A.facturacionDe(uid), A.socioReal(uid)]);
+    if (!u) return aviso("No encuentro a ese socio.");
+    const nv = nivelDe(soc), fila = (t, v) => v ? `<dt>${t}</dt><dd>${esc(v)}</dd>` : "";
+    const h = document.createElement("div"); h.className = "hoja-menu";
+    h.innerHTML = `<div class="hoja-larga ficha-socio">
+      <header>${avatar(u, true)}<span><b>${esc(u.nombre)}</b><small>${esc(numeroSocio(u))} · ${esc(u.tipo || "")}${u.empresa ? " · " + esc(u.empresa) : ""}</small></span></header>
+      <p class="ficha-nivel"><b>${esc(nv.nombre)}, ${nv.descuento} %</b><span>${puntosTxt(soc.puntos)} y ${soc.pedidos} ${soc.pedidos === 1 ? "pedido" : "pedidos"} en 12 meses</span></p>
+      ${f ? `<dl>${fila(f.tipo === "PARTICULAR" ? "Nombre" : "Razón social", f.nombre)}${fila("Nombre comercial", f.nombre_comercial)}${fila(f.tipo === "PARTICULAR" ? "DNI o NIE" : "CIF o NIF", f.cif)}
+        ${fila("Dirección", [f.direccion, [f.cp, f.localidad].filter(Boolean).join(" "), f.provincia].filter(Boolean).join(", "))}${fila("Móvil", f.movil)}${fila("Correo", f.email)}${fila("Facturas a", f.email_fe)}</dl>`
+        : `<p class="nota">Aún no ha puesto sus datos de facturación.</p>`}
+      <p class="gestion-botones"><a class="boton mini" href="#perfil/${encodeURIComponent(uid)}" data-cerrar>Ver perfil</a><a class="boton mini suave" href="#chat/${encodeURIComponent(uid)}" data-cerrar>Escribirle</a><a class="boton mini suave" href="javascript:void 0" data-cerrar>Cerrar</a></p>
+    </div>`;
+    h.onclick = e => { if (e.target === h || e.target.closest("[data-cerrar]")) h.remove(); };
+    document.body.appendChild(h);
+  }
+  // ---------- Panel: leer el QR de la tarjeta ----------
+  async function vGestionQR() {
+    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("qr")}
+      <div class="zona" style="margin-top:14px"><div class="lector"><video id="cam" playsinline muted></video><span class="marco"></span></div>
+      <p class="nota" id="estadoQR" style="text-align:center">Apunta a la tarjeta de socio.</p></div>
+      <form id="manual" class="zona"><label class="campo"><span>O escribe su número de socio</span><input class="entrada" name="n" inputmode="numeric" placeholder="Ej.: 1001"></label>
+      <button class="boton ancho" style="margin-top:10px">Buscar</button></form>`;
+    await pintar(html, "perfil");
+    let stream = null, activo = true;
+    const parar = () => { activo = false; if (stream) stream.getTracks().forEach(t => t.stop()); };
+    window.addEventListener("hashchange", parar, { once: true });
+    const estado = t => { const e = document.getElementById("estadoQR"); if (e) e.textContent = t; };
+    document.getElementById("manual").onsubmit = async e => {
+      e.preventDefault(); const n = String(e.target.n.value).replace(/\D/g, "");
+      const u = (await A.socios()).find(x => String(x.socio) === String(+n));
+      if (u) fichaSocio(u.id); else aviso("No hay ningún socio con ese número.");
+    };
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sin cámara");
+      await cargarScript("vendor/jsqr.js");
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      if (!activo) return parar();
+      const v = document.getElementById("cam"); v.srcObject = stream; await v.play();
+      const cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true });
+      const mirar = () => {
+        if (!activo || !v.isConnected) return parar();
+        if (v.readyState >= 2 && v.videoWidth) {
+          const k = Math.min(1, 640 / v.videoWidth); cv.width = Math.round(v.videoWidth * k); cv.height = Math.round(v.videoHeight * k);
+          cx.drawImage(v, 0, 0, cv.width, cv.height);
+          const q = window.jsQR(cx.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: "dontInvert" });
+          const m = q && q.data && q.data.match(/^[^|]+\|(.+)$/);
+          if (m) { vibrar(); parar(); estado("Tarjeta leída."); return fichaSocio(m[1]); }
+        }
+        requestAnimationFrame(mirar);
+      };
+      mirar();
+    } catch (e) {
+      estado(e && e.name === "NotAllowedError" ? "No hay permiso para usar la cámara. Escribe el número de socio." : "No se puede usar la cámara aquí. Escribe el número de socio.");
+    }
+  }
+  // ---------- Panel: cifras ----------
+  async function vGestionCifras() {
+    const c = await A.cifras();
+    const t = (n, txt) => `<div class="cifra"><b>${miles(n)}</b><span>${txt}</span></div>`;
+    const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("cifras")}
+      <div class="cifras">${t(c.socios, "socios")}${t(c.nuevos7, "nuevos esta semana")}${t(c.nuevos30, "nuevos en 30 días")}
+        ${t(c.fotos, "fotos publicadas")}${t(c.verificadas, "fotos verificadas")}${t(c.pendientes, "fotos por verificar")}
+        ${t(c.historias, "historias activas")}${t(c.vistas, "vistas de esas historias")}</div>`;
+    await pintar(html, "perfil");
   }
 
   // ================================================================ PUBLICAR FOTO
@@ -1060,5 +1185,7 @@
     return null;
   }
 
+  if ("serviceWorker" in navigator && !window.Capacitor && (location.protocol === "https:" || location.hostname === "localhost"))
+    navigator.serviceWorker.register("sw.js").catch(() => {});
   cargarCarta().finally(router);
 })();

@@ -165,6 +165,19 @@
         return { ...d, perfil: publico(usuario(d.de)), pub: p, autorPub: p ? publico(usuario(p.autor)) : null }; });
     },
     async descartarDenuncia(id) { db.denuncias = db.denuncias.filter(d => d.id !== id); guardar(); avisar(); },
+    async correoVerificado() { return true; },
+    async comprobarCorreo() { return true; },
+    async reenviarCorreo() {},
+    async socios() { return db.usuarios.map(publico); },
+    async facturacionDe(uid) { const u = usuario(uid); return (u && u.facturacion) || null; },
+    async socioReal(uid) { return this.socio(uid); },
+    async cifras() {
+      const hace = d => new Date(Date.now() - d * 864e5).toISOString(), us = db.usuarios.filter(u => !u.oficial), ps = db.publicaciones.filter(p => !p.repostDe);
+      const hs = db.historias.filter(h => h.caduca > ahora());
+      return { socios: us.length, nuevos7: us.filter(u => u.creado >= hace(7)).length, nuevos30: us.filter(u => u.creado >= hace(30)).length,
+        fotos: ps.length, verificadas: ps.filter(p => p.verificacion === "verificada").length, pendientes: ps.filter(p => p.verificacion === "pendiente").length,
+        historias: hs.length, vistas: hs.reduce((s, h) => s + (h.vistas || []).length, 0) };
+    },
     async facturacion() { const u = yo(); return (u && u.facturacion) || null; },
     async guardarFacturacion(f) { const u = yo(); if (u) { u.facturacion = { ...f, email: u.email }; guardar(); } },
 
