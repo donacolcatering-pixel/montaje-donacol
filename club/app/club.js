@@ -655,7 +655,9 @@
             : `<span class="chip">No la hemos encontrado</span> <button class="boton mini suave" id="resena" style="margin-top:8px">Volver a avisar</button>`}</div></li>` : ""}
         <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Hasta ${puntosTxt(C.puntos.topeSeguidores)} al año.</small></div></li>
         <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Solo en fotos verificadas por ${esc(C.marca)}.</small></div></li>
-        <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>`;
+        <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>
+      ${!C.puntos.porResena && C.enlaceResena ? `<div class="opinar"><b>¿Qué tal tu último evento?</b><span>Tu opinión en Google ayuda a otras empresas a conocernos.</span>
+        <a class="boton contorno ancho" href="${esc(C.enlaceResena)}" target="_blank" rel="noopener">Déjanos tu opinión en Google</a></div>` : ""}`;
     await pintar(html, "tarjeta");
     const br = document.getElementById("resena"); if (br) br.onclick = () => hojaResena(res && res.nombreGoogle);
   }
