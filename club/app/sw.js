@@ -1,6 +1,6 @@
 // Club Doña Col: la web instalada funciona sin conexión con lo último que se cargó.
 // Siempre intenta la red primero (así cada versión nueva llega sola) y, si no hay conexión, usa la copia guardada.
-const VERSION = "club-1.9";
+const VERSION = "club-2.0";
 const BASE = ["./", "index.html", "club.css", "club.js", "club-datos.js", "negocio.js", "almacen-local.js", "almacen-firebase.js", "carta.json",
   "vendor/qrcode.js", "vendor/firebase-app-compat.js", "vendor/firebase-auth-compat.js", "vendor/firebase-firestore-compat.js",
   "fonts/hanken.woff2", "fonts/bodoni.woff2", "media/logo.png", "media/logo-marron.png", "media/icono-192.png"];

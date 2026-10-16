@@ -153,6 +153,8 @@
           });
           // Datos de facturación: aparte y privados (solo los ven el socio y Doña Col)
           if (d.facturacion) t.set(db.doc(`usuarios/${uid}/privado/facturacion`), { ...d.facturacion, email, actualizado: ahora() });
+          // Declaración de mayoría de edad y versión de los textos legales aceptados
+          if (d.consentimiento) t.set(db.doc(`usuarios/${uid}/privado/consentimiento`), { ...d.consentimiento, fecha: ahora() });
         });
       } catch (e) {
         await cred.user.delete().catch(() => {});
@@ -218,6 +220,92 @@
         historias: hs.docs.length, vistas: vistas.reduce((a, b) => a + b, 0) };
     },
 
+    // ---------- Empresas: una ficha por CIF; los compañeros se unen y los aprueba la persona titular (o Doña Col) ----------
+    async empresaPorCif(cif) { try { const d = await db.doc(`empresas/${cif}`).get(); return d.exists ? { cif, ...d.data() } : null; } catch (e) { return null; } },
+    async _empresa(cif, uid) {
+      const [e, f, m] = await Promise.all([this.empresaPorCif(cif),
+        db.doc(`empresas/${cif}/privado/fiscal`).get().then(d => d.exists ? d.data() : null).catch(() => null),
+        db.doc(`empresas/${cif}/miembros/${uid}`).get().then(d => d.exists ? d.data() : null).catch(() => null)]);
+      return e ? { empresa: e, fiscal: f, miembro: m } : null;
+    },
+    async miEmpresa() {
+      const f = await this.facturacion(); if (!f || f.tipo !== "EMPRESA" || !f.cif) return f ? { fact: f, empresa: null } : null;
+      const x = await this._empresa(f.cif, yo);
+      return x ? { ...x, fact: f, soyTitular: x.empresa.titular === yo } : { fact: f, empresa: null };
+    },
+    async empresaDe(cif, uid) { return this._empresa(cif, uid); },     // para el Panel
+    async crearEmpresa(e, movil) {
+      await exigirCorreo();
+      const cif = e.cif, lote = db.batch(), nombreYo = (perfilYo && perfilYo.nombre) || "";
+      lote.set(db.doc(`empresas/${cif}`), { cif, nombre: e.nombre, nombre_comercial: e.nombre_comercial || "", localidad: e.localidad, titular: yo, titularNombre: nombreYo, creada: ahora(), verificada: false });
+      lote.set(db.doc(`empresas/${cif}/privado/fiscal`), { direccion: e.direccion, cp: e.cp, localidad: e.localidad, provincia: e.provincia, pais: "España", email_fe: e.email_fe || "", actualizado: ahora() });
+      lote.set(db.doc(`empresas/${cif}/miembros/${yo}`), { estado: "ok", nombre: nombreYo, fecha: ahora() });
+      lote.set(db.doc(`usuarios/${yo}/privado/facturacion`), { tipo: "EMPRESA", cif, movil, mayorEdad: true, legal: C.legal.version, email: (auth.currentUser && auth.currentUser.email) || "", actualizado: ahora() });
+      try { await lote.commit(); } catch (er) { throw er.code === "permission-denied" ? new Error("Esa empresa ya está dada de alta en el club. Vuelve atrás y pide unirte.") : traducir(er); }
+    },
+    async guardarEmpresa(cif, e) {
+      const lote = db.batch();
+      lote.update(db.doc(`empresas/${cif}`), { nombre: e.nombre, nombre_comercial: e.nombre_comercial || "", localidad: e.localidad });
+      lote.set(db.doc(`empresas/${cif}/privado/fiscal`), { direccion: e.direccion, cp: e.cp, localidad: e.localidad, provincia: e.provincia, pais: "España", email_fe: e.email_fe || "", actualizado: ahora() });
+      try { await lote.commit(); } catch (er) { throw traducir(er); }
+    },
+    async unirseEmpresa(cif, movil) {
+      await exigirCorreo();
+      const lote = db.batch();
+      lote.set(db.doc(`empresas/${cif}/miembros/${yo}`), { estado: "pendiente", nombre: (perfilYo && perfilYo.nombre) || "", fecha: ahora() });
+      lote.set(db.doc(`usuarios/${yo}/privado/facturacion`), { tipo: "EMPRESA", cif, movil, mayorEdad: true, legal: C.legal.version, email: (auth.currentUser && auth.currentUser.email) || "", actualizado: ahora() });
+      try { await lote.commit(); } catch (er) { throw traducir(er); }
+    },
+    // Panel: empresas recién dadas de alta que Doña Col tiene que verificar
+    async empresasPorVerificar() {
+      try {
+        const q = await db.collection("empresas").where("verificada", "==", false).limit(200).get();
+        return Promise.all(q.docs.map(async d => {
+          const e = { cif: d.id, ...d.data() };
+          const [fis, fac, per] = await Promise.all([db.doc(`empresas/${d.id}/privado/fiscal`).get().then(x => x.exists ? x.data() : {}).catch(() => ({})),
+            this.facturacionDe(e.titular), usuario(e.titular)]);
+          return { ...e, fiscal: fis, titularCorreo: (fac && fac.email) || "", titularMovil: (fac && fac.movil) || "", titularPerfil: per };
+        }));
+      } catch (e) { return []; }
+    },
+    async verificarEmpresa(cif, ok) {
+      try {
+        if (ok) { await db.doc(`empresas/${cif}`).update({ verificada: true, verificadaEn: ahora() }); }
+        else {
+          const lote = db.batch(), ms = await db.collection(`empresas/${cif}/miembros`).get();
+          ms.docs.forEach(m => lote.delete(m.ref)); lote.delete(db.doc(`empresas/${cif}/privado/fiscal`)); lote.delete(db.doc(`empresas/${cif}`));
+          await lote.commit();
+        }
+      } catch (e) { throw traducir(e); }
+      avisar();
+    },
+    async miembrosEmpresa(cif) { try { return (await db.collection(`empresas/${cif}/miembros`).get()).docs.map(d => ({ uid: d.id, ...d.data() })); } catch (e) { return []; } },
+    async resolverMiembro(cif, uid, ok) { try { await db.doc(`empresas/${cif}/miembros/${uid}`).update({ estado: ok ? "ok" : "rechazado", resueltoEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
+    async salirEmpresa(cif) {
+      const lote = db.batch(); lote.delete(db.doc(`empresas/${cif}/miembros/${yo}`)); lote.delete(db.doc(`usuarios/${yo}/privado/facturacion`));
+      try { await lote.commit(); } catch (e) { throw traducir(e); }
+    },
+    // Solicitudes que tengo que aprobar como titular de mi empresa
+    async solicitudesMiEmpresa() {
+      try {
+        const f = await this.facturacion(); if (!f || f.tipo !== "EMPRESA" || !f.cif) return null;
+        const e = await this.empresaPorCif(f.cif); if (!e || e.titular !== yo) return null;
+        const q = await db.collection(`empresas/${f.cif}/miembros`).where("estado", "==", "pendiente").get();
+        return { empresa: e, n: q.size };
+      } catch (e) { return null; }
+    },
+    // Panel: todas las uniones pendientes (Doña Col puede aprobarlas si la titular no lo hace)
+    async unionesPendientes() {
+      try {
+        const es = await db.collection("empresas").limit(1000).get(), out = [];
+        await Promise.all(es.docs.map(async d => {
+          const q = await db.collection(`empresas/${d.id}/miembros`).where("estado", "==", "pendiente").get();
+          q.docs.forEach(m => out.push({ cif: d.id, empresa: d.data().nombre, titularNombre: d.data().titularNombre, uid: m.id, ...m.data() }));
+        }));
+        return out.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+      } catch (e) { return []; }
+    },
+
     async facturacion() { try { const d = await db.doc(`usuarios/${yo}/privado/facturacion`).get(); return d.exists ? d.data() : null; } catch (e) { return null; } },
     async guardarFacturacion(f) {
       try { await db.doc(`usuarios/${yo}/privado/facturacion`).set({ ...f, email: (auth.currentUser && auth.currentUser.email) || "", actualizado: ahora() }); }
@@ -226,6 +314,9 @@
     async borrarCuenta() {
       const lote = db.batch();
       lote.delete(db.doc(`usuarios/${yo}/privado/facturacion`));
+      lote.delete(db.doc(`usuarios/${yo}/privado/consentimiento`));
+      const miFact = await this.facturacion();
+      if (miFact && miFact.tipo === "EMPRESA" && miFact.cif) lote.delete(db.doc(`empresas/${miFact.cif}/miembros/${yo}`));
       mensajes.filter(m => m.de === yo).forEach(m => lote.delete(db.doc(`mensajes/${m.id}`)));
       (await db.collection("publicaciones").where("autor", "==", yo).get()).docs.forEach(d => lote.delete(d.ref));
       [...sigo.keys()].forEach(a => lote.delete(db.doc(`seguimientos/${yo}_${a}`)));

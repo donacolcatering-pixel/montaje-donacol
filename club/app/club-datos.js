@@ -65,7 +65,7 @@ window.CLUB = {
   cloudinary: { cloud: "drfjs9u7p", preset: "club_donacol2", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "1.9", codigo: 11, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "2.0", codigo: 12, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: false

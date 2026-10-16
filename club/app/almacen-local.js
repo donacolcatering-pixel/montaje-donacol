@@ -59,7 +59,7 @@
     catch (e) { throw new Error("El móvil no tiene más espacio para la demostración. Borra alguna foto."); }
   }
   function migrar() {
-    db.historias = db.historias || []; db.resenas = db.resenas || [];
+    db.historias = db.historias || []; db.resenas = db.resenas || []; db.empresas = db.empresas || {};
     db.publicaciones.forEach(p => { p.comentarios = p.comentarios || []; p.meGusta = p.meGusta || []; });
     // 1.2: se borran los perfiles inventados de versiones anteriores (y todo lo suyo); tu cuenta se conserva
     const falsos = new Set(db.usuarios.filter(x => x.ejemplo && !x.oficial).map(x => x.id));
@@ -178,6 +178,32 @@
         fotos: ps.length, verificadas: ps.filter(p => p.verificacion === "verificada").length, pendientes: ps.filter(p => p.verificacion === "pendiente").length,
         historias: hs.length, vistas: hs.reduce((s, h) => s + (h.vistas || []).length, 0) };
     },
+    async empresaPorCif(cif) { const e = db.empresas[cif]; return e ? { cif, ...e.datos } : null; },
+    async _empresa(cif, uid) { const e = db.empresas[cif]; return e ? { empresa: { cif, ...e.datos }, fiscal: e.fiscal, miembro: e.miembros[uid] || null } : null; },
+    async miEmpresa() {
+      const f = await this.facturacion(); if (!f || f.tipo !== "EMPRESA" || !f.cif) return f ? { fact: f, empresa: null } : null;
+      const x = await this._empresa(f.cif, db.sesion); return x ? { ...x, fact: f, soyTitular: x.empresa.titular === db.sesion } : { fact: f, empresa: null };
+    },
+    async empresaDe(cif, uid) { return this._empresa(cif, uid); },
+    async crearEmpresa(e, movil) {
+      if (db.empresas[e.cif]) throw new Error("Esa empresa ya está dada de alta en el club. Vuelve atrás y pide unirte.");
+      const u = yo();
+      db.empresas[e.cif] = { datos: { nombre: e.nombre, nombre_comercial: e.nombre_comercial || "", localidad: e.localidad, titular: u.id, titularNombre: u.nombre, creada: ahora(), verificada: false },
+        fiscal: { direccion: e.direccion, cp: e.cp, localidad: e.localidad, provincia: e.provincia, pais: "España", email_fe: e.email_fe || "" }, miembros: { [u.id]: { estado: "ok", nombre: u.nombre, fecha: ahora() } } };
+      u.facturacion = { tipo: "EMPRESA", cif: e.cif, movil, mayorEdad: true, email: u.email }; guardar(); avisar();
+    },
+    async guardarEmpresa(cif, e) { const x = db.empresas[cif]; if (!x) return; Object.assign(x.datos, { nombre: e.nombre, nombre_comercial: e.nombre_comercial || "", localidad: e.localidad }); Object.assign(x.fiscal, e); guardar(); },
+    async unirseEmpresa(cif, movil) { const u = yo(), x = db.empresas[cif]; if (!x) return; x.miembros[u.id] = { estado: "pendiente", nombre: u.nombre, fecha: ahora() }; u.facturacion = { tipo: "EMPRESA", cif, movil, mayorEdad: true, email: u.email }; guardar(); avisar(); },
+    async empresasPorVerificar() {
+      return Object.entries(db.empresas).filter(([, x]) => !x.datos.verificada).map(([cif, x]) => { const t = usuario(x.datos.titular) || {};
+        return { cif, ...x.datos, fiscal: x.fiscal, titularCorreo: t.email || "", titularMovil: (t.facturacion || {}).movil || "", titularPerfil: publico(t) }; });
+    },
+    async verificarEmpresa(cif, ok) { const x = db.empresas[cif]; if (!x) return; if (ok) x.datos.verificada = true; else delete db.empresas[cif]; guardar(); avisar(); },
+    async miembrosEmpresa(cif) { const x = db.empresas[cif]; return x ? Object.entries(x.miembros).map(([uid, m]) => ({ uid, ...m })) : []; },
+    async resolverMiembro(cif, uid, ok) { const x = db.empresas[cif]; if (x && x.miembros[uid]) { x.miembros[uid].estado = ok ? "ok" : "rechazado"; guardar(); avisar(); } },
+    async salirEmpresa(cif) { const u = yo(), x = db.empresas[cif]; if (x) delete x.miembros[u.id]; u.facturacion = null; guardar(); },
+    async solicitudesMiEmpresa() { const f = await this.facturacion(); const x = f && f.cif && db.empresas[f.cif]; if (!x || x.datos.titular !== db.sesion) return null; return { empresa: { cif: f.cif, ...x.datos }, n: Object.values(x.miembros).filter(m => m.estado === "pendiente").length }; },
+    async unionesPendientes() { const out = []; Object.entries(db.empresas).forEach(([cif, x]) => Object.entries(x.miembros).forEach(([uid, m]) => { if (m.estado === "pendiente") out.push({ cif, empresa: x.datos.nombre, titularNombre: x.datos.titularNombre, uid, ...m }); })); return out; },
     async facturacion() { const u = yo(); return (u && u.facturacion) || null; },
     async guardarFacturacion(f) { const u = yo(); if (u) { u.facturacion = { ...f, email: u.email }; guardar(); } },
 

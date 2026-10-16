@@ -58,11 +58,11 @@ service cloud.firestore {
         &amp;&amp; texto(d.foto, 140000) &amp;&amp; texto(d.portada, 380000);
     }
     // Mismos campos que la ficha de cliente de la app central (tipo, nombre = razón social, cif, dirección...)
+    // Particular: sus datos completos aquí. Empresa: solo el CIF (los datos fiscales van en la ficha de la empresa)
     function facturacionValida(d) {
-      return d.tipo in [&#x27;EMPRESA&#x27;, &#x27;PARTICULAR&#x27;] &amp;&amp; texto(d.nombre, 120) &amp;&amp; d.nombre.size() &gt; 1
-        &amp;&amp; texto(d.cif, 15) &amp;&amp; d.cif.size() &gt;= 8 &amp;&amp; texto(d.direccion, 150) &amp;&amp; d.direccion.size() &gt; 2
-        &amp;&amp; d.cp is string &amp;&amp; d.cp.matches(&#x27;^[0-9]{5}$&#x27;) &amp;&amp; texto(d.localidad, 80) &amp;&amp; texto(d.provincia, 60)
-        &amp;&amp; texto(d.movil, 20) &amp;&amp; d.mayorEdad == true;
+      return d.tipo in [&#x27;EMPRESA&#x27;, &#x27;PARTICULAR&#x27;] &amp;&amp; texto(d.cif, 15) &amp;&amp; d.cif.size() &gt;= 8 &amp;&amp; texto(d.movil, 20) &amp;&amp; d.mayorEdad == true
+        &amp;&amp; (d.tipo == &#x27;EMPRESA&#x27; || (texto(d.nombre, 120) &amp;&amp; d.nombre.size() &gt; 1 &amp;&amp; texto(d.direccion, 150) &amp;&amp; d.direccion.size() &gt; 2
+            &amp;&amp; d.cp is string &amp;&amp; d.cp.matches(&#x27;^[0-9]{5}$&#x27;) &amp;&amp; texto(d.localidad, 80) &amp;&amp; texto(d.provincia, 60)));
     }
     match /usuarios/{uid} {
       allow read: if dentro();
@@ -76,7 +76,8 @@ service cloud.firestore {
       // Datos de facturación: privados. Solo los ven el socio y Doña Col
       match /privado/{doc} {
         allow read: if soy(uid) || esOficial();
-        allow create, update: if soy(uid) &amp;&amp; doc == &#x27;facturacion&#x27; &amp;&amp; facturacionValida(request.resource.data);
+        allow create, update: if soy(uid) &amp;&amp; ((doc == &#x27;facturacion&#x27; &amp;&amp; facturacionValida(request.resource.data))
+          || (doc == &#x27;consentimiento&#x27; &amp;&amp; request.resource.data.mayorEdad == true));
         allow delete: if soy(uid);
       }
     }
@@ -84,6 +85,38 @@ service cloud.firestore {
       allow read: if dentro();
       allow create: if dentro() &amp;&amp; request.resource.data.n == 1001;
       allow update: if dentro() &amp;&amp; request.resource.data.n == resource.data.n + 1;
+    }
+
+    // ---------- Empresas: una ficha por CIF. La persona titular (quien la dio de alta) aprueba a sus compañeros ----------
+    function rutaEmpresa(cif) { return /databases/$(database)/documents/empresas/$(cif); }
+    function rutaMiembro(cif, uid) { return /databases/$(database)/documents/empresas/$(cif)/miembros/$(uid); }
+    function esTitular(cif) { return dentro() &amp;&amp; get(rutaEmpresa(cif)).data.titular == request.auth.uid; }
+    function esTitularDespues(cif) { return dentro() &amp;&amp; getAfter(rutaEmpresa(cif)).data.titular == request.auth.uid; }
+    function esMiembroOk(cif) { return dentro() &amp;&amp; exists(rutaMiembro(cif, request.auth.uid)) &amp;&amp; get(rutaMiembro(cif, request.auth.uid)).data.estado == &#x27;ok&#x27;; }
+    match /empresas/{cif} {
+      allow get: if dentro();              // buscar por el CIF exacto (solo nombre, localidad y titular)
+      allow list: if esOficial();
+      allow create: if dentro() &amp;&amp; verificado() &amp;&amp; request.resource.data.titular == request.auth.uid &amp;&amp; request.resource.data.cif == cif
+        &amp;&amp; texto(request.resource.data.nombre, 120) &amp;&amp; request.resource.data.nombre.size() &gt; 1
+        &amp;&amp; texto(request.resource.data.nombre_comercial, 120) &amp;&amp; texto(request.resource.data.localidad, 80)
+        // Nace sin verificar: solo Doña Col la verifica (comprueba que quien la da de alta trabaja allí)
+        &amp;&amp; request.resource.data.verificada == false;
+      allow update: if (esTitular(cif) &amp;&amp; soloCambia([&#x27;nombre&#x27;, &#x27;nombre_comercial&#x27;, &#x27;localidad&#x27;, &#x27;titularNombre&#x27;])) || esOficial();
+      allow delete: if esOficial();
+      // Dirección fiscal y correo de facturación: solo la titular, los compañeros aprobados y Doña Col
+      match /privado/{doc} {
+        allow read: if esMiembroOk(cif) || esTitular(cif) || esOficial();
+        allow write: if doc == &#x27;fiscal&#x27; &amp;&amp; (esTitularDespues(cif) || esOficial());
+      }
+      match /miembros/{uid} {
+        allow read: if soy(uid) || esTitular(cif) || esOficial();
+        allow create: if soy(uid) &amp;&amp; verificado()
+          &amp;&amp; (request.resource.data.estado == &#x27;pendiente&#x27; || (request.resource.data.estado == &#x27;ok&#x27; &amp;&amp; getAfter(rutaEmpresa(cif)).data.titular == uid));
+        // La titular solo aprueba compañeros cuando Doña Col ha verificado la empresa
+        allow update: if ((esTitular(cif) &amp;&amp; get(rutaEmpresa(cif)).data.get(&#x27;verificada&#x27;, false) == true) || esOficial())
+          &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;resueltoEn&#x27;]) &amp;&amp; request.resource.data.estado in [&#x27;ok&#x27;, &#x27;rechazado&#x27;];
+        allow delete: if soy(uid) || esTitular(cif) || esOficial();
+      }
     }
 
     // ---------- Seguir ----------

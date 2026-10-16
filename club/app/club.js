@@ -301,20 +301,14 @@
     app.innerHTML = acceso("media/empresas.jpg", "Únete al club", `Desde hoy, un ${C.niveles[0].descuento} % de descuento en tus pedidos y tu tarjeta de socio en el móvil.`, `${barra("", "", "#")}
       <form class="formulario" id="f" novalidate>
         <h2>Crea tu cuenta</h2>
-        <p class="nota">Para empresas, agencias y particulares mayores de ${C.edadMinima} años.</p>
+        <p class="nota">Tu cuenta es personal: entras con tu correo y tu contraseña. Los datos de facturación se ponen después, cuando los necesites.</p>
         <div class="campo"><span>Tipo de cuenta</span>
           <div class="segmentos" id="tipo">${C.tiposPerfil.map((t, i) => `<button type="button" data-t="${esc(t)}" class="${i === 0 ? "on" : ""}">${esc(t)}</button>`).join("")}</div></div>
-        <h3 class="form-seccion">Tus datos</h3>
         <label class="campo"><span>Nombre y apellidos</span><input class="entrada" name="nombre" autocomplete="name" autocapitalize="words"></label>
-        <label class="campo" id="cCargo"><span>Cargo <small>Opcional</small></span><input class="entrada" name="cargo" autocomplete="organization-title" placeholder="Ej.: Office manager"></label>
-        <label class="campo"><span>Móvil</span><input class="entrada" name="movil" type="tel" autocomplete="tel" inputmode="tel" placeholder="Ej.: 600 123 456"></label>
-        <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email"></label>
+        <label class="campo" id="cEmpresa"><span>Empresa o agencia <small>La verán los demás socios</small></span><input class="entrada" name="empresa" autocomplete="organization"></label>
+        <label class="campo"><span>Tu correo <small>Para entrar</small></span><input class="entrada" name="email" type="email" autocomplete="email"></label>
         <div class="campo"><span>Contraseña <small>Mínimo 8 caracteres</small></span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
         <div class="campo"><span>Repite la contraseña <small id="coinciden"></small></span><div class="clave"><input class="entrada" name="clave2" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
-        <h3 class="form-seccion">Datos de facturación</h3>
-        <p class="nota" id="notaFact">Los de tu ${"empresa"}: los mismos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</p>
-        ${camposFacturacion({}, false)}
-        <label class="casilla"><input type="checkbox" name="privado"><span><b>Perfil privado.</b> Solo verán tus fotos las personas a las que aceptes.</span></label>
         <label class="casilla"><input type="checkbox" name="mayor"><span>Declaro que soy mayor de ${C.edadMinima} años.</span></label>
         <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto las <a class="enlace" href="#" id="verCond">condiciones de uso</a>, las <a class="enlace" href="#" id="verClub">bases del club</a> y la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
         <p class="error" id="err"></p>
@@ -322,13 +316,11 @@
         <p class="nota" style="margin-top:18px">¿Ya tienes cuenta? <a class="enlace" href="#entrar">Entra aquí</a></p>
       </form>`);
     let tipo = C.tiposPerfil[0];
-    const fr = document.getElementById("f"), part = () => tipo === "Particular";
+    const fr = document.getElementById("f");
     document.querySelectorAll("#tipo button").forEach(b => b.onclick = () => {
       document.querySelectorAll("#tipo button").forEach(x => x.classList.toggle("on", x === b)); tipo = b.dataset.t;
-      document.getElementById("fEmpresa").hidden = part(); document.getElementById("fDni").hidden = !part(); document.getElementById("cCargo").hidden = part();
-      document.getElementById("notaFact").textContent = part() ? `Tus datos para la factura. Solo los ve ${C.marca}.` : `Los de tu ${tipo === "Agencia" ? "agencia" : "empresa"}: los mismos que irán en tus facturas. Solo los ve ${C.marca}.`;
+      document.getElementById("cEmpresa").hidden = tipo === "Particular";
     });
-    enlazarCP(fr);
     const marca = () => {
       const a = fr.clave.value, b = fr.clave2.value, el = document.getElementById("coinciden");
       el.textContent = !b ? "" : a === b ? "Coinciden" : "No coinciden"; el.style.color = !b ? "" : a === b ? "var(--ok)" : "var(--no)";
@@ -340,35 +332,35 @@
     fr.onsubmit = async e => {
       e.preventDefault(); const f = fr, err = document.getElementById("err");
       const fallo = (t, campo) => { err.textContent = t; if (campo && f[campo]) f[campo].focus(); };
-      const nombre = f.nombre.value.trim(), movil = f.movil.value.trim();
+      const nombre = f.nombre.value.trim();
       if (nombre.length < 3) return fallo("Escribe tu nombre y apellidos.", "nombre");
-      if (movil.replace(/\D/g, "").length < 9) return fallo("Escribe tu móvil.", "movil");
+      if (tipo !== "Particular" && f.empresa.value.trim().length < 2) return fallo("Escribe el nombre de tu empresa o agencia.", "empresa");
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.value.trim())) return fallo("Revisa el correo electrónico.", "email");
       if (f.clave.value.length < 8) return fallo("La contraseña necesita al menos 8 caracteres.", "clave");
       if (f.clave.value !== f.clave2.value) return fallo("Las contraseñas no coinciden. Pulsa «Mostrar» para revisarlas.", "clave2");
-      const r = leerFacturacion(f, part(), nombre, movil);
-      if (r.error) return fallo(r.error, r.campo);
       if (!f.mayor.checked) return fallo(`El club es solo para mayores de ${C.edadMinima} años.`);
       if (!f.acepto.checked) return fallo("Para crear la cuenta tienes que aceptar las condiciones, las bases del club y la política de privacidad.");
       const b = f.querySelector("button:not([type])"); b.disabled = true; b.textContent = "Creando tu cuenta…";
       try {
-        await A.registrar({ email: f.email.value, clave: f.clave.value, nombre, tipo, empresa: part() ? "" : (r.fact.nombre_comercial || r.fact.nombre),
-          cargo: part() ? "" : f.cargo.value, ciudad: r.fact.localidad, privado: f.privado.checked, facturacion: r.fact });
-        vibrar(); location.hash = "#inicio"; setTimeout(() => aviso("Cuenta creada. Ya tienes tu tarjeta de socio."), 300);
+        await A.registrar({ email: f.email.value, clave: f.clave.value, nombre, tipo, empresa: tipo === "Particular" ? "" : f.empresa.value.trim(), cargo: "", ciudad: "",
+          privado: false, consentimiento: { mayorEdad: true, legal: C.legal.version } });
+        vibrar(); location.hash = "#inicio"; setTimeout(() => aviso("Cuenta creada. Te hemos enviado un correo para confirmarla."), 300);
       } catch (er) { err.textContent = er.message; b.disabled = false; b.textContent = "Crear mi cuenta"; }
     };
   }
 
-  // Datos de facturación (para completarlos o cambiarlos)
-  async function vFacturacion() {
-    const f = (await A.facturacion()) || {}, part = U.tipo === "Particular";
+  // ---------- Facturación ----------
+  // Particular: sus datos (DNI y dirección). Empresa o agencia: se une a la ficha de su empresa por el CIF
+  async function vFacturacion() { return U.tipo === "Particular" ? vFactParticular() : vFactEmpresa(); }
+
+  async function vFactParticular() {
+    const f = (await A.facturacion()) || {};
     app.classList.add("sin-nav");
     app.innerHTML = `${barra("Facturación", "", "#editar")}
       <form class="formulario" id="f" novalidate>
-        <p class="nota">Los mismos datos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</p>
-        ${camposFacturacion(f, part)}
+        <p class="nota">Los datos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</p>
+        ${camposFacturacion(f, true)}
         <label class="campo"><span>Móvil</span><input class="entrada" name="movil" type="tel" value="${esc(f.movil || "")}"></label>
-        ${f.mayorEdad ? "" : `<label class="casilla"><input type="checkbox" name="mayor"><span>Declaro que soy mayor de ${C.edadMinima} años.</span></label>`}
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Guardar</button>
       </form>`;
@@ -376,11 +368,119 @@
     fr.onsubmit = async e => {
       e.preventDefault(); const err = document.getElementById("err");
       const movil = fr.movil.value.trim(); if (movil.replace(/\D/g, "").length < 9) { err.textContent = "Escribe tu móvil."; return fr.movil.focus(); }
-      if (fr.mayor && !fr.mayor.checked) { err.textContent = `El club es solo para mayores de ${C.edadMinima} años.`; return; }
-      const r = leerFacturacion(fr, part, U.nombre, movil);
+      const r = leerFacturacion(fr, true, U.nombre, movil);
       if (r.error) { err.textContent = r.error; if (fr[r.campo]) fr[r.campo].focus(); return; }
       try { await A.guardarFacturacion(r.fact); S.factOk = true; aviso("Datos de facturación guardados"); location.hash = "#editar"; }
       catch (er) { err.textContent = er.message; }
+    };
+  }
+
+  // Campos de la ficha de una empresa (sin el CIF, que se pone antes)
+  function camposEmpresa(f = {}) {
+    return `<label class="campo"><span>Razón social</span><input class="entrada" name="razon" autocomplete="organization" placeholder="Ej.: Eventos Ejemplo, S.L." value="${esc(f.nombre || "")}"></label>
+      <label class="campo"><span>Nombre comercial <small>Opcional, si es distinto</small></span><input class="entrada" name="comercial" value="${esc(f.nombre_comercial || "")}"></label>
+      <label class="campo"><span>Dirección fiscal <small>Calle y número</small></span><input class="entrada" name="direccion" autocomplete="street-address" value="${esc(f.direccion || "")}"></label>
+      <div class="dos-campos">
+        <label class="campo"><span>Código postal</span><input class="entrada" name="cp" inputmode="numeric" maxlength="5" value="${esc(f.cp || "")}"></label>
+        <label class="campo"><span>Localidad</span><input class="entrada" name="localidad" value="${esc(f.localidad || "")}"></label>
+      </div>
+      <label class="campo"><span>Provincia</span><input class="entrada" name="provincia" value="${esc(f.provincia || "")}"></label>
+      <label class="campo"><span>Correo de facturación de la empresa <small>A donde enviar las facturas</small></span><input class="entrada" name="emailfe" type="email" value="${esc(f.email_fe || "")}"></label>`;
+  }
+  function leerEmpresa(fr) {
+    const v = n => fr[n].value.trim();
+    if (v("razon").length < 2) return { error: "Escribe la razón social (el nombre que va en la factura).", campo: "razon" };
+    if (v("direccion").length < 3) return { error: "Escribe la dirección fiscal.", campo: "direccion" };
+    if (!/^\d{5}$/.test(v("cp"))) return { error: "El código postal tiene 5 cifras.", campo: "cp" };
+    if (!v("localidad")) return { error: "Escribe la localidad.", campo: "localidad" };
+    if (!v("provincia")) return { error: "Escribe la provincia.", campo: "provincia" };
+    if (v("emailfe") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("emailfe"))) return { error: "Revisa el correo de facturación.", campo: "emailfe" };
+    return { e: { nombre: v("razon"), nombre_comercial: v("comercial"), direccion: v("direccion"), cp: v("cp"), localidad: v("localidad"), provincia: v("provincia"), email_fe: v("emailfe") } };
+  }
+
+  async function vFactEmpresa() {
+    const mi = await A.miEmpresa(), quien = U.tipo === "Agencia" ? "agencia" : "empresa";
+    app.classList.add("sin-nav");
+    const cab = barra("Facturación", "", "#editar");
+    // Ya unido (o pendiente) a una empresa
+    if (mi && mi.empresa) {
+      const e = mi.empresa, fis = mi.fiscal || {};
+      const estado = mi.soyTitular ? "titular" : (mi.miembro && mi.miembro.estado) || "pendiente", verificada = !!e.verificada;
+      const miembros = mi.soyTitular ? await A.miembrosEmpresa(e.cif) : [];
+      const pend = miembros.filter(m => m.estado === "pendiente"), oks = miembros.filter(m => m.estado === "ok" && m.uid !== U.id);
+      const chip = !verificada && (estado === "titular" || estado === "ok") ? ["pend-chip", `Pendiente de que ${C.marca} verifique la ${quien}`] : { titular: ["ok-chip", "Eres la persona titular"], ok: ["ok-chip", "Aprobado: facturas con esta empresa"],
+        rechazado: ["", "No te han aprobado"], pendiente: ["pend-chip", `Pendiente de que te apruebe ${e.titularNombre || "la titular"}`] }[estado];
+      const notaVerif = !verificada ? `<p class="nota" style="margin-top:12px">${esc(C.marca)} comprueba cada ${quien} nueva antes de que se pueda facturar con ella y de que se unan compañeros. Te avisaremos si necesitamos algo.</p>` : "";
+      app.innerHTML = `${cab}
+        <section class="formulario">
+          <div class="empresa-ficha"><small>Facturas a nombre de</small><b>${esc(e.nombre)}</b><span>${esc(e.cif)}${e.localidad ? " · " + esc(e.localidad) : ""}</span>
+            <em class="chip ${chip[0]}">${esc(chip[1])}</em></div>
+          ${notaVerif}
+          ${estado === "pendiente" ? `<p class="nota" style="margin-top:12px">Mientras tanto puedes usar el club con normalidad. ${esc(C.marca)} también puede aprobarte.</p>` : ""}
+          ${estado === "ok" && mi.fiscal ? `<dl class="fiscal"><dt>Dirección fiscal</dt><dd>${esc([fis.direccion, [fis.cp, fis.localidad].filter(Boolean).join(" "), fis.provincia].filter(Boolean).join(", "))}</dd>
+            ${fis.email_fe ? `<dt>Facturas a</dt><dd>${esc(fis.email_fe)}</dd>` : ""}</dl><p class="nota">Si hay que cambiar algo, lo hace ${esc(e.titularNombre || "la persona titular")}.</p>` : ""}
+          ${mi.soyTitular ? `<h3 class="form-seccion">Compañeros</h3>
+            ${pend.length ? pend.map(m => `<p class="fila-miembro"><span><b>${esc(m.nombre || "Un socio")}</b> quiere facturar con vuestra ${quien}.</span>
+              ${verificada ? `<span class="gestion-botones"><button class="boton mini" data-aprobar="${esc(m.uid)}">Aprobar</button><button class="boton mini suave" data-denegar="${esc(m.uid)}">No es de la ${quien}</button></span>`
+                : `<span class="nota">Podrás aprobarlo cuando ${esc(C.marca)} verifique la ${quien}.</span>`}</p>`).join("")
+              : `<p class="nota">No hay solicitudes pendientes. Tus compañeros solo tienen que poner el CIF en su Facturación.</p>`}
+            ${oks.length ? `<p class="nota" style="margin-top:10px">Ya facturan con vosotros: ${oks.map(m => esc(m.nombre)).join(", ")}.</p>` : ""}
+            <h3 class="form-seccion">Datos de la ${quien}</h3>
+            <form id="fe" novalidate>${camposEmpresa({ ...e, ...fis })}<p class="error" id="err"></p><button class="boton ancho" style="margin-top:12px">Guardar cambios</button></form>` : ""}
+          <button class="boton contorno ancho" id="salirEmp" style="margin-top:26px">${estado === "rechazado" ? "Poner otro CIF" : `Dejar de facturar con esta ${quien}`}</button>
+        </section>`;
+      document.querySelectorAll("[data-aprobar]").forEach(b => b.onclick = async () => { await A.resolverMiembro(e.cif, b.dataset.aprobar, true); aviso("Aprobado"); vFactEmpresa(); });
+      document.querySelectorAll("[data-denegar]").forEach(b => b.onclick = async () => { if (await confirmar("¿No trabaja en vuestra empresa? No podrá facturar con ella.", "No es de la empresa")) { await A.resolverMiembro(e.cif, b.dataset.denegar, false); vFactEmpresa(); } });
+      const fe = document.getElementById("fe");
+      if (fe) { enlazarCP(fe); fe.onsubmit = async ev => { ev.preventDefault(); const r = leerEmpresa(fe); const err = document.getElementById("err"); if (r.error) { err.textContent = r.error; return fe[r.campo].focus(); } try { await A.guardarEmpresa(e.cif, r.e); aviso("Datos guardados"); } catch (er) { err.textContent = er.message; } }; }
+      document.getElementById("salirEmp").onclick = async () => {
+        if (estado === "titular" && oks.length) return hojaTexto("Antes de salir", `Eres la persona titular y hay compañeros que facturan con esta ${quien}. Pide a ${C.marca} que pase la titularidad a otra persona.`);
+        if (await confirmar(`Dejarás de facturar con ${e.nombre}.`, "Dejar de facturar")) { await A.salirEmpresa(e.cif); S.factOk = false; vFactEmpresa(); }
+      };
+      return;
+    }
+    // Paso 1: el CIF
+    const viejo = (mi && mi.fact) || {};   // datos de la versión anterior (si los había), para no volver a escribirlos
+    app.innerHTML = `${cab}
+      <form class="formulario" id="fc" novalidate>
+        <p class="nota">Tus facturas irán a nombre de tu ${quien}. Si ya está en el club, solo tienes que unirte.</p>
+        <label class="campo"><span>CIF o NIF de la ${quien}</span><input class="entrada" name="cif" autocapitalize="characters" placeholder="Ej.: B12345678" value="${esc(viejo.cif || "")}"></label>
+        <label class="campo"><span>Tu móvil</span><input class="entrada" name="movil" type="tel" autocomplete="tel" value="${esc(viejo.movil || "")}"></label>
+        <p class="error" id="err"></p>
+        <button class="boton ancho" style="margin-top:12px">Continuar</button>
+      </form>
+      <div id="paso2"></div>`;
+    const fc = document.getElementById("fc");
+    fc.onsubmit = async ev => {
+      ev.preventDefault(); const err = document.getElementById("err"); err.textContent = "";
+      const cif = limpiaId(fc.cif.value), movil = fc.movil.value.trim();
+      if (!cifValido(cif) && !nifValido(cif)) { err.textContent = "El CIF o NIF no es correcto. Revísalo."; return fc.cif.focus(); }
+      if (movil.replace(/\D/g, "").length < 9) { err.textContent = "Escribe tu móvil."; return fc.movil.focus(); }
+      const e = await A.empresaPorCif(cif), p2 = document.getElementById("paso2");
+      if (e) {
+        p2.innerHTML = `<section class="formulario" style="padding-top:0">
+          <div class="empresa-ficha"><small>Ya está en el club</small><b>${esc(e.nombre)}</b><span>${esc(cif)}${e.localidad ? " · " + esc(e.localidad) : ""}</span></div>
+          <p class="nota" style="margin-top:12px">${esc(e.titularNombre || "La persona titular")} confirmará que trabajas allí. Mientras, puedes usar el club con normalidad.</p>
+          <button class="boton ancho" id="unirme" style="margin-top:12px">Sí, es mi ${quien}: pedir unirme</button></section>`;
+        document.getElementById("unirme").onclick = async () => {
+          try { await A.unirseEmpresa(cif, movil); S.factOk = true; aviso(`Solicitud enviada a ${e.titularNombre || "la titular"}`); vFactEmpresa(); } catch (er) { aviso(er.message); }
+        };
+      } else {
+        p2.innerHTML = `<form class="formulario" id="fe" novalidate style="padding-top:0">
+          <h3 class="form-seccion">Da de alta tu ${quien}</h3>
+          <p class="nota">Eres la primera persona de esta ${quien} en el club. Tus compañeros solo tendrán que poner el CIF y tú los aprobarás.</p>
+          ${camposEmpresa(viejo.tipo === "EMPRESA" ? viejo : { nombre: U.empresa })}
+          <p class="error" id="err2"></p>
+          <button class="boton ancho" style="margin-top:12px">Dar de alta la ${quien}</button></form>`;
+        const fe = document.getElementById("fe"); enlazarCP(fe);
+        fe.onsubmit = async ev2 => {
+          ev2.preventDefault(); const r = leerEmpresa(fe), err2 = document.getElementById("err2");
+          if (r.error) { err2.textContent = r.error; return fe[r.campo].focus(); }
+          try { await A.crearEmpresa({ ...r.e, cif }, movil); S.factOk = true; aviso(`Dada de alta. ${C.marca} la verificará en breve.`); vFactEmpresa(); }
+          catch (er) { err2.textContent = er.message; }
+        };
+      }
+      p2.scrollIntoView({ behavior: "smooth", block: "start" });
     };
   }
 
@@ -390,6 +490,7 @@
     const pts = soc.puntos, nv = nivelDe(soc), ult = pedidos[0];
     const faltan = [!U.foto && "la foto de perfil", !U.portada && "la foto de portada", !U.bio && "la biografía"].filter(Boolean);
     if (!U.oficial && !S.factOk) S.factOk = !!(await A.facturacion());
+    const solEmp = !U.oficial && U.tipo !== "Particular" ? await A.solicitudesMiEmpresa() : null;
     const correoOk = await A.correoVerificado(), sig = siguienteNivel(soc);
     const progreso = sig ? Math.round((Math.min(1, pts / Math.max(1, sig.desde)) + Math.min(1, soc.pedidos / Math.max(1, sig.pedidos || 1))) * 50) : 100;
     let iosVisto = false; try { iosVisto = !!localStorage.getItem("club_ios_instalar"); } catch (e) {}
@@ -406,7 +507,8 @@
       ${!correoOk ? `<section class="aviso-correo"><b>Confirma tu correo</b><span>Te hemos enviado un enlace a tu correo. Hasta que lo confirmes no podrás publicar, comentar, seguir ni escribir mensajes.</span>
           <span class="gestion-botones"><button class="boton mini" id="yaVerif">Ya lo he confirmado</button><button class="boton mini suave" id="reenviar">Reenviar el correo</button></span></section>` : ""}
       ${iosInstalar ? `<section class="instalar-ios"><b>Instala el club en tu iPhone</b><span>Pulsa el botón Compartir de Safari y luego «Añadir a pantalla de inicio». Se abrirá como una app.</span><button id="iosCerrar" aria-label="Cerrar">×</button></section>` : ""}
-      ${!U.oficial && !S.factOk ? `<a class="completar" href="#facturacion"><b>Completa tus datos de facturación</b><span>Los mismos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</span></a>` : ""}
+      ${solEmp && solEmp.n ? `<a class="completar" href="#facturacion"><b>${solEmp.n === 1 ? "Un compañero quiere" : solEmp.n + " compañeros quieren"} facturar con ${esc(solEmp.empresa.nombre)}</b><span>Confirma que trabajan con vosotros.</span></a>` : ""}
+      ${!U.oficial && !S.factOk ? `<a class="completar suave" href="#facturacion"><b>Datos de facturación</b><span>${U.tipo === "Particular" ? "Ponlos cuando quieras: los necesitaremos para tus facturas." : "Une tu cuenta a tu empresa con su CIF. Si ya está en el club, solo tienes que unirte."}</span></a>` : ""}
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
         ${ult && ult.menu && ult.personas ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
@@ -976,11 +1078,27 @@
     if (sub === "socios") return vGestionSocios();
     if (sub === "qr") return vGestionQR();
     if (sub === "cifras") return vGestionCifras();
-    const [d, dens] = await Promise.all([A.panel(), A.denuncias()]);
+    const [d, dens, uniones, porVerif] = await Promise.all([A.panel(), A.denuncias(), A.unionesPendientes(), A.empresasPorVerificar()]);
+    const correoGenerico = m => /@(gmail|hotmail|outlook|yahoo|icloud|live|me|msn|protonmail)\./i.test(m || "");
     const fecha = f => f ? new Date(f + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
     const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("")}
       ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
       <div class="zona" style="margin-top:14px"><a class="boton ancho" href="#historia">${I.camara} Publicar una historia</a></div>
+      <h3 class="seccion-titulo">Empresas por verificar (${porVerif.length})</h3>
+      ${porVerif.length ? porVerif.map(x => `<div class="gestion-item">
+          <p><b>${esc(x.nombre)}</b>, ${esc(x.cif)}${x.nombre_comercial ? ` («${esc(x.nombre_comercial)}»)` : ""}</p>
+          <p class="nota">${esc([x.fiscal.direccion, [x.fiscal.cp, x.fiscal.localidad].filter(Boolean).join(" "), x.fiscal.provincia].filter(Boolean).join(", "))}${x.fiscal.email_fe ? `. Facturas a ${esc(x.fiscal.email_fe)}` : ""}</p>
+          <p>La da de alta <b>${esc(x.titularNombre || "?")}</b>: ${esc(x.titularCorreo)}${x.titularMovil ? ", " + esc(x.titularMovil) : ""}.</p>
+          <p class="${correoGenerico(x.titularCorreo) ? "aviso-rojo" : "nota"}">${correoGenerico(x.titularCorreo) ? "Usa un correo personal, no de la empresa: compruébalo con más cuidado." : "Usa un correo con dominio propio: comprueba que es el de la empresa."}
+            Búscala por el CIF en la app central: si ya es cliente, confirma con su contacto de siempre.</p>
+          <div class="gestion-botones"><button class="boton mini" data-emp-ok="${esc(x.cif)}">Verificar</button><button class="boton mini suave" data-emp-no="${esc(x.cif)}">Rechazar</button></div>
+        </div>`).join("") : `<p class="vacio">No hay empresas por verificar.</p>`}
+      <h3 class="seccion-titulo">Uniones a empresas (${uniones.length})</h3>
+      ${uniones.length ? uniones.map(x => `<div class="gestion-item">
+          <p><b>${esc(x.nombre || "Un socio")}</b> quiere facturar con <b>${esc(x.empresa)}</b> (${esc(x.cif)}).</p>
+          <p class="nota">Lo aprueba normalmente ${esc(x.titularNombre || "la persona titular")}. Hazlo tú solo si te consta que trabaja allí.</p>
+          <div class="gestion-botones"><button class="boton mini" data-union-ok="${esc(x.cif)}|${esc(x.uid)}">Aprobar</button><button class="boton mini suave" data-union-no="${esc(x.cif)}|${esc(x.uid)}">Rechazar</button></div>
+        </div>`).join("") : `<p class="vacio">No hay uniones pendientes.</p>`}
       <h3 class="seccion-titulo">Denuncias (${dens.length})</h3>
       ${dens.length ? dens.map(x => `<div class="gestion-item">
           <div class="gestion-cab">${avatar(x.perfil)}<div><b>${esc((x.perfil && x.perfil.nombre) || "Un socio")} ha denunciado</b><small>${hace(x.fecha)}. Motivo: ${esc(x.motivo || "inapropiada")}</small></div></div>
@@ -1015,6 +1133,10 @@
         </div>`).join("") : `<p class="vacio">No hay opiniones pendientes.</p>`}` : ""}`;
     await pintar(html, "perfil");
     const hecho = async (fn, texto) => { try { await fn(); aviso(texto); vGestion(); } catch (e) { aviso(e.message); } };
+    document.querySelectorAll("[data-emp-ok]").forEach(b => b.onclick = () => hecho(() => A.verificarEmpresa(b.dataset.empOk, true), "Empresa verificada. Su titular ya puede aprobar compañeros."));
+    document.querySelectorAll("[data-emp-no]").forEach(b => b.onclick = async () => { if (await confirmar("Se borra la ficha de esta empresa y quien la dio de alta tendrá que volver a ponerla. ¿Rechazar?", "Rechazar")) hecho(() => A.verificarEmpresa(b.dataset.empNo, false), "Empresa rechazada."); });
+    document.querySelectorAll("[data-union-ok]").forEach(b => b.onclick = () => { const [cif, uid] = b.dataset.unionOk.split("|"); hecho(() => A.resolverMiembro(cif, uid, true), "Unión aprobada."); });
+    document.querySelectorAll("[data-union-no]").forEach(b => b.onclick = () => { const [cif, uid] = b.dataset.unionNo.split("|"); hecho(() => A.resolverMiembro(cif, uid, false), "Unión rechazada."); });
     document.querySelectorAll("[data-moderar]").forEach(b => b.onclick = async () => { if (await confirmar("¿Borrar esta publicación? Desaparecerá para todos.", "Borrar")) hecho(() => A.moderarPublicacion(b.dataset.moderar), "Publicación borrada."); });
     document.querySelectorAll("[data-descartar]").forEach(b => b.onclick = () => hecho(() => A.descartarDenuncia(b.dataset.descartar), "Denuncia cerrada."));
     document.querySelectorAll("[data-confirmar]").forEach(b => b.onclick = () => hecho(() => A.confirmarPedido(b.dataset.confirmar, "Confirmado"), "Pedido confirmado. El cliente ya tiene sus puntos."));
@@ -1044,15 +1166,21 @@
     document.getElementById("buscaSocio").oninput = e => lista(e.target.value); lista("");
   }
   async function fichaSocio(uid) {
-    const [u, f, soc] = await Promise.all([A.perfil(uid), A.facturacionDe(uid), A.socioReal(uid)]);
+    const [u, f0, soc] = await Promise.all([A.perfil(uid), A.facturacionDe(uid), A.socioReal(uid)]);
     if (!u) return aviso("No encuentro a ese socio.");
+    let f = f0, union = "";
+    if (f0 && f0.tipo === "EMPRESA" && f0.cif && !f0.direccion) {
+      const x = await A.empresaDe(f0.cif, uid);
+      if (x) { f = { ...(x.fiscal || {}), ...x.empresa, cif: f0.cif, movil: f0.movil, email: f0.email };
+        union = x.empresa.titular === uid ? "Titular de la empresa" : ({ ok: "Aprobado en la empresa", pendiente: "Pendiente de aprobar en la empresa", rechazado: "No aprobado en la empresa" }[(x.miembro || {}).estado] || ""); }
+    }
     const nv = nivelDe(soc), fila = (t, v) => v ? `<dt>${t}</dt><dd>${esc(v)}</dd>` : "";
     const h = document.createElement("div"); h.className = "hoja-menu";
     h.innerHTML = `<div class="hoja-larga ficha-socio">
       <header>${avatar(u, true)}<span><b>${esc(u.nombre)}</b><small>${esc(numeroSocio(u))} · ${esc(u.tipo || "")}${u.empresa ? " · " + esc(u.empresa) : ""}</small></span></header>
       <p class="ficha-nivel"><b>${esc(nv.nombre)}, ${nv.descuento} %</b><span>${puntosTxt(soc.puntos)} y ${soc.pedidos} ${soc.pedidos === 1 ? "pedido" : "pedidos"} en 12 meses</span></p>
       ${f ? `<dl>${fila(f.tipo === "PARTICULAR" ? "Nombre" : "Razón social", f.nombre)}${fila("Nombre comercial", f.nombre_comercial)}${fila(f.tipo === "PARTICULAR" ? "DNI o NIE" : "CIF o NIF", f.cif)}
-        ${fila("Dirección", [f.direccion, [f.cp, f.localidad].filter(Boolean).join(" "), f.provincia].filter(Boolean).join(", "))}${fila("Móvil", f.movil)}${fila("Correo", f.email)}${fila("Facturas a", f.email_fe)}</dl>`
+        ${fila("Dirección", [f.direccion, [f.cp, f.localidad].filter(Boolean).join(" "), f.provincia].filter(Boolean).join(", "))}${fila("Móvil", f.movil)}${fila("Correo", f.email)}${fila("Facturas a", f.email_fe)}${fila("Empresa", union)}</dl>`
         : `<p class="nota">Aún no ha puesto sus datos de facturación.</p>`}
       <p class="gestion-botones"><a class="boton mini" href="#perfil/${encodeURIComponent(uid)}" data-cerrar>Ver perfil</a><a class="boton mini suave" href="#chat/${encodeURIComponent(uid)}" data-cerrar>Escribirle</a><a class="boton mini suave" href="javascript:void 0" data-cerrar>Cerrar</a></p>
     </div>`;
