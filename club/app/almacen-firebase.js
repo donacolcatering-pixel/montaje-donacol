@@ -77,6 +77,10 @@
     "auth/network-request-failed": "No hay conexión. Revisa internet y vuelve a probar.",
     "auth/requires-recent-login": "Por seguridad, cierra sesión, vuelve a entrar y repite la operación.",
     "permission-denied": "No tienes permiso para hacer eso.",
+    "auth/unauthorized-domain": "El acceso con Google aún no está autorizado para esta web. Entra con tu correo.",
+    "auth/operation-not-allowed": "El acceso con Google aún no está activado. Entra con tu correo.",
+    "auth/popup-blocked": "El navegador ha bloqueado la ventana de Google. Permite las ventanas emergentes y vuelve a probar.",
+    "auth/account-exists-with-different-credential": "Ya tienes cuenta con ese correo. Entra con tu correo y tu contraseña.",
     "unavailable": "No hay conexión. Revisa internet y vuelve a probar."
   };
   // Publicar, comentar, seguir y escribir piden el correo confirmado (las reglas también lo exigen)
@@ -115,7 +119,7 @@
 
   // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
   // compartidas de esas fotos y seguidores (con tope)
-  function calcularPuntos(pedidos, fotos, seguidores, resena) {
+  function calcularPuntos(pedidos, fotos, seguidores, resena, invitados = [], perfil = null) {
     const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
     const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
     const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
@@ -124,7 +128,9 @@
     const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
     const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
     const porResena = resena && resena.estado === "verificada" && (resena.verificadaEn || "") >= desde ? (P.porResena || 0) : 0;
-    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena, pedidos: ok.length };
+    // Invitaciones: cuentan cuando el invitado ya es cliente (primer pedido confirmado). Suman los dos
+    const nInv = invitados.filter(u => (u.clienteDesde || "") >= desde).length + (perfil && perfil.invitadoPor && (perfil.clienteDesde || "") >= desde ? 1 : 0);
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena + nInv * (P.porInvitacion || 0), pedidos: ok.length };
   }
 
   const Almacen = {
@@ -136,33 +142,65 @@
       if (!perfilYo) { const u = await usuario(yo); perfilYo = u; }
       return perfilYo ? { ...perfilYo, email: auth.currentUser && auth.currentUser.email } : null;
     },
+    // Perfil del socio (número del contador) + consentimiento + quién le invitó; si es empresa o agencia, su CIF
+    async _crearPerfil(uid, email, d) {
+      await db.runTransaction(async t => {
+        const ref = db.doc("contadores/socios"), c = await t.get(ref);
+        const n = c.exists ? c.data().n + 1 : 1001;
+        t.set(ref, { n });
+        const perfil = { nombre: d.nombre.trim(), tipo: d.tipo, empresa: (d.empresa || "").trim(), cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "",
+          bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: n, puntos: 0, pedidos12: 0 };
+        if (d.invitadoPor && d.invitadoPor !== uid) perfil.invitadoPor = String(d.invitadoPor).slice(0, 128);
+        t.set(db.doc(`usuarios/${uid}`), perfil);
+        if (d.consentimiento) t.set(db.doc(`usuarios/${uid}/privado/consentimiento`), { ...d.consentimiento, fecha: ahora() });
+        if (d.cif) t.set(db.doc(`usuarios/${uid}/privado/facturacion`), { tipo: "EMPRESA", cif: d.cif, mayorEdad: true, legal: C.legal.version, email, actualizado: ahora() });
+      });
+      cacheU.delete(uid); perfilYo = null;
+      if (d.cif) await this._enlazarEmpresa(uid, d.cif, (d.empresa || "").trim(), d.nombre.trim());
+    },
+    // Si la empresa ya está en el club, pide unirse; si no, la da de alta (sin verificar: se verifica al comprar)
+    async _enlazarEmpresa(uid, cif, nombreEmpresa, nombrePersona) {
+      try {
+        const e = await this.empresaPorCif(cif), lote = db.batch();
+        if (e) lote.set(db.doc(`empresas/${cif}/miembros/${uid}`), { estado: "pendiente", nombre: nombrePersona, fecha: ahora() });
+        else {
+          lote.set(db.doc(`empresas/${cif}`), { cif, nombre: nombreEmpresa, nombre_comercial: "", localidad: "", titular: uid, titularNombre: nombrePersona, creada: ahora(), verificada: false });
+          lote.set(db.doc(`empresas/${cif}/miembros/${uid}`), { estado: "ok", nombre: nombrePersona, fecha: ahora() });
+        }
+        await lote.commit();
+      } catch (e) { console.warn("Empresa:", e.code || e.message); }
+    },
     async registrar(d) {
       const email = String(d.email || "").trim().toLowerCase();
       if (String(d.clave || "").length < 8) throw new Error("La contraseña necesita al menos 8 caracteres.");
       let cred;
       try { cred = await auth.createUserWithEmailAndPassword(email, d.clave); } catch (e) { throw traducir(e); }
-      const uid = cred.user.uid;
-      try {
-        await db.runTransaction(async t => {
-          const ref = db.doc("contadores/socios"), c = await t.get(ref);
-          const n = c.exists ? c.data().n + 1 : 1001;
-          t.set(ref, { n });
-          t.set(db.doc(`usuarios/${uid}`), {
-            nombre: d.nombre.trim(), tipo: d.tipo, empresa: (d.empresa || "").trim(), cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "",
-            bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: n, puntos: 0, pedidos12: 0
-          });
-          // Datos de facturación: aparte y privados (solo los ven el socio y Doña Col)
-          if (d.facturacion) t.set(db.doc(`usuarios/${uid}/privado/facturacion`), { ...d.facturacion, email, actualizado: ahora() });
-          // Declaración de mayoría de edad y versión de los textos legales aceptados
-          if (d.consentimiento) t.set(db.doc(`usuarios/${uid}/privado/consentimiento`), { ...d.consentimiento, fecha: ahora() });
-        });
-      } catch (e) {
-        await cred.user.delete().catch(() => {});
-        throw new Error("No se ha podido crear tu perfil. Inténtalo de nuevo.");
-      }
-      cacheU.delete(uid); perfilYo = null;
+      try { await this._crearPerfil(cred.user.uid, email, d); }
+      catch (e) { await cred.user.delete().catch(() => {}); throw new Error("No se ha podido crear tu perfil. Inténtalo de nuevo."); }
       cred.user.sendEmailVerification().catch(() => {});
       return this.sesion();
+    },
+    // ---------- Entrar con Google (la primera vez falta completar la cuenta) ----------
+    async entrarConGoogle() {
+      try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+      catch (e) { if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return; throw traducir(e); }
+      for (let i = 0; i < 60 && yo !== (auth.currentUser && auth.currentUser.uid); i++) await new Promise(r => setTimeout(r, 50));
+    },
+    async pendienteDePerfil() {
+      await listo; const u = auth.currentUser; if (!u) return null;
+      if (perfilYo) return null;
+      cacheU.delete(u.uid); if (await usuario(u.uid)) return null;
+      return { nombre: u.displayName || "", email: u.email || "" };
+    },
+    async completarCuenta(d) {
+      const u = auth.currentUser; if (!u) throw new Error("Vuelve a entrar.");
+      try { await this._crearPerfil(u.uid, (u.email || "").toLowerCase(), d); } catch (e) { throw new Error("No se ha podido crear tu perfil. Inténtalo de nuevo."); }
+      return this.sesion();
+    },
+    // ---------- Invitaciones ----------
+    async misInvitados() {
+      try { const q = await db.collection("usuarios").where("invitadoPor", "==", yo).get(); const xs = q.docs.map(d => d.data()); return { total: xs.length, clientes: xs.filter(x => x.clienteDesde).length }; }
+      catch (e) { return { total: 0, clientes: 0 }; }
     },
     async entrar(email, clave) {
       try { await auth.signInWithEmailAndPassword(String(email).trim().toLowerCase(), clave); } catch (e) { throw traducir(e); }
@@ -509,8 +547,9 @@
     async socio(id = yo) {
       if (id !== yo) { const u = await usuario(id); return { puntos: (u && u.puntos) || 0, pedidos: (u && u.pedidos12) || 0 }; }
       if (cacheSocio && Date.now() - cacheSocio.t < 30000) return cacheSocio.v;
-      const [peds, mias, res] = await Promise.all([this.pedidos(), db.collection("publicaciones").where("autor", "==", yo).get(), this.miResena()]);
-      const v = calcularPuntos(peds, mias.docs.map(x => x.data()), meSiguen.filter(s => s.estado === "ok").length, res);
+      const [peds, mias, res, invs] = await Promise.all([this.pedidos(), db.collection("publicaciones").where("autor", "==", yo).get(), this.miResena(),
+        db.collection("usuarios").where("invitadoPor", "==", yo).get().then(q => q.docs.map(d => d.data())).catch(() => [])]);
+      const v = calcularPuntos(peds, mias.docs.map(x => x.data()), meSiguen.filter(s => s.estado === "ok").length, res, invs, perfilYo);
       cacheSocio = { t: Date.now(), v };
       // Se copia en el perfil para que los demás vean tu nivel (es informativo; el descuento lo confirma Doña Col)
       if (perfilYo && (perfilYo.puntos !== v.puntos || perfilYo.pedidos12 !== v.pedidos)) db.doc(`usuarios/${yo}`).update({ puntos: v.puntos, pedidos12: v.pedidos }).catch(() => {});
@@ -522,12 +561,13 @@
     async puedeGestionar() { await listo; return !!(perfilYo && perfilYo.oficial); },
     // Nivel REAL de un cliente, calculado con sus datos (la oficina puede leerlos)
     async _socioDe(uid) {
-      const [peds, fotos, segs, res] = await Promise.all([
+      const [peds, fotos, segs, res, invs] = await Promise.all([
         db.collection("pedidos").where("uid", "==", uid).get(),
         db.collection("publicaciones").where("autor", "==", uid).get(),
         db.collection("seguimientos").where("a", "==", uid).where("estado", "==", "ok").get(),
-        db.doc(`resenas/${uid}`).get().catch(() => null)]);
-      return calcularPuntos(peds.docs.map(d => d.data()), fotos.docs.map(d => d.data()), segs.size, res && res.exists ? res.data() : null);
+        db.doc(`resenas/${uid}`).get().catch(() => null),
+        db.collection("usuarios").where("invitadoPor", "==", uid).get().then(q => q.docs.map(d => d.data())).catch(() => [])]);
+      return calcularPuntos(peds.docs.map(d => d.data()), fotos.docs.map(d => d.data()), segs.size, res && res.exists ? res.data() : null, invs, await usuario(uid));
     },
     async panel() {
       const [qp, qf, qr] = await Promise.all([
@@ -544,7 +584,20 @@
       const resenas = (await Promise.all(qr.docs.map(async d => ({ ...d.data(), uid: d.id, perfil: await usuario(d.id) })))).filter(r => r.perfil).sort(orden);
       return { pedidos: pedidos.filter(p => p.perfil).sort(orden), fotos: fotos.filter(p => p.perfil).sort(orden), resenas };
     },
-    async confirmarPedido(id, estado) { try { await db.doc(`pedidos/${id}`).update({ estado, confirmadoEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
+    async confirmarPedido(id, estado) {
+      try {
+        const p = (await db.doc(`pedidos/${id}`).get()).data() || {}, lote = db.batch();
+        lote.update(db.doc(`pedidos/${id}`), { estado, confirmadoEn: ahora() });
+        if (estado === "Confirmado" && p.uid) {
+          cacheU.delete(p.uid); const u = await usuario(p.uid);
+          if (u && !u.clienteDesde) lote.update(db.doc(`usuarios/${p.uid}`), { clienteDesde: ahora() });
+          const fa = await this.facturacionDe(p.uid);
+          if (fa && fa.tipo === "EMPRESA" && fa.cif) { const e = await this.empresaPorCif(fa.cif); if (e && !e.verificada) lote.update(db.doc(`empresas/${fa.cif}`), { verificada: true, verificadaEn: ahora() }); }
+        }
+        await lote.commit();
+      } catch (e) { throw traducir(e); }
+      avisar();
+    },
     async verificarResena(uid, ok) { try { await db.doc(`resenas/${uid}`).update({ estado: ok ? "verificada" : "rechazada", verificadaEn: ahora() }); } catch (e) { throw traducir(e); } avisar(); },
 
     // ---------- Opinión en Google (un documento por cliente: resenas/{uid}) ----------

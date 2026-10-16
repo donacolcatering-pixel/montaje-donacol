@@ -20,7 +20,7 @@ window.CLUB = {
   // Todo cuenta solo durante «caducanMeses»: para mantener el nivel hay que seguir pidiendo.
   // Los pedidos solo suman cuando Doña Col los confirma, y las fotos cuando Doña Col las verifica (desde su panel).
   // Seguidores: con tope al año, para que no se suba de nivel con cuentas falsas.
-  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, topeSeguidores: 50, porCompartida: 2, porResena: 0, caducanMeses: 12 },
+  puntos: { porEuro: 0.1, porFoto: 5, porSeguidor: 1, topeSeguidores: 50, porCompartida: 2, porResena: 0, porInvitacion: 100, caducanMeses: 12 },
   // Opinión en Google: a 0 porque Google prohíbe dar incentivos por reseñas (decisión del 16/10/2026). Con 0, la app solo
   // invita a opinar, sin puntos. Si se pone un número, vuelve el flujo de puntos con comprobación en el Panel.
   // Mejor el enlace directo «escribir reseña» de la ficha (Google Business > Pedir reseñas); mientras, abre la ficha.
@@ -31,6 +31,10 @@ window.CLUB = {
   // Mientras, la carta se puede consultar y calcular, y el cliente puede consultar por WhatsApp (sin crear pedido ni puntos).
   pedidos: { activos: false },
   edadMinima: 18,
+  // Entrar con Google (solo en la web: en la APK hace falta registrar la app Android en Firebase)
+  accesoGoogle: true,
+  // Dirección de la web del club (para los enlaces de invitación)
+  webApp: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/",
   alergenos: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/media/alergenos.pdf",
   // Textos legales (página pública, también para las tiendas de aplicaciones). Subir «version» si cambian.
   legal: { url: "https://donacolcatering-pixel.github.io/montaje-donacol/club/legal.html", version: "2026-10-16" },
@@ -65,7 +69,7 @@ window.CLUB = {
   cloudinary: { cloud: "drfjs9u7p", preset: "club_donacol2", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "2.0", codigo: 12, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "2.1", codigo: 13, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: false

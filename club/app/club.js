@@ -90,7 +90,18 @@
     : `<span class="avatar${g ? " g" : ""}" style="background:${colorDe(u && u.id)}">${esc(iniciales(u && u.nombre))}</span>`;
   const COLORES = ["#61422A", "#907A69", "#7A5A3A", "#4E5D52", "#8A5A44", "#5A5468"];
   const colorDe = id => COLORES[[...String(id || "")].reduce((s, c) => s + c.charCodeAt(0), 0) % COLORES.length];
-  const nombreCon = u => `${esc(u.nombre)}${u.oficial ? `<span class="verificado" title="Cuenta oficial">${I.check}</span>` : ""}`;
+  const nombreCon = u => `${esc(u.nombre)}${u.oficial ? `<span class="verificado" title="Cuenta oficial">${I.check}</span>` : u.clienteDesde ? `<span class="chip-cliente" title="Ya ha celebrado con Doña Col">Cliente</span>` : ""}`;
+  // Invitaciones: quien llega con ?inv=… queda apuntado hasta que se registra
+  try { const inv = new URLSearchParams(location.search).get("inv"); if (inv) localStorage.setItem("club_invitado_por", inv.slice(0, 128)); } catch (e) {}
+  const invitadoPor = () => { try { return localStorage.getItem("club_invitado_por") || ""; } catch (e) { return ""; } };
+  const puedeGoogle = () => C.accesoGoogle && !A.demo && !(window.Capacitor && typeof Capacitor.isNativePlatform === "function" && Capacitor.isNativePlatform());
+  const LOGO_G = '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+  const botonGoogle = () => puedeGoogle() ? `<button type="button" class="boton ancho boton-google" data-google>${LOGO_G}<span>Continuar con Google</span></button><p class="separador"><span>o con tu correo</span></p>` : "";
+  function enlazarGoogle() {
+    document.querySelectorAll("[data-google]").forEach(b => b.onclick = async () => {
+      try { await A.entrarConGoogle(); router(); } catch (e) { aviso(e.message); }
+    });
+  }
   const puesto = u => u.oficial || (u.empresa && u.empresa === u.nombre) ? esc(u.cargo || u.tipo || "") : u.cargo && u.empresa && u.cargo !== u.empresa ? `${esc(u.cargo)} en ${esc(u.empresa)}` : esc(u.cargo || u.empresa || u.tipo || "");
   function hace(iso) {
     const s = (Date.now() - new Date(iso)) / 1000;
@@ -222,7 +233,11 @@
     const [ruta, arg] = location.hash.slice(1).split("/");
     window.scrollTo(0, 0);
     app.classList.toggle("completa", !U);
-    if (!U) return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
+    if (!U) {
+      const pend = await A.pendienteDePerfil();
+      if (pend) return vCompletar(pend);
+      return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
+    }
     const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion, historia: vNuevaHistoria, facturacion: vFacturacion };
     try { await (V[ruta] || vInicio)(arg ? decodeURIComponent(arg) : null); }
     catch (e) { console.error(e); app.innerHTML = `<div class="vacio">Algo ha fallado: ${esc(e.message)}<br><a class="enlace" href="#inicio">Volver al inicio</a></div>`; }
@@ -253,6 +268,7 @@
           <div class="botones">
             <a class="boton" href="#registro">Crear mi cuenta</a>
             <a class="boton contorno" href="#entrar">Ya tengo cuenta</a>
+            ${puedeGoogle() ? `<button type="button" class="boton contorno boton-google claro" data-google>${LOGO_G}<span>Continuar con Google</span></button>` : ""}
           </div>
           ${A.demo ? `<p class="demo">Versión de demostración: los datos se guardan solo en este dispositivo.</p>` : ""}
         </div>
@@ -262,6 +278,7 @@
           <div class="mini-tarjeta"><img src="${esc(N.logo || "media/logo.png")}" alt=""><span>${esc(C.niveles[0].nombre)}</span><b>Socio del club</b><small>${C.niveles[0].descuento} % en cada pedido</small></div>
         </div>
       </section>`;
+    enlazarGoogle();
   }
 
   // Entrar y crear cuenta: en tablet y ordenador, foto de marca a un lado y el formulario al otro
@@ -277,6 +294,7 @@
     app.innerHTML = acceso("media/campana.jpg", "Bienvenido de nuevo", "Tu tarjeta, tus pedidos y tu red te esperan.", `${barra("", "", "#")}
       <form class="formulario" id="f">
         <h2>Entrar</h2>
+        ${botonGoogle()}
         <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email" required></label>
         <div class="campo"><span>Contraseña</span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="current-password" required><button type="button" class="ver-clave">Mostrar</button></div></div>
         <p style="margin:10px 0 0"><a class="enlace nota" href="#" id="olvido">¿Has olvidado tu contraseña?</a></p>
@@ -284,6 +302,7 @@
         <button class="boton ancho" style="margin-top:12px">Entrar</button>
         <p class="nota" style="margin-top:18px">¿Aún no tienes cuenta? <a class="enlace" href="#registro">Créala aquí</a></p>
       </form>`);
+    enlazarGoogle();
     document.getElementById("olvido").onclick = async e => {
       e.preventDefault(); const f = document.getElementById("f");
       try { await A.recuperarClave(f.email.value); hojaTexto("Revisa tu correo", "Te hemos enviado un enlace para crear una contraseña nueva."); }
@@ -296,56 +315,103 @@
     };
   }
 
+  // Campos comunes de registro y de «completar cuenta» (Google): tipo, nombre, empresa + CIF
+  function camposCuenta(nombre = "") {
+    return `<div class="campo"><span>Eres</span>
+        <div class="segmentos" id="tipo">${C.tiposPerfil.map((t, i) => `<button type="button" data-t="${esc(t)}" class="${i === 0 ? "on" : ""}">${t === "Particular" ? "Particular" : t === "Agencia" ? "Agencia" : "Empresa"}</button>`).join("")}</div></div>
+      <label class="campo"><span>Nombre y apellidos</span><input class="entrada" name="nombre" autocomplete="name" autocapitalize="words" value="${esc(nombre)}"></label>
+      <div id="cEmpresa">
+        <label class="campo"><span id="lEmpresa">Nombre de la empresa</span><input class="entrada" name="empresa" autocomplete="organization"></label>
+        <label class="campo"><span>CIF <small>Con él te unes a tu empresa en el club</small></span><input class="entrada" name="cif" autocapitalize="characters" placeholder="Ej.: B12345678"></label>
+      </div>`;
+  }
+  const lineaLegal = () => `<p class="nota legal-linea">Al continuar aceptas las <a class="enlace" href="#" data-legal="condiciones">condiciones de uso</a> y las <a class="enlace" href="#" data-legal="club">bases del club</a>, y has leído la <a class="enlace" href="#" data-legal="privacidad">política de privacidad</a>.</p>`;
+  function enlazarCuenta(estado) {
+    document.querySelectorAll("#tipo button").forEach(b => b.onclick = () => {
+      document.querySelectorAll("#tipo button").forEach(x => x.classList.toggle("on", x === b)); estado.tipo = b.dataset.t;
+      document.getElementById("cEmpresa").hidden = estado.tipo === "Particular";
+      document.getElementById("lEmpresa").textContent = estado.tipo === "Agencia" ? "Nombre de la agencia" : "Nombre de la empresa";
+    });
+    document.querySelectorAll("[data-legal]").forEach(a => a.onclick = e => { e.preventDefault(); abrirLegal(a.dataset.legal); });
+  }
+  // Valida tipo, nombre, empresa y CIF. Devuelve { datos } o { error, campo }
+  function leerCuenta(f, tipo) {
+    const nombre = f.nombre.value.trim();
+    if (nombre.length < 3) return { error: "Escribe tu nombre y apellidos.", campo: "nombre" };
+    if (tipo === "Particular") return { datos: { nombre, tipo, empresa: "", cif: "" } };
+    if (f.empresa.value.trim().length < 2) return { error: `Escribe el nombre de tu ${tipo === "Agencia" ? "agencia" : "empresa"}.`, campo: "empresa" };
+    const cif = limpiaId(f.cif.value);
+    if (!cifValido(cif) && !nifValido(cif)) return { error: "El CIF no es correcto. Revísalo.", campo: "cif" };
+    return { datos: { nombre, tipo, empresa: f.empresa.value.trim(), cif } };
+  }
+
   function vRegistro() {
     app.classList.add("sin-nav");
     app.innerHTML = acceso("media/empresas.jpg", "Únete al club", `Desde hoy, un ${C.niveles[0].descuento} % de descuento en tus pedidos y tu tarjeta de socio en el móvil.`, `${barra("", "", "#")}
       <form class="formulario" id="f" novalidate>
         <h2>Crea tu cuenta</h2>
-        <p class="nota">Tu cuenta es personal: entras con tu correo y tu contraseña. Los datos de facturación se ponen después, cuando los necesites.</p>
-        <div class="campo"><span>Tipo de cuenta</span>
-          <div class="segmentos" id="tipo">${C.tiposPerfil.map((t, i) => `<button type="button" data-t="${esc(t)}" class="${i === 0 ? "on" : ""}">${esc(t)}</button>`).join("")}</div></div>
-        <label class="campo"><span>Nombre y apellidos</span><input class="entrada" name="nombre" autocomplete="name" autocapitalize="words"></label>
-        <label class="campo" id="cEmpresa"><span>Empresa o agencia <small>La verán los demás socios</small></span><input class="entrada" name="empresa" autocomplete="organization"></label>
+        ${botonGoogle()}
+        ${camposCuenta()}
         <label class="campo"><span>Tu correo <small>Para entrar</small></span><input class="entrada" name="email" type="email" autocomplete="email"></label>
         <div class="campo"><span>Contraseña <small>Mínimo 8 caracteres</small></span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
         <div class="campo"><span>Repite la contraseña <small id="coinciden"></small></span><div class="clave"><input class="entrada" name="clave2" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
-        <label class="casilla"><input type="checkbox" name="mayor"><span>Declaro que soy mayor de ${C.edadMinima} años.</span></label>
-        <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto las <a class="enlace" href="#" id="verCond">condiciones de uso</a>, las <a class="enlace" href="#" id="verClub">bases del club</a> y la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
+        <label class="casilla"><input type="checkbox" name="mayor"><span>Soy mayor de ${C.edadMinima} años.</span></label>
+        ${lineaLegal()}
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Crear mi cuenta</button>
         <p class="nota" style="margin-top:18px">¿Ya tienes cuenta? <a class="enlace" href="#entrar">Entra aquí</a></p>
       </form>`);
-    let tipo = C.tiposPerfil[0];
-    const fr = document.getElementById("f");
-    document.querySelectorAll("#tipo button").forEach(b => b.onclick = () => {
-      document.querySelectorAll("#tipo button").forEach(x => x.classList.toggle("on", x === b)); tipo = b.dataset.t;
-      document.getElementById("cEmpresa").hidden = tipo === "Particular";
-    });
+    const est = { tipo: C.tiposPerfil[0] }, fr = document.getElementById("f");
+    enlazarCuenta(est); enlazarGoogle();
     const marca = () => {
       const a = fr.clave.value, b = fr.clave2.value, el = document.getElementById("coinciden");
       el.textContent = !b ? "" : a === b ? "Coinciden" : "No coinciden"; el.style.color = !b ? "" : a === b ? "var(--ok)" : "var(--no)";
     };
     fr.clave.oninput = marca; fr.clave2.oninput = marca;
-    document.getElementById("verPriv").onclick = e => { e.preventDefault(); abrirLegal("privacidad"); };
-    document.getElementById("verCond").onclick = e => { e.preventDefault(); abrirLegal("condiciones"); };
-    document.getElementById("verClub").onclick = e => { e.preventDefault(); abrirLegal("club"); };
     fr.onsubmit = async e => {
       e.preventDefault(); const f = fr, err = document.getElementById("err");
       const fallo = (t, campo) => { err.textContent = t; if (campo && f[campo]) f[campo].focus(); };
-      const nombre = f.nombre.value.trim();
-      if (nombre.length < 3) return fallo("Escribe tu nombre y apellidos.", "nombre");
-      if (tipo !== "Particular" && f.empresa.value.trim().length < 2) return fallo("Escribe el nombre de tu empresa o agencia.", "empresa");
+      const r = leerCuenta(f, est.tipo); if (r.error) return fallo(r.error, r.campo);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.value.trim())) return fallo("Revisa el correo electrónico.", "email");
       if (f.clave.value.length < 8) return fallo("La contraseña necesita al menos 8 caracteres.", "clave");
       if (f.clave.value !== f.clave2.value) return fallo("Las contraseñas no coinciden. Pulsa «Mostrar» para revisarlas.", "clave2");
       if (!f.mayor.checked) return fallo(`El club es solo para mayores de ${C.edadMinima} años.`);
-      if (!f.acepto.checked) return fallo("Para crear la cuenta tienes que aceptar las condiciones, las bases del club y la política de privacidad.");
       const b = f.querySelector("button:not([type])"); b.disabled = true; b.textContent = "Creando tu cuenta…";
       try {
-        await A.registrar({ email: f.email.value, clave: f.clave.value, nombre, tipo, empresa: tipo === "Particular" ? "" : f.empresa.value.trim(), cargo: "", ciudad: "",
-          privado: false, consentimiento: { mayorEdad: true, legal: C.legal.version } });
+        await A.registrar({ ...r.datos, email: f.email.value, clave: f.clave.value, cargo: "", ciudad: "", privado: false,
+          consentimiento: { mayorEdad: true, legal: C.legal.version }, invitadoPor: invitadoPor() });
+        try { localStorage.removeItem("club_invitado_por"); } catch (er) {}
         vibrar(); location.hash = "#inicio"; setTimeout(() => aviso("Cuenta creada. Te hemos enviado un correo para confirmarla."), 300);
       } catch (er) { err.textContent = er.message; b.disabled = false; b.textContent = "Crear mi cuenta"; }
+    };
+  }
+
+  // Primera vez con Google: solo falta decir quién eres
+  function vCompletar(pend) {
+    app.classList.add("sin-nav");
+    app.innerHTML = acceso("media/empresas.jpg", "Un último paso", `Has entrado como ${pend.email}. Cuéntanos quién eres y ya estás dentro.`, `
+      <form class="formulario" id="f" novalidate>
+        <h2>Completa tu cuenta</h2>
+        ${camposCuenta(pend.nombre)}
+        <label class="casilla"><input type="checkbox" name="mayor"><span>Soy mayor de ${C.edadMinima} años.</span></label>
+        ${lineaLegal()}
+        <p class="error" id="err"></p>
+        <button class="boton ancho" style="margin-top:12px">Entrar en el club</button>
+        <p class="nota" style="margin-top:18px"><a class="enlace" href="#" id="otra">Usar otra cuenta</a></p>
+      </form>`);
+    const est = { tipo: C.tiposPerfil[0] }, fr = document.getElementById("f");
+    enlazarCuenta(est);
+    document.getElementById("otra").onclick = async e => { e.preventDefault(); await A.salir(); location.hash = "#"; router(); };
+    fr.onsubmit = async e => {
+      e.preventDefault(); const err = document.getElementById("err");
+      const r = leerCuenta(fr, est.tipo); if (r.error) { err.textContent = r.error; if (fr[r.campo]) fr[r.campo].focus(); return; }
+      if (!fr.mayor.checked) { err.textContent = `El club es solo para mayores de ${C.edadMinima} años.`; return; }
+      const b = fr.querySelector("button:not([type])"); b.disabled = true; b.textContent = "Entrando…";
+      try {
+        await A.completarCuenta({ ...r.datos, cargo: "", ciudad: "", privado: false, consentimiento: { mayorEdad: true, legal: C.legal.version }, invitadoPor: invitadoPor() });
+        try { localStorage.removeItem("club_invitado_por"); } catch (er) {}
+        vibrar(); location.hash = "#inicio"; router(); setTimeout(() => aviso("¡Bienvenido al club!"), 300);
+      } catch (er) { err.textContent = er.message; b.disabled = false; b.textContent = "Entrar en el club"; }
     };
   }
 
@@ -508,7 +574,7 @@
           <span class="gestion-botones"><button class="boton mini" id="yaVerif">Ya lo he confirmado</button><button class="boton mini suave" id="reenviar">Reenviar el correo</button></span></section>` : ""}
       ${iosInstalar ? `<section class="instalar-ios"><b>Instala el club en tu iPhone</b><span>Pulsa el botón Compartir de Safari y luego «Añadir a pantalla de inicio». Se abrirá como una app.</span><button id="iosCerrar" aria-label="Cerrar">×</button></section>` : ""}
       ${solEmp && solEmp.n ? `<a class="completar" href="#facturacion"><b>${solEmp.n === 1 ? "Un compañero quiere" : solEmp.n + " compañeros quieren"} facturar con ${esc(solEmp.empresa.nombre)}</b><span>Confirma que trabajan con vosotros.</span></a>` : ""}
-      ${!U.oficial && !S.factOk ? `<a class="completar suave" href="#facturacion"><b>Datos de facturación</b><span>${U.tipo === "Particular" ? "Ponlos cuando quieras: los necesitaremos para tus facturas." : "Une tu cuenta a tu empresa con su CIF. Si ya está en el club, solo tienes que unirte."}</span></a>` : ""}
+
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
         ${ult && ult.menu && ult.personas ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
@@ -907,10 +973,23 @@
             : `<span class="chip">No la hemos encontrado</span> <button class="boton mini suave" id="resena" style="margin-top:8px">Volver a avisar</button>`}</div></li>` : ""}
         <li><div><b>${puntosTxt(C.puntos.porSeguidor)} por seguidor</b><small>Hasta ${puntosTxt(C.puntos.topeSeguidores)} al año.</small></div></li>
         <li><div><b>${puntosTxt(C.puntos.porCompartida)} cada vez que compartan tu foto</b><small>Solo en fotos verificadas por ${esc(C.marca)}.</small></div></li>
+        ${C.puntos.porInvitacion ? `<li><div><b>${puntosTxt(C.puntos.porInvitacion)} por cada invitado que celebre con nosotros</b><small>Para ti y para él, cuando haga su primer pedido con ${esc(C.marca)}.</small></div></li>` : ""}
         <li><div><b>Los puntos duran ${C.puntos.caducanMeses} meses</b><small>El nivel se calcula con lo del último año: para mantenerlo, sigue pidiendo.</small></div></li></ul>
       ${!C.puntos.porResena && C.enlaceResena ? `<div class="opinar"><b>¿Qué tal tu último evento?</b><span>Tu opinión en Google ayuda a otras empresas a conocernos.</span>
         <a class="boton contorno ancho" href="${esc(C.enlaceResena)}" target="_blank" rel="noopener">Déjanos tu opinión en Google</a></div>` : ""}`;
-    await pintar(html, "tarjeta");
+    await pintar(html.replace("<h3 class=\"seccion-titulo\">Niveles</h3>", C.puntos.porInvitacion ? `<section class="invitar"><b>Invita y ganad los dos</b>
+        <span>Comparte tu enlace. Cuando tu invitado haga su primer pedido con ${esc(C.marca)}, sumáis ${puntosTxt(C.puntos.porInvitacion)} cada uno.</span>
+        <button class="boton ancho" id="invitar">Invitar a alguien</button><small id="nInv"></small></section>
+      <h3 class="seccion-titulo">Niveles</h3>` : "<h3 class=\"seccion-titulo\">Niveles</h3>"), "tarjeta");
+    const bi = document.getElementById("invitar");
+    if (bi) {
+      A.misInvitados().then(x => { const e = document.getElementById("nInv"); if (e && x.total) e.textContent = `${x.total} ${x.total === 1 ? "invitado" : "invitados"}${x.clientes ? `, ${x.clientes} ya ${x.clientes === 1 ? "es cliente" : "son clientes"}` : ""}.`; });
+      bi.onclick = async () => {
+        const url = `${C.webApp}?inv=${encodeURIComponent(U.id)}`, texto = `Te invito al Club ${C.marca}: precios de socio en sus caterings y una red de empresas que celebran con ellos.`;
+        if (navigator.share) { try { await navigator.share({ title: C.nombre, text: texto, url }); return; } catch (e) { if (e.name === "AbortError") return; } }
+        abrirFuera(`https://wa.me/?text=${encodeURIComponent(texto + " " + url)}`);
+      };
+    }
     const br = document.getElementById("resena"); if (br) br.onclick = () => hojaResena(res && res.nombreGoogle);
   }
 
@@ -1085,6 +1164,7 @@
       ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
       <div class="zona" style="margin-top:14px"><a class="boton ancho" href="#historia">${I.camara} Publicar una historia</a></div>
       <h3 class="seccion-titulo">Empresas por verificar (${porVerif.length})</h3>
+      <p class="nota zona" style="margin:-4px 0 6px">Se verifican solas al confirmar su primer pedido. Verifícalas aquí solo si ya las conocéis.</p>
       ${porVerif.length ? porVerif.map(x => `<div class="gestion-item">
           <p><b>${esc(x.nombre)}</b>, ${esc(x.cif)}${x.nombre_comercial ? ` («${esc(x.nombre_comercial)}»)` : ""}</p>
           <p class="nota">${esc([x.fiscal.direccion, [x.fiscal.cp, x.fiscal.localidad].filter(Boolean).join(" "), x.fiscal.provincia].filter(Boolean).join(", "))}${x.fiscal.email_fe ? `. Facturas a ${esc(x.fiscal.email_fe)}` : ""}</p>

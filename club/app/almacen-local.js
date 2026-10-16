@@ -24,7 +24,7 @@
 
   // Puntos de los últimos 12 meses: pedidos CONFIRMADOS por Doña Col, fotos VERIFICADAS por Doña Col,
   // compartidas de esas fotos y seguidores (con tope)
-  function calcularPuntos(pedidos, fotos, seguidores, resena) {
+  function calcularPuntos(pedidos, fotos, seguidores, resena, invitados = [], perfil = null) {
     const C = window.CLUB, P = C.puntos, validos = C.estadosConPuntos || ["Confirmado", "Entregado"];
     const d = new Date(); d.setMonth(d.getMonth() - (P.caducanMeses || 12)); const desde = d.toISOString();
     const ok = pedidos.filter(p => validos.includes(p.estado) && p.fecha >= desde);
@@ -33,7 +33,9 @@
     const compartidas = verificadas.reduce((s, f) => s + (f.nCompartida || 0), 0);
     const porSeguidores = Math.min(seguidores * P.porSeguidor, P.topeSeguidores ?? Infinity);
     const porResena = resena && resena.estado === "verificada" && (resena.verificadaEn || "") >= desde ? (P.porResena || 0) : 0;
-    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena, pedidos: ok.length };
+    // Invitaciones: cuentan cuando el invitado ya es cliente (primer pedido confirmado). Suman los dos
+    const nInv = invitados.filter(u => (u.clienteDesde || "") >= desde).length + (perfil && perfil.invitadoPor && (perfil.clienteDesde || "") >= desde ? 1 : 0);
+    return { puntos: Math.floor(euros * P.porEuro) + verificadas.length * P.porFoto + porSeguidores + compartidas * (P.porCompartida || 0) + porResena + nInv * (P.porInvitacion || 0), pedidos: ok.length };
   }
 
   function semilla() {
@@ -96,13 +98,23 @@
       const nuevo = {
         id: nuevoId("u_"), email, clave: await huella(d.clave), nombre: d.nombre.trim(), tipo: d.tipo, empresa: (d.empresa || "").trim(),
         cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "", bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: ++db.contador,
-        facturacion: d.facturacion ? { ...d.facturacion, email } : null
+        facturacion: d.facturacion ? { ...d.facturacion, email } : d.cif ? { tipo: "EMPRESA", cif: d.cif, mayorEdad: true, email } : null,
+        invitadoPor: d.invitadoPor || null
       };
       db.usuarios.push(nuevo); db.sesion = nuevo.id;
       // La cuenta oficial te da la bienvenida
       db.mensajes.push({ id: nuevoId("m_"), de: "u_donacol", a: nuevo.id, texto: `¡Bienvenido al club, ${nuevo.nombre.split(" ")[0]}! Desde la app tienes un 5 % de descuento en cada pedido. Si necesitas algo, escríbenos por aquí.`, fecha: ahora(), leido: false });
+      if (d.cif) {
+        if (db.empresas[d.cif]) db.empresas[d.cif].miembros[nuevo.id] = { estado: "pendiente", nombre: nuevo.nombre, fecha: ahora() };
+        else db.empresas[d.cif] = { datos: { nombre: (d.empresa || "").trim(), nombre_comercial: "", localidad: "", titular: nuevo.id, titularNombre: nuevo.nombre, creada: ahora(), verificada: false },
+          fiscal: {}, miembros: { [nuevo.id]: { estado: "ok", nombre: nuevo.nombre, fecha: ahora() } } };
+      }
       guardar(); return publico(nuevo);
     },
+    async entrarConGoogle() { throw new Error("En la demostración se entra con correo."); },
+    async pendienteDePerfil() { return null; },
+    async completarCuenta() { return this.sesion(); },
+    async misInvitados() { const xs = db.usuarios.filter(u => u.invitadoPor === db.sesion); return { total: xs.length, clientes: xs.filter(x => x.clienteDesde).length }; },
     async entrar(email, clave) {
       const x = db.usuarios.find(u => u.email === String(email).trim().toLowerCase() && !u.ejemplo);
       if (!x || x.clave !== await huella(clave)) throw new Error("Correo o contraseña incorrectos.");
@@ -308,7 +320,8 @@
     // Puntos y pedidos de los últimos 12 meses (lo que decide el nivel)
     async socio(id = db.sesion) {
       const fotos = db.publicaciones.filter(p => p.autor === id).map(p => ({ ...p, nCompartida: db.publicaciones.filter(x => x.repostDe === p.id && x.autor !== id).length }));
-      return calcularPuntos(db.pedidos.filter(p => p.uid === id), fotos, db.seguimientos.filter(s => s.a === id && s.estado === "ok").length, db.resenas.find(r => r.uid === id));
+      return calcularPuntos(db.pedidos.filter(p => p.uid === id), fotos, db.seguimientos.filter(s => s.a === id && s.estado === "ok").length, db.resenas.find(r => r.uid === id),
+        db.usuarios.filter(u => u.invitadoPor === id), usuario(id));
     },
     _desde() { const d = new Date(); d.setMonth(d.getMonth() - (window.CLUB.puntos.caducanMeses || 12)); return d.toISOString(); },
     async puntos(id = db.sesion) { return (await this.socio(id)).puntos; },
@@ -351,7 +364,13 @@
     async verHistoria(id) { const h = db.historias.find(x => x.id === id); if (h && !h.vistas.includes(db.sesion)) { h.vistas.push(db.sesion); guardar(); } },
     async vistasHistoria(id) { const h = db.historias.find(x => x.id === id); return h ? h.vistas.length : 0; },
     async borrarHistoria(id) { db.historias = db.historias.filter(x => x.id !== id); guardar(); avisar(); },
-    async confirmarPedido(id, estado) { const p = db.pedidos.find(x => x.id === id); if (p) { p.estado = estado; p.confirmadoEn = ahora(); guardar(); avisar(); } },
+    async confirmarPedido(id, estado) {
+      const p = db.pedidos.find(x => x.id === id); if (!p) return;
+      p.estado = estado; p.confirmadoEn = ahora();
+      if (estado === "Confirmado") { const u = usuario(p.uid); if (u && !u.clienteDesde) u.clienteDesde = ahora();
+        const cif = u && u.facturacion && u.facturacion.cif; if (cif && db.empresas[cif]) db.empresas[cif].datos.verificada = true; }
+      guardar(); avisar();
+    },
     async verificarFoto(id, ok) { const p = db.publicaciones.find(x => x.id === id); if (p && p.etiquetaDonaCol) { p.verificacion = ok ? "verificada" : "rechazada"; p.verificadaEn = ahora(); guardar(); avisar(); } },
 
     async _puntosAntiguos(id = db.sesion) {

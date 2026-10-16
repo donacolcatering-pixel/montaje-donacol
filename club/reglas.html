@@ -60,17 +60,20 @@ service cloud.firestore {
     // Mismos campos que la ficha de cliente de la app central (tipo, nombre = razón social, cif, dirección...)
     // Particular: sus datos completos aquí. Empresa: solo el CIF (los datos fiscales van en la ficha de la empresa)
     function facturacionValida(d) {
-      return d.tipo in [&#x27;EMPRESA&#x27;, &#x27;PARTICULAR&#x27;] &amp;&amp; texto(d.cif, 15) &amp;&amp; d.cif.size() &gt;= 8 &amp;&amp; texto(d.movil, 20) &amp;&amp; d.mayorEdad == true
+      return d.tipo in [&#x27;EMPRESA&#x27;, &#x27;PARTICULAR&#x27;] &amp;&amp; texto(d.cif, 15) &amp;&amp; d.cif.size() &gt;= 8 &amp;&amp; texto(d.get(&#x27;movil&#x27;, &#x27;&#x27;), 20) &amp;&amp; d.mayorEdad == true
         &amp;&amp; (d.tipo == &#x27;EMPRESA&#x27; || (texto(d.nombre, 120) &amp;&amp; d.nombre.size() &gt; 1 &amp;&amp; texto(d.direccion, 150) &amp;&amp; d.direccion.size() &gt; 2
             &amp;&amp; d.cp is string &amp;&amp; d.cp.matches(&#x27;^[0-9]{5}$&#x27;) &amp;&amp; texto(d.localidad, 80) &amp;&amp; texto(d.provincia, 60)));
     }
     match /usuarios/{uid} {
       allow read: if dentro();
       // El número de socio sale del contador (que se sube en la misma operación). Nadie puede hacerse «oficial»
-      allow create: if soy(uid) &amp;&amp; perfilValido(request.resource.data) &amp;&amp; !(&#x27;oficial&#x27; in request.resource.data)
+      // «clienteDesde» (sello de cliente) solo lo pone Doña Col al confirmar el primer pedido; «invitadoPor» no se cambia después
+      allow create: if soy(uid) &amp;&amp; perfilValido(request.resource.data) &amp;&amp; !(&#x27;oficial&#x27; in request.resource.data) &amp;&amp; !(&#x27;clienteDesde&#x27; in request.resource.data)
+        &amp;&amp; (!(&#x27;invitadoPor&#x27; in request.resource.data) || texto(request.resource.data.invitadoPor, 128))
         &amp;&amp; request.resource.data.socio == getAfter(/databases/$(database)/documents/contadores/socios).data.n;
       allow update: if soy(uid) &amp;&amp; perfilValido(request.resource.data)
-        &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny([&#x27;oficial&#x27;, &#x27;socio&#x27;, &#x27;creado&#x27;]);
+        &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny([&#x27;oficial&#x27;, &#x27;socio&#x27;, &#x27;creado&#x27;, &#x27;clienteDesde&#x27;, &#x27;invitadoPor&#x27;]);
+      allow update: if esOficial() &amp;&amp; soloCambia([&#x27;clienteDesde&#x27;]);
       allow delete: if soy(uid);
       match /bloqueos/{otro} { allow read, write: if soy(uid); }
       // Datos de facturación: privados. Solo los ven el socio y Doña Col
@@ -96,7 +99,7 @@ service cloud.firestore {
     match /empresas/{cif} {
       allow get: if dentro();              // buscar por el CIF exacto (solo nombre, localidad y titular)
       allow list: if esOficial();
-      allow create: if dentro() &amp;&amp; verificado() &amp;&amp; request.resource.data.titular == request.auth.uid &amp;&amp; request.resource.data.cif == cif
+      allow create: if dentro() &amp;&amp; request.resource.data.titular == request.auth.uid &amp;&amp; request.resource.data.cif == cif
         &amp;&amp; texto(request.resource.data.nombre, 120) &amp;&amp; request.resource.data.nombre.size() &gt; 1
         &amp;&amp; texto(request.resource.data.nombre_comercial, 120) &amp;&amp; texto(request.resource.data.localidad, 80)
         // Nace sin verificar: solo Doña Col la verifica (comprueba que quien la da de alta trabaja allí)
@@ -110,7 +113,7 @@ service cloud.firestore {
       }
       match /miembros/{uid} {
         allow read: if soy(uid) || esTitular(cif) || esOficial();
-        allow create: if soy(uid) &amp;&amp; verificado()
+        allow create: if soy(uid)
           &amp;&amp; (request.resource.data.estado == &#x27;pendiente&#x27; || (request.resource.data.estado == &#x27;ok&#x27; &amp;&amp; getAfter(rutaEmpresa(cif)).data.titular == uid));
         // La titular solo aprueba compañeros cuando Doña Col ha verificado la empresa
         allow update: if ((esTitular(cif) &amp;&amp; get(rutaEmpresa(cif)).data.get(&#x27;verificada&#x27;, false) == true) || esOficial())
