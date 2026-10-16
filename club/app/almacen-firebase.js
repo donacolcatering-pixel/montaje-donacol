@@ -97,7 +97,7 @@
   async function subirImagen(dato, carpeta) {
     if (!dato || !String(dato).startsWith("data:")) return dato || "";
     const cl = C.cloudinary || {};
-    if (!cl.cloud || !cl.preset) return dato;
+    if (!cl.cloud || !cl.preset || pruebaLocal) return dato;   // en las pruebas locales nunca se sube nada a Cloudinary
     const fd = new FormData();
     fd.append("file", dato); fd.append("upload_preset", cl.preset); fd.append("folder", `${cl.carpeta || "club"}/${carpeta}/${yo}`);
     const r = await fetch(`https://api.cloudinary.com/v1_1/${cl.cloud}/image/upload`, { method: "POST", body: fd });
@@ -398,7 +398,11 @@
         db.collection("seguimientos").where("a", "==", id).where("estado", "==", "ok").get(),
         db.collection("seguimientos").where("de", "==", id).where("estado", "==", "ok").get()]);
       let fotos = 0;
-      if (await this.puedeVer(id)) { try { fotos = (await db.collection("publicaciones").where("autor", "==", id).get()).docs.filter(d => !d.data().repostDe).length; } catch (e) {} }
+      if (await this.puedeVer(id)) {
+        let q = db.collection("publicaciones").where("autor", "==", id);
+        if (sigo.get(id) !== "ok") q = q.where("autorPrivado", "==", false);   // si no le sigo, solo puedo contar las públicas
+        try { fotos = (await q.get()).docs.filter(d => !d.data().repostDe).length; } catch (e) {}
+      }
       return { seguidores: s1.size, siguiendo: s2.size, publicaciones: fotos };
     },
     async puedeVer(id) { if (id === yo) return true; const u = await usuario(id); return !!u && (!u.privado || sigo.get(id) === "ok"); },
@@ -410,7 +414,10 @@
       let docs = [];
       if (autor) {
         if (!(await this.puedeVer(autor))) return [];
-        docs = await consulta(db.collection("publicaciones").where("autor", "==", autor), 60);
+        // Si no es mío ni le sigo, solo puedo pedir sus fotos públicas (las reglas rechazan la consulta entera si no)
+        let q = db.collection("publicaciones").where("autor", "==", autor);
+        if (autor !== yo && sigo.get(autor) !== "ok") q = q.where("autorPrivado", "==", false);
+        docs = await consulta(q, 60);
       } else {
         docs = await consulta(db.collection("publicaciones").where("autorPrivado", "==", false), 60);
         // + las de los perfiles privados que sigo, y las mías si mi perfil es privado

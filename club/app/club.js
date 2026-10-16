@@ -1312,7 +1312,7 @@
     const c = await A.cifras();
     const t = (n, txt) => `<div class="cifra"><b>${miles(n)}</b><span>${txt}</span></div>`;
     const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}${navPanel("cifras")}
-      <div class="cifras">${t(c.socios, "socios")}${t(c.nuevos7, "nuevos esta semana")}${t(c.nuevos30, "nuevos en 30 días")}
+      <div class="cifras-panel">${t(c.socios, "socios")}${t(c.nuevos7, "nuevos esta semana")}${t(c.nuevos30, "nuevos en 30 días")}
         ${t(c.fotos, "fotos publicadas")}${t(c.verificadas, "fotos verificadas")}${t(c.pendientes, "fotos por verificar")}
         ${t(c.historias, "historias activas")}${t(c.vistas, "vistas de esas historias")}</div>`;
     await pintar(html, "perfil");
