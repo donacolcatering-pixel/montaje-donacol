@@ -55,6 +55,13 @@ service cloud.firestore {
         &amp;&amp; texto(d.ciudad, 60) &amp;&amp; texto(d.bio, 300) &amp;&amp; d.privado is bool
         &amp;&amp; texto(d.foto, 140000) &amp;&amp; texto(d.portada, 380000);
     }
+    // Mismos campos que la ficha de cliente de la app central (tipo, nombre = razón social, cif, dirección...)
+    function facturacionValida(d) {
+      return d.tipo in [&#x27;EMPRESA&#x27;, &#x27;PARTICULAR&#x27;] &amp;&amp; texto(d.nombre, 120) &amp;&amp; d.nombre.size() &gt; 1
+        &amp;&amp; texto(d.cif, 15) &amp;&amp; d.cif.size() &gt;= 8 &amp;&amp; texto(d.direccion, 150) &amp;&amp; d.direccion.size() &gt; 2
+        &amp;&amp; d.cp is string &amp;&amp; d.cp.matches(&#x27;^[0-9]{5}$&#x27;) &amp;&amp; texto(d.localidad, 80) &amp;&amp; texto(d.provincia, 60)
+        &amp;&amp; texto(d.movil, 20) &amp;&amp; d.mayorEdad == true;
+    }
     match /usuarios/{uid} {
       allow read: if dentro();
       // El número de socio sale del contador (que se sube en la misma operación). Nadie puede hacerse «oficial»
@@ -64,6 +71,12 @@ service cloud.firestore {
         &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny([&#x27;oficial&#x27;, &#x27;socio&#x27;, &#x27;creado&#x27;]);
       allow delete: if soy(uid);
       match /bloqueos/{otro} { allow read, write: if soy(uid); }
+      // Datos de facturación: privados. Solo los ven el socio y Doña Col
+      match /privado/{doc} {
+        allow read: if soy(uid) || esOficial();
+        allow create, update: if soy(uid) &amp;&amp; doc == &#x27;facturacion&#x27; &amp;&amp; facturacionValida(request.resource.data);
+        allow delete: if soy(uid);
+      }
     }
     match /contadores/socios {
       allow read: if dentro();
@@ -114,18 +127,19 @@ service cloud.firestore {
       allow create: if dentro() &amp;&amp; publicacionNueva(request.resource.data);
       allow update: if dentro() &amp;&amp; (
         (resource.data.autor == request.auth.uid &amp;&amp; soloCambia([&#x27;texto&#x27;, &#x27;evento&#x27;, &#x27;autorPrivado&#x27;]))
-        || (puedeLeer(resource.data) &amp;&amp; (soloMiMeGusta() || contador(&#x27;nComentarios&#x27;) || contador(&#x27;nCompartida&#x27;)))
+        || ((puedeLeer(resource.data) || esOficial()) &amp;&amp; (soloMiMeGusta() || contador(&#x27;nComentarios&#x27;) || contador(&#x27;nCompartida&#x27;)))
         // Solo Doña Col verifica (o rechaza) las fotos que la etiquetan
         || (esOficial() &amp;&amp; resource.data.etiquetaDonaCol == true &amp;&amp; soloCambia([&#x27;verificacion&#x27;, &#x27;verificadaEn&#x27;])
             &amp;&amp; request.resource.data.verificacion in [&#x27;verificada&#x27;, &#x27;rechazada&#x27;]));
-      allow delete: if dentro() &amp;&amp; resource.data.autor == request.auth.uid;
+      // Su autor, o Doña Col para moderar
+      allow delete: if dentro() &amp;&amp; (resource.data.autor == request.auth.uid || esOficial());
 
       match /comentarios/{cid} {
         function laFoto() { return get(/databases/$(database)/documents/publicaciones/$(id)).data; }
         allow read: if dentro() &amp;&amp; puedeLeer(laFoto());
         allow create: if dentro() &amp;&amp; request.resource.data.autor == request.auth.uid &amp;&amp; texto(request.resource.data.texto, 500)
           &amp;&amp; request.resource.data.texto.size() &gt; 0 &amp;&amp; request.resource.data.fecha is string &amp;&amp; puedeLeer(laFoto());
-        allow delete: if dentro() &amp;&amp; (resource.data.autor == request.auth.uid || laFoto().autor == request.auth.uid);
+        allow delete: if dentro() &amp;&amp; (resource.data.autor == request.auth.uid || laFoto().autor == request.auth.uid || esOficial());
       }
     }
 
@@ -145,6 +159,8 @@ service cloud.firestore {
         &amp;&amp; request.resource.data.participantes.hasAll([request.resource.data.de, request.resource.data.a])
         &amp;&amp; request.resource.data.leido == false &amp;&amp; texto(request.resource.data.texto, 2000) &amp;&amp; request.resource.data.texto.size() &gt; 0;
       allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;leido&#x27;]);
+      // Al borrar la cuenta, cada uno borra los mensajes que envió
+      allow delete: if dentro() &amp;&amp; resource.data.de == request.auth.uid;
     }
 
     // ---------- Historias: solo las publica Doña Col; las ve cualquiera del club y caducan solas ----------
@@ -175,7 +191,7 @@ service cloud.firestore {
     // ---------- Denuncias (solo se crean; Doña Col las revisa en la consola) ----------
     match /denuncias/{id} {
       allow create: if dentro() &amp;&amp; request.resource.data.de == request.auth.uid;
-      allow read: if esOficial();
+      allow read, delete: if esOficial();
     }
   }
 }

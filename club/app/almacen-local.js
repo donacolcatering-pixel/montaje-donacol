@@ -95,7 +95,8 @@
       if (db.usuarios.some(x => x.email === email)) throw new Error("Ya hay una cuenta con ese correo. Entra con tu contraseña.");
       const nuevo = {
         id: nuevoId("u_"), email, clave: await huella(d.clave), nombre: d.nombre.trim(), tipo: d.tipo, empresa: (d.empresa || "").trim(),
-        cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "", bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: ++db.contador
+        cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "", bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: ++db.contador,
+        facturacion: d.facturacion ? { ...d.facturacion, email } : null
       };
       db.usuarios.push(nuevo); db.sesion = nuevo.id;
       // La cuenta oficial te da la bienvenida
@@ -157,7 +158,15 @@
       const u = usuario(id); return !!u && (!u.privado || id === db.sesion || (seguimiento(db.sesion, id) || {}).estado === "ok");
     },
     async bloquear(id) { if (!bloqueado(id)) db.bloqueos.push({ de: db.sesion, a: id, fecha: ahora() }); await this.dejarDeSeguir(id); guardar(); avisar(); },
-    async denunciar(pubId, motivo) { db.denuncias.push({ de: db.sesion, publicacion: pubId, motivo, fecha: ahora() }); guardar(); },
+    async denunciar(pubId, motivo) { db.denuncias.push({ id: nuevoId("d_"), de: db.sesion, publicacion: pubId, motivo, fecha: ahora() }); guardar(); },
+    async moderarPublicacion(id) { db.publicaciones = db.publicaciones.filter(x => x.id !== id && x.repostDe !== id); db.denuncias = db.denuncias.filter(d => d.publicacion !== id); guardar(); avisar(); },
+    async denuncias() {
+      return db.denuncias.map((d, i) => { d.id = d.id || "d_" + i; const p = db.publicaciones.find(x => x.id === d.publicacion) || null;
+        return { ...d, perfil: publico(usuario(d.de)), pub: p, autorPub: p ? publico(usuario(p.autor)) : null }; });
+    },
+    async descartarDenuncia(id) { db.denuncias = db.denuncias.filter(d => d.id !== id); guardar(); avisar(); },
+    async facturacion() { const u = yo(); return (u && u.facturacion) || null; },
+    async guardarFacturacion(f) { const u = yo(); if (u) { u.facturacion = { ...f, email: u.email }; guardar(); } },
 
     // ---------- Publicaciones ----------
     async publicaciones({ autor = null, filtro = "todos" } = {}) {
@@ -206,7 +215,7 @@
     },
     async borrarComentario(id, cid) {
       const p = db.publicaciones.find(x => x.id === id); if (!p) return;
-      p.comentarios = p.comentarios.filter(c => !(c.id === cid && (c.autor === db.sesion || p.autor === db.sesion))); guardar(); avisar();
+      p.comentarios = p.comentarios.filter(c => !(c.id === cid && (c.autor === db.sesion || p.autor === db.sesion || (yo() || {}).oficial))); guardar(); avisar();
     },
     async publicar({ foto, texto, evento, etiqueta, pedidoId }) {
       if (!foto) throw new Error("Elige una foto.");

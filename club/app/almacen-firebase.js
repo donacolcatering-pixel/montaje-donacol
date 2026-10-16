@@ -143,6 +143,8 @@
             nombre: d.nombre.trim(), tipo: d.tipo, empresa: (d.empresa || "").trim(), cargo: (d.cargo || "").trim(), ciudad: d.ciudad || "",
             bio: "", privado: !!d.privado, foto: "", portada: "", creado: ahora(), socio: n, puntos: 0, pedidos12: 0
           });
+          // Datos de facturación: aparte y privados (solo los ven el socio y Doña Col)
+          if (d.facturacion) t.set(db.doc(`usuarios/${uid}/privado/facturacion`), { ...d.facturacion, email, actualizado: ahora() });
         });
       } catch (e) {
         await cred.user.delete().catch(() => {});
@@ -179,8 +181,16 @@
       perfilYo = { ...antes, ...campos }; cacheU.set(yo, perfilYo); avisar();
       return perfilYo;
     },
+    // ---------- Datos de facturación (mismos campos que la ficha de cliente de la app central) ----------
+    async facturacion() { try { const d = await db.doc(`usuarios/${yo}/privado/facturacion`).get(); return d.exists ? d.data() : null; } catch (e) { return null; } },
+    async guardarFacturacion(f) {
+      try { await db.doc(`usuarios/${yo}/privado/facturacion`).set({ ...f, email: (auth.currentUser && auth.currentUser.email) || "", actualizado: ahora() }); }
+      catch (e) { throw traducir(e); }
+    },
     async borrarCuenta() {
       const lote = db.batch();
+      lote.delete(db.doc(`usuarios/${yo}/privado/facturacion`));
+      mensajes.filter(m => m.de === yo).forEach(m => lote.delete(db.doc(`mensajes/${m.id}`)));
       (await db.collection("publicaciones").where("autor", "==", yo).get()).docs.forEach(d => lote.delete(d.ref));
       [...sigo.keys()].forEach(a => lote.delete(db.doc(`seguimientos/${yo}_${a}`)));
       meSiguen.forEach(s => lote.delete(db.doc(`seguimientos/${s.de}_${yo}`)));
@@ -268,6 +278,23 @@
         cacheSocio = null; avisar(); return { id: r.id };
       } catch (e) { throw traducir(e); }
     },
+    // ---------- Moderación (solo la cuenta oficial; lo garantizan las reglas) ----------
+    async moderarPublicacion(id) {
+      const lote = db.batch(); lote.delete(db.doc(`publicaciones/${id}`));
+      try { (await db.collection("denuncias").where("publicacion", "==", id).get()).docs.forEach(d => lote.delete(d.ref)); } catch (e) {}
+      try { await lote.commit(); } catch (e) { throw traducir(e); }
+      fotoCache.delete(id); avisar();
+    },
+    async denuncias() {
+      try {
+        const q = await db.collection("denuncias").limit(100).get();
+        const ds = await Promise.all(q.docs.map(async d => { const x = { id: d.id, ...d.data() }; const p = x.publicacion ? await fotoPorId(x.publicacion) : null;
+          return { ...x, perfil: await usuario(x.de), pub: p, autorPub: p ? await usuario(p.autor) : null }; }));
+        return ds.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+      } catch (e) { return []; }
+    },
+    async descartarDenuncia(id) { try { await db.doc(`denuncias/${id}`).delete(); } catch (e) { throw traducir(e); } avisar(); },
+
     async borrarPublicacion(id) {
       const p = await fotoPorId(id); if (!p || p.autor !== yo) return;
       const lote = db.batch(); lote.delete(db.doc(`publicaciones/${id}`));

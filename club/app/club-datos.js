@@ -27,6 +27,13 @@ window.CLUB = {
   enlaceResena: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Doña Col Catering, Paseo de la Castellana 40, Madrid"),
   // Historias: solo las publica Doña Col y desaparecen a las X horas
   historias: { horas: 12, segundos: 6 },
+  // Pedidos desde la app: en pausa hasta conectar con la app central o con el pago (decisión del 16/10/2026).
+  // Mientras, la carta se puede consultar y calcular, y el cliente puede consultar por WhatsApp (sin crear pedido ni puntos).
+  pedidos: { activos: false },
+  edadMinima: 18,
+  alergenos: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/media/alergenos.pdf",
+  // Textos legales (página pública, también para las tiendas de aplicaciones). Subir «version» si cambian.
+  legal: { url: "https://donacolcatering-pixel.github.io/montaje-donacol/club/legal.html", version: "2026-10-16" },
   // La carta es la de la app central: la exporta herramientas/exportar_carta.py y la app la descarga al abrirse.
   // Si no hay conexión, usa la última descargada y, si no, la que va dentro de la app (www/carta.json).
   carta: { url: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/carta.json" },
@@ -58,7 +65,7 @@ window.CLUB = {
   cloudinary: { cloud: "drfjs9u7p", preset: "club_donacol2", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "1.7", codigo: 9, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "1.8", codigo: 10, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: false

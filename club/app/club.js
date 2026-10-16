@@ -26,6 +26,61 @@
   };
   const S = { filtroFeed: "todos", vistaRed: "personas", categoria: 0, repetir: null };
 
+
+  // ---------- Identificadores fiscales y provincias (mismas reglas que una factura) ----------
+  const PROVINCIAS = ["", "Álava", "Albacete", "Alicante", "Almería", "Ávila", "Badajoz", "Illes Balears", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Castellón",
+    "Ciudad Real", "Córdoba", "A Coruña", "Cuenca", "Girona", "Granada", "Guadalajara", "Gipuzkoa", "Huelva", "Huesca", "Jaén", "León", "Lleida", "La Rioja", "Lugo",
+    "Madrid", "Málaga", "Murcia", "Navarra", "Ourense", "Asturias", "Palencia", "Las Palmas", "Pontevedra", "Salamanca", "Santa Cruz de Tenerife", "Cantabria",
+    "Segovia", "Sevilla", "Soria", "Tarragona", "Teruel", "Toledo", "Valencia", "Valladolid", "Bizkaia", "Zamora", "Zaragoza", "Ceuta", "Melilla"];
+  const provinciaDeCP = cp => /^\d{5}$/.test(cp) ? PROVINCIAS[+cp.slice(0, 2)] || "" : "";
+  const limpiaId = v => String(v || "").toUpperCase().replace(/[\s.\-\/]/g, "");
+  function nifValido(v) {          // DNI o NIE
+    v = limpiaId(v); const L = "TRWAGMYFPDXBNJZSQVHLCKE";
+    let m = v.match(/^(\d{8})([A-Z])$/); if (m) return L[+m[1] % 23] === m[2];
+    m = v.match(/^([XYZ])(\d{7})([A-Z])$/); if (m) return L[+("XYZ".indexOf(m[1]) + m[2]) % 23] === m[3];
+    return false;
+  }
+  function cifValido(v) {          // CIF de sociedades y entidades
+    v = limpiaId(v); const m = v.match(/^([ABCDEFGHJNPQRSUVW])(\d{7})([0-9A-J])$/); if (!m) return false;
+    let s = 0; [...m[2]].forEach((d, i) => { let n = +d; if (i % 2 === 0) { n *= 2; n = Math.floor(n / 10) + (n % 10); } s += n; });
+    const c = (10 - (s % 10)) % 10, letra = "JABCDEFGHI"[c];
+    if ("PQRSWN".includes(m[1])) return m[3] === letra;
+    if ("ABEH".includes(m[1])) return m[3] === String(c);
+    return m[3] === String(c) || m[3] === letra;
+  }
+  const abrirLegal = ancla => abrirFuera(`${C.legal.url}#${ancla}`);
+  // Campos de facturación (registro y «Datos de facturación»). f = datos guardados; part = particular
+  function camposFacturacion(f = {}, part = false) {
+    return `<div id="fEmpresa"${part ? " hidden" : ""}>
+        <label class="campo"><span>Razón social</span><input class="entrada" name="razon" autocomplete="organization" placeholder="Ej.: Eventos Ejemplo, S.L." value="${esc(!part ? f.nombre || "" : "")}"></label>
+        <label class="campo"><span>CIF o NIF</span><input class="entrada" name="cif" autocapitalize="characters" placeholder="Ej.: B12345678" value="${esc(!part ? f.cif || "" : "")}"></label>
+        <label class="campo"><span>Nombre comercial <small>Opcional, si es distinto</small></span><input class="entrada" name="comercial" value="${esc(f.nombre_comercial || "")}"></label>
+      </div>
+      <label class="campo" id="fDni"${part ? "" : " hidden"}><span>DNI o NIE</span><input class="entrada" name="dni" autocapitalize="characters" placeholder="Ej.: 12345678Z" value="${esc(part ? f.cif || "" : "")}"></label>
+      <label class="campo"><span>Dirección fiscal <small>Calle y número</small></span><input class="entrada" name="direccion" autocomplete="street-address" value="${esc(f.direccion || "")}"></label>
+      <div class="dos-campos">
+        <label class="campo"><span>Código postal</span><input class="entrada" name="cp" inputmode="numeric" maxlength="5" autocomplete="postal-code" value="${esc(f.cp || "")}"></label>
+        <label class="campo"><span>Localidad</span><input class="entrada" name="localidad" autocomplete="address-level2" value="${esc(f.localidad || "")}"></label>
+      </div>
+      <label class="campo"><span>Provincia</span><input class="entrada" name="provincia" value="${esc(f.provincia || "")}"></label>
+      <label class="campo"><span>Correo para las facturas <small>Opcional, si es otro</small></span><input class="entrada" name="emailfe" type="email" value="${esc(f.email_fe || "")}"></label>`;
+  }
+  function enlazarCP(fr) { fr.cp.oninput = () => { const p = provinciaDeCP(fr.cp.value.trim()); if (p) fr.provincia.value = p; }; }
+  // Lee y valida. Devuelve { fact } o { error, campo }
+  function leerFacturacion(fr, part, nombre, movil) {
+    const v = n => (fr[n] ? fr[n].value.trim() : "");
+    if (!part && v("razon").length < 2) return { error: "Escribe la razón social (el nombre que va en la factura).", campo: "razon" };
+    if (!part && !cifValido(v("cif")) && !nifValido(v("cif"))) return { error: "El CIF o NIF no es correcto. Revísalo.", campo: "cif" };
+    if (part && !nifValido(v("dni"))) return { error: "El DNI o NIE no es correcto. Revísalo.", campo: "dni" };
+    if (v("direccion").length < 3) return { error: "Escribe la dirección fiscal.", campo: "direccion" };
+    if (!/^\d{5}$/.test(v("cp"))) return { error: "El código postal tiene 5 cifras.", campo: "cp" };
+    if (!v("localidad")) return { error: "Escribe la localidad.", campo: "localidad" };
+    if (!v("provincia")) return { error: "Escribe la provincia.", campo: "provincia" };
+    return { fact: { tipo: part ? "PARTICULAR" : "EMPRESA", nombre: part ? nombre : v("razon"), nombre_comercial: part ? "" : v("comercial"),
+      cif: limpiaId(part ? v("dni") : v("cif")), direccion: v("direccion"), cp: v("cp"), localidad: v("localidad"), provincia: v("provincia"), pais: "España",
+      movil, email_fe: v("emailfe"), contacto: nombre, mayorEdad: true, legal: C.legal.version } };
+  }
+
   // ---------- Utilidades ----------
   const iniciales = n => String(n || "?").split(/\s+/).map(p => p[0]).join("").slice(0, 2).toUpperCase();
   // Si la foto está en Cloudinary, se pide al tamaño justo y en el formato más ligero para cada móvil
@@ -161,7 +216,7 @@
     window.scrollTo(0, 0);
     app.classList.toggle("completa", !U);
     if (!U) return ruta === "registro" ? vRegistro() : ruta === "entrar" ? vEntrar() : vBienvenida();
-    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion, historia: vNuevaHistoria };
+    const V = { inicio: vInicio, pedir: vPedir, pedidos: vPedidos, tarjeta: vTarjeta, red: vRed, perfil: vPerfil, chat: vChat, publicar: vPublicar, editar: vEditar, post: vPost, gestion: vGestion, historia: vNuevaHistoria, facturacion: vFacturacion };
     try { await (V[ruta] || vInicio)(arg ? decodeURIComponent(arg) : null); }
     catch (e) { console.error(e); app.innerHTML = `<div class="vacio">Algo ha fallado: ${esc(e.message)}<br><a class="enlace" href="#inicio">Volver al inicio</a></div>`; }
   }
@@ -239,44 +294,86 @@
     app.innerHTML = acceso("media/empresas.jpg", "Únete al club", `Desde hoy, un ${C.niveles[0].descuento} % de descuento en tus pedidos y tu tarjeta de socio en el móvil.`, `${barra("", "", "#")}
       <form class="formulario" id="f" novalidate>
         <h2>Crea tu cuenta</h2>
-        <p class="nota">Tu perfil sirve para pedir con descuento, guardar tu tarjeta y conectar con otras empresas.</p>
-        <div class="campo"><span>Tipo de perfil</span>
+        <p class="nota">Para empresas, agencias y particulares mayores de ${C.edadMinima} años.</p>
+        <div class="campo"><span>Tipo de cuenta</span>
           <div class="segmentos" id="tipo">${C.tiposPerfil.map((t, i) => `<button type="button" data-t="${esc(t)}" class="${i === 0 ? "on" : ""}">${esc(t)}</button>`).join("")}</div></div>
+        <h3 class="form-seccion">Tus datos</h3>
         <label class="campo"><span>Nombre y apellidos</span><input class="entrada" name="nombre" autocomplete="name" autocapitalize="words"></label>
-        <label class="campo" id="cEmpresa"><span>Empresa o agencia</span><input class="entrada" name="empresa" autocomplete="organization"></label>
-        <label class="campo"><span>Cargo <small>Opcional</small></span><input class="entrada" name="cargo" autocomplete="organization-title" placeholder="Ej.: Office manager"></label>
-        <div class="campo"><span>Ciudad</span>
-          <div class="segmentos" id="ciudad">${[...N.sedes.map(s => s.nombre), "Otra"].map((c, i) => `<button type="button" data-c="${esc(c)}" class="${i === 0 ? "on" : ""}">${esc(c)}</button>`).join("")}</div></div>
+        <label class="campo" id="cCargo"><span>Cargo <small>Opcional</small></span><input class="entrada" name="cargo" autocomplete="organization-title" placeholder="Ej.: Office manager"></label>
+        <label class="campo"><span>Móvil</span><input class="entrada" name="movil" type="tel" autocomplete="tel" inputmode="tel" placeholder="Ej.: 600 123 456"></label>
         <label class="campo"><span>Correo</span><input class="entrada" name="email" type="email" autocomplete="email"></label>
         <div class="campo"><span>Contraseña <small>Mínimo 8 caracteres</small></span><div class="clave"><input class="entrada" name="clave" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
         <div class="campo"><span>Repite la contraseña <small id="coinciden"></small></span><div class="clave"><input class="entrada" name="clave2" type="password" autocomplete="new-password"><button type="button" class="ver-clave">Mostrar</button></div></div>
+        <h3 class="form-seccion">Datos de facturación</h3>
+        <p class="nota" id="notaFact">Los de tu ${"empresa"}: los mismos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</p>
+        ${camposFacturacion({}, false)}
         <label class="casilla"><input type="checkbox" name="privado"><span><b>Perfil privado.</b> Solo verán tus fotos las personas a las que aceptes.</span></label>
-        <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
+        <label class="casilla"><input type="checkbox" name="mayor"><span>Declaro que soy mayor de ${C.edadMinima} años.</span></label>
+        <label class="casilla"><input type="checkbox" name="acepto"><span>He leído y acepto las <a class="enlace" href="#" id="verCond">condiciones de uso</a>, las <a class="enlace" href="#" id="verClub">bases del club</a> y la <a class="enlace" href="#" id="verPriv">política de privacidad</a>.</span></label>
         <p class="error" id="err"></p>
         <button class="boton ancho" style="margin-top:12px">Crear mi cuenta</button>
         <p class="nota" style="margin-top:18px">¿Ya tienes cuenta? <a class="enlace" href="#entrar">Entra aquí</a></p>
       </form>`);
-    let tipo = C.tiposPerfil[0], ciudad = N.sedes[0].nombre;
-    const seg = (sel, attr, fn) => document.querySelectorAll(`${sel} button`).forEach(b => b.onclick = () => { document.querySelectorAll(`${sel} button`).forEach(x => x.classList.toggle("on", x === b)); fn(b.dataset[attr]); });
-    seg("#tipo", "t", v => { tipo = v; document.getElementById("cEmpresa").hidden = v === "Particular"; });
-    seg("#ciudad", "c", v => { ciudad = v; });
-    const fr = document.getElementById("f"), marca = () => {
+    let tipo = C.tiposPerfil[0];
+    const fr = document.getElementById("f"), part = () => tipo === "Particular";
+    document.querySelectorAll("#tipo button").forEach(b => b.onclick = () => {
+      document.querySelectorAll("#tipo button").forEach(x => x.classList.toggle("on", x === b)); tipo = b.dataset.t;
+      document.getElementById("fEmpresa").hidden = part(); document.getElementById("fDni").hidden = !part(); document.getElementById("cCargo").hidden = part();
+      document.getElementById("notaFact").textContent = part() ? `Tus datos para la factura. Solo los ve ${C.marca}.` : `Los de tu ${tipo === "Agencia" ? "agencia" : "empresa"}: los mismos que irán en tus facturas. Solo los ve ${C.marca}.`;
+    });
+    enlazarCP(fr);
+    const marca = () => {
       const a = fr.clave.value, b = fr.clave2.value, el = document.getElementById("coinciden");
       el.textContent = !b ? "" : a === b ? "Coinciden" : "No coinciden"; el.style.color = !b ? "" : a === b ? "var(--ok)" : "var(--no)";
     };
     fr.clave.oninput = marca; fr.clave2.oninput = marca;
-    document.getElementById("verPriv").onclick = e => { e.preventDefault(); hojaTexto("Política de privacidad", C.textoPrivacidad); };
-    document.getElementById("f").onsubmit = async e => {
-      e.preventDefault(); const f = e.target, err = document.getElementById("err");
-      if (!f.nombre.value.trim()) return err.textContent = "Escribe tu nombre.";
-      if (tipo !== "Particular" && !f.empresa.value.trim()) return err.textContent = "Escribe el nombre de tu empresa o agencia.";
-      if (f.clave.value.length < 8) return err.textContent = "La contraseña necesita al menos 8 caracteres.";
-      if (f.clave.value !== f.clave2.value) { f.clave2.focus(); return err.textContent = "Las contraseñas no coinciden. Pulsa «Mostrar» para revisarlas."; }
-      if (!f.acepto.checked) return err.textContent = "Para crear la cuenta tienes que aceptar la política de privacidad.";
+    document.getElementById("verPriv").onclick = e => { e.preventDefault(); abrirLegal("privacidad"); };
+    document.getElementById("verCond").onclick = e => { e.preventDefault(); abrirLegal("condiciones"); };
+    document.getElementById("verClub").onclick = e => { e.preventDefault(); abrirLegal("club"); };
+    fr.onsubmit = async e => {
+      e.preventDefault(); const f = fr, err = document.getElementById("err");
+      const fallo = (t, campo) => { err.textContent = t; if (campo && f[campo]) f[campo].focus(); };
+      const nombre = f.nombre.value.trim(), movil = f.movil.value.trim();
+      if (nombre.length < 3) return fallo("Escribe tu nombre y apellidos.", "nombre");
+      if (movil.replace(/\D/g, "").length < 9) return fallo("Escribe tu móvil.", "movil");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.value.trim())) return fallo("Revisa el correo electrónico.", "email");
+      if (f.clave.value.length < 8) return fallo("La contraseña necesita al menos 8 caracteres.", "clave");
+      if (f.clave.value !== f.clave2.value) return fallo("Las contraseñas no coinciden. Pulsa «Mostrar» para revisarlas.", "clave2");
+      const r = leerFacturacion(f, part(), nombre, movil);
+      if (r.error) return fallo(r.error, r.campo);
+      if (!f.mayor.checked) return fallo(`El club es solo para mayores de ${C.edadMinima} años.`);
+      if (!f.acepto.checked) return fallo("Para crear la cuenta tienes que aceptar las condiciones, las bases del club y la política de privacidad.");
+      const b = f.querySelector("button:not([type])"); b.disabled = true; b.textContent = "Creando tu cuenta…";
       try {
-        await A.registrar({ email: f.email.value, clave: f.clave.value, nombre: f.nombre.value, tipo, empresa: tipo === "Particular" ? "" : f.empresa.value, cargo: f.cargo.value, ciudad, privado: f.privado.checked });
+        await A.registrar({ email: f.email.value, clave: f.clave.value, nombre, tipo, empresa: part() ? "" : (r.fact.nombre_comercial || r.fact.nombre),
+          cargo: part() ? "" : f.cargo.value, ciudad: r.fact.localidad, privado: f.privado.checked, facturacion: r.fact });
         vibrar(); location.hash = "#inicio"; setTimeout(() => aviso("Cuenta creada. Ya tienes tu tarjeta de socio."), 300);
-      } catch (er) { err.textContent = er.message; }
+      } catch (er) { err.textContent = er.message; b.disabled = false; b.textContent = "Crear mi cuenta"; }
+    };
+  }
+
+  // Datos de facturación (para completarlos o cambiarlos)
+  async function vFacturacion() {
+    const f = (await A.facturacion()) || {}, part = U.tipo === "Particular";
+    app.classList.add("sin-nav");
+    app.innerHTML = `${barra("Facturación", "", "#editar")}
+      <form class="formulario" id="f" novalidate>
+        <p class="nota">Los mismos datos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</p>
+        ${camposFacturacion(f, part)}
+        <label class="campo"><span>Móvil</span><input class="entrada" name="movil" type="tel" value="${esc(f.movil || "")}"></label>
+        ${f.mayorEdad ? "" : `<label class="casilla"><input type="checkbox" name="mayor"><span>Declaro que soy mayor de ${C.edadMinima} años.</span></label>`}
+        <p class="error" id="err"></p>
+        <button class="boton ancho" style="margin-top:12px">Guardar</button>
+      </form>`;
+    const fr = document.getElementById("f"); enlazarCP(fr);
+    fr.onsubmit = async e => {
+      e.preventDefault(); const err = document.getElementById("err");
+      const movil = fr.movil.value.trim(); if (movil.replace(/\D/g, "").length < 9) { err.textContent = "Escribe tu móvil."; return fr.movil.focus(); }
+      if (fr.mayor && !fr.mayor.checked) { err.textContent = `El club es solo para mayores de ${C.edadMinima} años.`; return; }
+      const r = leerFacturacion(fr, part, U.nombre, movil);
+      if (r.error) { err.textContent = r.error; if (fr[r.campo]) fr[r.campo].focus(); return; }
+      try { await A.guardarFacturacion(r.fact); S.factOk = true; aviso("Datos de facturación guardados"); location.hash = "#editar"; }
+      catch (er) { err.textContent = er.message; }
     };
   }
 
@@ -285,15 +382,17 @@
     const [soc, pedidos, posts] = await Promise.all([A.socio(), A.pedidos(), A.publicaciones({ filtro: S.filtroFeed })]);
     const pts = soc.puntos, nv = nivelDe(soc), ult = pedidos[0];
     const faltan = [!U.foto && "la foto de perfil", !U.portada && "la foto de portada", !U.bio && "la biografía"].filter(Boolean);
+    if (!U.oficial && !S.factOk) S.factOk = !!(await A.facturacion());
     const html = `
       ${barra(esc(C.marca), `<a class="icono-btn" href="#publicar" aria-label="Subir foto">${I.mas}</a>`)}
       ${await tiraHistorias()}
       ${U.oficial ? `<section class="saludo"><h2>${esc(C.marca)}</h2><p>Cuenta oficial. Publica historias y gestiona pedidos, fotos y opiniones desde el <a class="enlace" href="#gestion">Panel</a>.</p></section>`
         : `<section class="saludo"><h2>Hola, ${esc(U.nombre.split(" ")[0])}</h2><p>Socio ${esc(nv.nombre)} con ${puntosTxt(pts)}. Tienes un ${nv.descuento} % de descuento en tus pedidos.</p></section>`}
+      ${!U.oficial && !S.factOk ? `<a class="completar" href="#facturacion"><b>Completa tus datos de facturación</b><span>Los mismos que irán en tus facturas. Solo los ve ${esc(C.marca)}.</span></a>` : ""}
       ${faltan.length ? `<a class="completar" href="#editar"><b>Completa tu perfil</b><span>Te falta ${listaNatural(faltan)}. Así las empresas del club sabrán quién eres.</span><div class="barra-progreso"><i style="width:${Math.round((3 - faltan.length) / 3 * 100)}%"></i></div></a>` : ""}
       <div class="atajos">
         ${ult ? `<button class="atajo oscuro" id="repetir"><b>Repetir pedido</b><span>${esc(ult.menu)} para ${ult.personas} personas</span></button>`
-              : `<a class="atajo oscuro" href="#pedir"><b>Hacer un pedido</b><span>Con tu ${nv.descuento} % de descuento de socio</span></a>`}
+              : `<a class="atajo oscuro" href="#pedir"><b>${C.pedidos.activos ? "Hacer un pedido" : "Ver la carta"}</b><span>${C.pedidos.activos ? `Con tu ${nv.descuento} % de descuento de socio` : `Con tus precios de socio. Pedidos desde la app, muy pronto`}</span></a>`}
         <a class="atajo" href="#publicar"><b>Subir fotos</b><span>Etiqueta a ${esc(C.marca)} y suma ${C.puntos.porFoto} puntos cuando la verifique</span></a>
       </div>
       <div class="filtro-feed"><div class="segmentos" id="filtro"><button data-f="todos" class="${S.filtroFeed === "todos" ? "on" : ""}">Todo el club</button><button data-f="siguiendo" class="${S.filtroFeed === "siguiendo" ? "on" : ""}">A quién sigo</button></div></div>
@@ -452,6 +551,7 @@
       el.querySelector("[data-menu]").onclick = () => menuHoja(autor === U.id
         ? [...miRepost, { texto: "Borrar esta foto", peligro: true, accion: async () => { if (await confirmar("¿Borrar esta foto? También desaparecerá donde la hayan compartido.", "Borrar")) { await A.borrarPublicacion(id); router(); } } }]
         : [...miRepost,
+           ...(U.oficial ? [{ texto: "Borrar (moderación)", peligro: true, accion: async () => { if (await confirmar("¿Borrar esta foto de la red? Desaparecerá para todos.", "Borrar")) { try { await A.moderarPublicacion(id); aviso("Foto borrada"); router(); } catch (e) { aviso(e.message); } } } }] : []),
            { texto: "Ver perfil", accion: () => location.hash = "#perfil/" + encodeURIComponent(autor) },
            { texto: "Enviar mensaje", accion: () => location.hash = "#chat/" + encodeURIComponent(autor) },
            { texto: "Denunciar esta foto", accion: async () => { await A.denunciar(id, "inapropiada"); aviso("Gracias. Doña Col la revisará."); } },
@@ -498,7 +598,7 @@
     const cs = await A.comentarios(postAbierto);
     c.innerHTML = cs.length ? cs.map(x => `
       <div class="comentario">${avatar(x.perfil)}<div><p><a href="#perfil/${encodeURIComponent(x.perfil.id)}"><b>${nombreCon(x.perfil)}</b></a> ${esc(x.texto)}</p>
-        <small>${hace(x.fecha)}${x.autor === U.id ? ` · <button class="borrar-com" data-c="${esc(x.id)}">Borrar</button>` : ""}</small></div></div>`).join("")
+        <small>${hace(x.fecha)}${x.autor === U.id || U.oficial ? ` · <button class="borrar-com" data-c="${esc(x.id)}">Borrar</button>` : ""}</small></div></div>`).join("")
       : `<p class="vacio">Aún no hay comentarios. Escribe el primero.</p>`;
     c.querySelectorAll(".borrar-com").forEach(b => b.onclick = async () => { await A.borrarComentario(postAbierto, b.dataset.c); pintarComentarios(); });
     const n = document.querySelector(".post a[href^='#post/'] span"); if (n) n.textContent = cs.length;
@@ -521,6 +621,8 @@
       ${barra("Pedir", `<a class="boton mini suave" href="#pedidos">Mis pedidos</a>`)}
       <div class="categorias" id="cats">${cats.map((c, i) => `<button data-i="${i}" class="${c === cat ? "on" : ""}">${esc(c.categoria)}</button>`).join("")}</div>
       <p class="descuento-banda">Como ${esc(nv.nombre)} tienes un ${dto} % de descuento en todos los menús.</p>
+      ${C.pedidos.activos ? "" : `<p class="aviso-pedidos">Muy pronto podrás pedir desde la app. Mientras, consulta la carta con tus precios de socio y pide como siempre.</p>`}
+      <button class="fila-alergenos" id="alergenos">Alérgenos de todos los platos <span>Ver carta de alérgenos</span></button>
       ${cat.descripcion ? `<p class="nota zona" style="margin:12px 0 0">${esc(cat.descripcion)}</p>` : ""}
       <div>${cat.menus.map((m, j) => `${m.grupo && m.grupo !== (cat.menus[j - 1] || {}).grupo && m.grupo !== cat.categoria ? `<h4 class="subgrupo">${esc(m.grupo)}</h4>` : ""}
         <div class="menu" data-j="${j}">${(m.foto || fotoCat) ? `<img src="${esc(m.foto || fotoCat)}" alt="" loading="lazy">` : `<span class="sin-foto"></span>`}
@@ -529,6 +631,7 @@
         </div>`).join("")}</div>
       <p class="nota zona" style="margin-top:14px">Precios sin IVA (${N.iva} %), por persona salvo que se indique otra cosa.</p>`;
     await pintar(html, "pedir");
+    document.getElementById("alergenos").onclick = () => abrirFuera(C.alergenos);
     document.querySelectorAll("#cats button").forEach(b => b.onclick = () => { S.categoria = +b.dataset.i; vPedir(); });
     document.querySelectorAll(".menu").forEach(el => el.onclick = () => hojaPedido(N.carta.indexOf(cat), +el.dataset.j, dto));
   }
@@ -553,10 +656,14 @@
         <label class="campo"><span>Fecha del evento</span><input class="entrada" type="date" id="fecha" value="${esc(previo?.fechaEvento || "")}"></label>
         <div class="resumen" id="res"></div>
         <p class="error" id="err"></p>
-        <div style="display:grid;gap:10px;margin-top:14px">
+        <p class="nota" style="margin-top:12px">¿Alergias o intolerancias? <a class="enlace" href="#" id="alergenosH">Consulta los alérgenos</a> y cuéntanoslo al pedir.</p>
+        ${C.pedidos.activos ? `<div style="display:grid;gap:10px;margin-top:14px">
           ${C.stripe.enlacePago ? `<button class="boton ancho" id="pagar">Pagar con tarjeta</button>` : `<button class="boton ancho" disabled>Pago con tarjeta: muy pronto</button>`}
           <button class="boton wa ancho" id="wa">Pedir por WhatsApp</button>
-        </div>
+        </div>` : `<div style="display:grid;gap:10px;margin-top:14px">
+          <button class="boton ancho" disabled>Pedidos desde la app: muy pronto</button>
+          <button class="boton wa ancho" id="consulta">Consultar por WhatsApp</button>
+        </div>`}
         <p class="nota" style="margin-top:12px">${esc(N.presupuesto?.nota || "Precio orientativo. Te confirmamos el precio final.")}</p>
       </section>`;
     await pintar(html, "pedir");
@@ -592,7 +699,16 @@
         `• Total con descuento de socio (${dto} %) e IVA: ${euros(c.total)}`, `• Socio: ${U.nombre}${U.empresa ? ", " + U.empresa : ""} (${numeroSocio(U)})`].join("\n");
       return { p, texto, sedeObj };
     }
-    document.getElementById("wa").onclick = async () => {
+    document.getElementById("alergenosH").onclick = e => { e.preventDefault(); abrirFuera(C.alergenos); };
+    const cq = document.getElementById("consulta");
+    if (cq) cq.onclick = () => {
+      const sedeObj = N.sedes.find(x => x.nombre === sede) || N.sedes[0];
+      const fechaTxt = fechaEl.value ? new Date(fechaEl.value + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" }) : "fecha por decidir";
+      const texto = `Hola ${N.nombre} ${sede}, soy ${U.nombre}${U.empresa ? " (" + U.empresa + ")" : ""}, socio ${numeroSocio(U)} del club. Quería consultar ${m.nombre}${m.variantes ? " (" + m.variantes[variante].nombre + ")" : ""} para ${personas} ${unidadTxt(m.unidad, personas)}, ${fechaTxt}.`;
+      abrirFuera(`https://wa.me/${String(sedeObj.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(texto)}`);
+    };
+    const wa = document.getElementById("wa");
+    if (wa) wa.onclick = async () => {
       const r = await registrar("WhatsApp"); if (!r) return;
       vibrar(); aviso(`Pedido enviado. Sumarás ${Math.floor(r.p.base * C.puntos.porEuro)} puntos cuando Doña Col lo confirme.`);
       abrirFuera(`https://wa.me/${String(r.sedeObj.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(r.texto)}`);
@@ -646,7 +762,7 @@
       <h3 class="seccion-titulo">Niveles</h3>
       <ul class="niveles">${C.niveles.map(n => `<li class="${alcanza(soc, n) ? "hecho" : ""}"><span class="marca-nivel"></span><div><b>${esc(n.nombre)} <span class="nota">${n.desde ? `${miles(n.desde)} puntos y ${n.pedidos} pedidos al año` : "al registrarte"}</span></b><small>${n.ventajas.map(esc).join(". ")}.</small></div></li>`).join("")}</ul>
       <h3 class="seccion-titulo">Cómo ganar puntos</h3>
-      <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA, cuando Doña Col los confirma.</small></div></li>
+      <ul class="niveles"><li><div><b>1 punto por cada ${eurosPorPunto()} €</b><small>De los pedidos que hagas desde la app, sin IVA, cuando Doña Col los confirma.${C.pedidos.activos ? "" : " Muy pronto."}</small></div></li>
         <li><div><b>${puntosTxt(C.puntos.porFoto)} por foto verificada</b><small>Etiqueta a ${esc(C.marca)} en las fotos de vuestros eventos. Cuentan cuando ${esc(C.marca)} comprueba que son suyos.</small></div></li>
         ${C.puntos.porResena ? `<li><div><b>${puntosTxt(C.puntos.porResena)} por tu opinión en Google</b><small>Una vez. Cuenta cuando ${esc(C.marca)} la encuentra en su ficha, sea cual sea tu opinión.</small>
           ${!res ? `<button class="boton mini" id="resena" style="margin-top:8px">Dejar mi opinión</button>`
@@ -791,6 +907,8 @@
         <label class="campo"><span>Ciudad</span><input class="entrada" name="ciudad" value="${esc(u.ciudad)}"></label>
         <label class="campo"><span>Biografía <small id="cuentaBio"></small></span><textarea class="entrada" name="bio" maxlength="300" placeholder="Ej.: Agencia de eventos en Madrid. Organizamos presentaciones y convenciones para empresas.">${esc(u.bio)}</textarea></label>
         <label class="casilla"><input type="checkbox" name="privado" ${u.privado ? "checked" : ""}><span><b>Perfil privado.</b> Tendrás que aceptar a quien quiera ver tus fotos.</span></label>
+        ${u.oficial ? "" : `<a class="fila-enlace" href="#facturacion"><b>Datos de facturación</b><span>Razón social, CIF o DNI y dirección fiscal</span></a>`}
+        <p class="nota" style="margin-top:16px"><a class="enlace" href="#" id="legalPriv">Privacidad</a> · <a class="enlace" href="#" id="legalCond">Condiciones de uso</a> · <a class="enlace" href="#" id="legalClub">Bases del club</a></p>
         <button class="boton ancho" style="margin-top:20px">Guardar</button>
         <button type="button" class="boton contorno ancho" id="salir" style="margin-top:28px">Cerrar sesión</button>
         <button type="button" class="boton ancho" id="borrar" style="margin-top:10px;background:transparent;color:var(--no)">Borrar mi cuenta y mis datos</button>
@@ -808,19 +926,28 @@
       catch (er) { b.disabled = false; b.textContent = "Guardar"; return aviso(er.message); }
       aviso("Perfil guardado"); location.hash = "#perfil";
     };
+    document.getElementById("legalPriv").onclick = e => { e.preventDefault(); abrirLegal("privacidad"); };
+    document.getElementById("legalCond").onclick = e => { e.preventDefault(); abrirLegal("condiciones"); };
+    document.getElementById("legalClub").onclick = e => { e.preventDefault(); abrirLegal("club"); };
     document.getElementById("salir").onclick = async () => { await A.salir(); location.hash = "#"; router(); };
-    document.getElementById("borrar").onclick = async () => { if (await confirmar("Se borrarán tu cuenta, tus fotos, tus mensajes y tus pedidos. No se puede deshacer.", "Borrar mi cuenta")) { await A.borrarCuenta(); location.hash = "#"; router(); } };
+    document.getElementById("borrar").onclick = async () => { if (await confirmar("Se borrarán tu cuenta, tu perfil, tus fotos, tus datos de facturación y los mensajes que has enviado. No se puede deshacer.", "Borrar mi cuenta")) { await A.borrarCuenta(); location.hash = "#"; router(); } };
     const r = document.getElementById("reiniciar"); if (r) r.onclick = async () => { if (await confirmar("Se borra todo lo que has hecho en esta demostración.", "Reiniciar")) { await A.reiniciarDemo(); location.hash = "#"; router(); } };
   }
 
   // ================================================================ PANEL DE DOÑA COL (confirmar pedidos y verificar fotos)
   async function vGestion() {
     if (!(await A.puedeGestionar())) { location.hash = "#inicio"; return; }
-    const d = await A.panel();
+    const [d, dens] = await Promise.all([A.panel(), A.denuncias()]);
     const fecha = f => f ? new Date(f + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
     const html = `${barra(`Panel de ${esc(C.marca)}`, "", "#perfil")}
       ${A.demo ? `<p class="descuento-banda" style="background:var(--sup2);color:var(--tinta)">Simulación: en la versión real solo lo ve la cuenta oficial de ${esc(C.marca)}.</p>` : ""}
       <div class="zona" style="margin-top:14px"><a class="boton ancho" href="#historia">${I.camara} Publicar una historia</a></div>
+      <h3 class="seccion-titulo">Denuncias (${dens.length})</h3>
+      ${dens.length ? dens.map(x => `<div class="gestion-item">
+          <div class="gestion-cab">${avatar(x.perfil)}<div><b>${esc((x.perfil && x.perfil.nombre) || "Un socio")} ha denunciado</b><small>${hace(x.fecha)}. Motivo: ${esc(x.motivo || "inapropiada")}</small></div></div>
+          ${x.pub ? `${x.pub.foto ? `<img class="gestion-foto" src="${esc(optim(x.pub.foto, 800))}" alt="">` : ""}<p>De <b>${esc((x.autorPub && x.autorPub.nombre) || "?")}</b>${x.pub.texto ? `: ${esc(x.pub.texto)}` : ""}</p>` : `<p class="nota">La publicación ya no existe.</p>`}
+          <div class="gestion-botones">${x.pub ? `<button class="boton mini" data-moderar="${esc(x.publicacion)}">Borrar la publicación</button>` : ""}<button class="boton mini suave" data-descartar="${esc(x.id)}">${x.pub ? "No pasa nada" : "Quitar"}</button></div>
+        </div>`).join("") : `<p class="vacio">No hay denuncias.</p>`}
       <h3 class="seccion-titulo">Pedidos por confirmar (${d.pedidos.length})</h3>
       ${d.pedidos.length ? d.pedidos.map(p => {
         const real = nivelDe(p.socio), sobra = (p.descuentoPct || 0) > real.descuento;
@@ -848,6 +975,8 @@
         </div>`).join("") : `<p class="vacio">No hay opiniones pendientes.</p>`}` : ""}`;
     await pintar(html, "perfil");
     const hecho = async (fn, texto) => { try { await fn(); aviso(texto); vGestion(); } catch (e) { aviso(e.message); } };
+    document.querySelectorAll("[data-moderar]").forEach(b => b.onclick = async () => { if (await confirmar("¿Borrar esta publicación? Desaparecerá para todos.", "Borrar")) hecho(() => A.moderarPublicacion(b.dataset.moderar), "Publicación borrada."); });
+    document.querySelectorAll("[data-descartar]").forEach(b => b.onclick = () => hecho(() => A.descartarDenuncia(b.dataset.descartar), "Denuncia cerrada."));
     document.querySelectorAll("[data-confirmar]").forEach(b => b.onclick = () => hecho(() => A.confirmarPedido(b.dataset.confirmar, "Confirmado"), "Pedido confirmado. El cliente ya tiene sus puntos."));
     document.querySelectorAll("[data-cancelar]").forEach(b => b.onclick = async () => { if (await confirmar("¿Cancelar este pedido? No sumará puntos.", "Cancelar pedido")) hecho(() => A.confirmarPedido(b.dataset.cancelar, "Cancelado"), "Pedido cancelado."); });
     document.querySelectorAll("[data-verificar]").forEach(b => b.onclick = () => hecho(() => A.verificarFoto(b.dataset.verificar, true), "Foto verificada. El cliente ya tiene sus puntos."));
