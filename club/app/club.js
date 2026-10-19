@@ -228,8 +228,10 @@
 
   // ---------- Router ----------
   let U = null;
+  let sesionAvisada = "";
   async function router() {
     U = await A.sesion();
+    if (U && U.id !== sesionAvisada) { sesionAvisada = U.id; setTimeout(() => window.dispatchEvent(new Event("club:sesion")), 500); }
     const [ruta, arg] = location.hash.slice(1).split("/");
     window.scrollTo(0, 0);
     app.classList.toggle("completa", !U);
@@ -572,6 +574,8 @@
             <img src="${esc(N.logo || "media/logo.png")}" alt="" class="rs-logo"></a>`}
       ${!correoOk ? `<section class="aviso-correo"><b>Confirma tu correo</b><span>Te hemos enviado un enlace a tu correo. Hasta que lo confirmes no podrás publicar, comentar, seguir ni escribir mensajes.</span>
           <span class="gestion-botones"><button class="boton mini" id="yaVerif">Ya lo he confirmado</button><button class="boton mini suave" id="reenviar">Reenviar el correo</button></span></section>` : ""}
+      ${Notif.disponible() && !Notif.estado() ? `<section class="instalar-ios aviso-notif"><b>Activa los avisos</b><span>Te avisamos de mensajes, pedidos confirmados, fotos verificadas y novedades de ${esc(C.marca)}.</span>
+          <span class="gestion-botones"><button class="boton mini" id="notifSi">Activar</button><button class="boton mini suave" id="notifNo">Ahora no</button></span></section>` : ""}
       ${iosInstalar ? `<section class="instalar-ios"><b>Instala el club en tu iPhone</b><span>Pulsa el botón Compartir de Safari y luego «Añadir a pantalla de inicio». Se abrirá como una app.</span><button id="iosCerrar" aria-label="Cerrar">×</button></section>` : ""}
       ${solEmp && solEmp.n ? `<a class="completar" href="#facturacion"><b>${solEmp.n === 1 ? "Un compañero quiere" : solEmp.n + " compañeros quieren"} facturar con ${esc(solEmp.empresa.nombre)}</b><span>Confirma que trabajan con vosotros.</span></a>` : ""}
 
@@ -592,6 +596,8 @@
     if (yv) yv.onclick = async () => { if (await A.comprobarCorreo()) { aviso("Correo confirmado. ¡Ya puedes publicar!"); vInicio(); } else aviso("Aún no nos consta. Abre el enlace del correo y vuelve a pulsar."); };
     const rv = document.getElementById("reenviar");
     if (rv) rv.onclick = async () => { try { await A.reenviarCorreo(); aviso(`Te lo hemos enviado otra vez a ${U.email || "tu correo"}. Mira también en spam.`); } catch (e) { aviso(e.message); } };
+    const ns = document.getElementById("notifSi"); if (ns) ns.onclick = async () => { const ok = await Notif.activar(false); aviso(ok ? "Avisos activados" : "No se han podido activar los avisos"); vInicio(); };
+    const nn = document.getElementById("notifNo"); if (nn) nn.onclick = () => { try { localStorage.setItem(NOTIF_K, "no"); } catch (e) {} nn.closest("section").remove(); };
     const ic = document.getElementById("iosCerrar");
     if (ic) ic.onclick = () => { try { localStorage.setItem("club_ios_instalar", "1"); } catch (e) {} ic.parentElement.remove(); };
     enlazarPosts();
@@ -1144,7 +1150,7 @@
     document.getElementById("legalPriv").onclick = e => { e.preventDefault(); abrirLegal("privacidad"); };
     document.getElementById("legalCond").onclick = e => { e.preventDefault(); abrirLegal("condiciones"); };
     document.getElementById("legalClub").onclick = e => { e.preventDefault(); abrirLegal("club"); };
-    document.getElementById("salir").onclick = async () => { await A.salir(); location.hash = "#"; router(); };
+    document.getElementById("salir").onclick = async () => { try { if (Notif.nativa()) { const PN = Capacitor.Plugins.PushNotifications; await PN.removeAllListeners(); } } catch (e) {} await A.salir(); sesionAvisada = ""; location.hash = "#"; router(); };
     document.getElementById("borrar").onclick = async () => { if (await confirmar("Se borrarán tu cuenta, tu perfil, tus fotos, tus datos de facturación y los mensajes que has enviado. No se puede deshacer.", "Borrar mi cuenta")) { await A.borrarCuenta(); location.hash = "#"; router(); } };
     const r = document.getElementById("reiniciar"); if (r) r.onclick = async () => { if (await confirmar("Se borra todo lo que has hecho en esta demostración.", "Reiniciar")) { await A.reiniciarDemo(); location.hash = "#"; router(); } };
   }
@@ -1368,6 +1374,39 @@
       }
     } catch (e) {}
   })();
+
+  // ---------- Notificaciones ----------
+  // En la APK: plugin de Capacitor (Firebase Cloud Messaging). En la web instalada: el SDK web, si hay clave VAPID.
+  const NOTIF_K = "club_notif";
+  const Notif = {
+    nativa: () => window.Capacitor && Capacitor.isPluginAvailable && Capacitor.isPluginAvailable("PushNotifications"),
+    disponible() { return this.nativa() || (!!(C.notificacionesWeb && C.notificacionesWeb.vapid) && "Notification" in window && navigator.standalone !== false && "serviceWorker" in navigator); },
+    estado() { try { return localStorage.getItem(NOTIF_K) || ""; } catch (e) { return ""; } },
+    async activar(silencioso) {
+      if (!U || A.demo) return false;
+      try {
+        if (this.nativa()) {
+          const PN = Capacitor.Plugins.PushNotifications;
+          let p = await PN.checkPermissions();
+          if (p.receive !== "granted") { if (silencioso) return false; p = await PN.requestPermissions(); }
+          if (p.receive !== "granted") { localStorage.setItem(NOTIF_K, "no"); return false; }
+          await PN.removeAllListeners();
+          PN.addListener("registration", t => { A.guardarDispositivo(t.value, "android"); localStorage.setItem(NOTIF_K, "si"); });
+          PN.addListener("registrationError", e => console.warn("notificaciones:", e));
+          PN.addListener("pushNotificationActionPerformed", a => { const r = a.notification && a.notification.data && a.notification.data.ruta; if (r) location.hash = r; });
+          PN.addListener("pushNotificationReceived", n => { if (n && n.title) aviso(`${n.title}: ${n.body || ""}`); });
+          await PN.register();
+          return true;
+        }
+        if (!this.disponible()) return false;
+        if (Notification.permission !== "granted") { if (silencioso) return false; if ((await Notification.requestPermission()) !== "granted") { localStorage.setItem(NOTIF_K, "no"); return false; } }
+        const t = await A.tokenWeb(); if (t) { await A.guardarDispositivo(t, "web"); localStorage.setItem(NOTIF_K, "si"); return true; }
+      } catch (e) { console.warn("notificaciones:", e); }
+      return false;
+    }
+  };
+  // Al abrir con sesión: si ya se dio permiso, se renueva el token sin preguntar
+  window.addEventListener("club:sesion", () => { if (Notif.estado() === "si") Notif.activar(true); });
 
   // ---------- La carta: la de la app central (publicada), con respaldo sin conexión ----------
   const CARTA_K = "club_carta";

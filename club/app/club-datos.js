@@ -33,6 +33,8 @@ window.CLUB = {
   edadMinima: 18,
   // Entrar con Google (solo en la web: en la APK hace falta registrar la app Android en Firebase)
   accesoGoogle: true,
+  // Notificaciones en la web instalada (clave pública VAPID de Firebase Cloud Messaging; se rellena desde la consola)
+  notificacionesWeb: { vapid: "" },
   // Dirección de la web del club (para los enlaces de invitación)
   webApp: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/",
   alergenos: "https://donacolcatering-pixel.github.io/montaje-donacol/club/app/media/alergenos.pdf",
@@ -69,7 +71,7 @@ window.CLUB = {
   cloudinary: { cloud: "drfjs9u7p", preset: "club_donacol2", carpeta: "club-donacol" },
 
   // Versión de la app. En la APK, si la de la web es más nueva, sale un aviso con el botón de descarga.
-  version: { nombre: "2.2", codigo: 14, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
+  version: { nombre: "2.3", codigo: 15, comprobar: "https://donacolcatering-pixel.github.io/montaje-donacol/club/version.json" },
 
   // true = versión de demostración: los datos se guardan solo en este móvil.
   demo: false

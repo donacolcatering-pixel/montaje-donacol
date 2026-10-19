@@ -177,6 +177,7 @@
         return { ...d, perfil: publico(usuario(d.de)), pub: p, autorPub: p ? publico(usuario(p.autor)) : null }; });
     },
     async descartarDenuncia(id) { db.denuncias = db.denuncias.filter(d => d.id !== id); guardar(); avisar(); },
+    async guardarDispositivo() {}, async quitarDispositivo() {}, async tokenWeb() { return null; },
     async correoVerificado() { return true; },
     async comprobarCorreo() { return true; },
     async reenviarCorreo() {},

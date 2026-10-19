@@ -76,6 +76,8 @@ service cloud.firestore {
       allow update: if esOficial() &amp;&amp; soloCambia([&#x27;clienteDesde&#x27;]);
       allow delete: if soy(uid);
       match /bloqueos/{otro} { allow read, write: if soy(uid); }
+      // Tokens de notificación de sus móviles: solo los ve y escribe el propio socio (el puente usa la cuenta de servicio)
+      match /dispositivos/{id} { allow read, write: if soy(uid); }
       // Datos de facturación: privados. Solo los ven el socio y Doña Col
       match /privado/{doc} {
         allow read: if soy(uid) || esOficial();
@@ -131,7 +133,7 @@ service cloud.firestore {
         &amp;&amp; ((esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;pendiente&#x27;)
             || (!esPrivado(request.resource.data.a) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;));
       // Solo el perfil seguido acepta la solicitud
-      allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;estado&#x27;]) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;;
+      allow update: if dentro() &amp;&amp; resource.data.a == request.auth.uid &amp;&amp; soloCambia([&#x27;estado&#x27;, &#x27;aceptadoEn&#x27;]) &amp;&amp; request.resource.data.estado == &#x27;ok&#x27;;
       allow delete: if dentro() &amp;&amp; (resource.data.de == request.auth.uid || resource.data.a == request.auth.uid);
     }
 

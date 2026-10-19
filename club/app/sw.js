@@ -1,6 +1,6 @@
 // Club Doña Col: la web instalada funciona sin conexión con lo último que se cargó.
 // Siempre intenta la red primero (así cada versión nueva llega sola) y, si no hay conexión, usa la copia guardada.
-const VERSION = "club-2.2";
+const VERSION = "club-2.3";
 const BASE = ["./", "index.html", "club.css", "club.js", "club-datos.js", "negocio.js", "almacen-local.js", "almacen-firebase.js", "carta.json",
   "vendor/qrcode.js", "vendor/firebase-app-compat.js", "vendor/firebase-auth-compat.js", "vendor/firebase-firestore-compat.js",
   "fonts/hanken.woff2", "fonts/bodoni.woff2", "media/logo.png", "media/logo-marron.png", "media/icono-192.png"];
@@ -14,3 +14,17 @@ self.addEventListener("fetch", e => {
     return res;
   }).catch(() => caches.match(r, { ignoreSearch: true }).then(x => x || (r.mode === "navigate" ? caches.match("index.html") : undefined))));
 });
+
+// Notificaciones en la web instalada (solo si hay configuración de Firebase y clave VAPID en club-datos.js)
+try {
+  importScripts("vendor/firebase-app-compat.js", "vendor/firebase-messaging-compat.js", "club-datos.js");
+  if (self.CLUB && self.CLUB.firebase && self.CLUB.firebase.config && self.CLUB.notificacionesWeb && self.CLUB.notificacionesWeb.vapid) {
+    firebase.initializeApp(self.CLUB.firebase.config);
+    firebase.messaging();
+    self.addEventListener("notificationclick", e => {
+      e.notification.close();
+      const ruta = (e.notification.data && (e.notification.data.ruta || (e.notification.data.FCM_MSG && e.notification.data.FCM_MSG.data && e.notification.data.FCM_MSG.data.ruta))) || "#inicio";
+      e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(ws => { const w = ws[0]; if (w) { w.focus(); w.navigate(new URL("./" + ruta, self.registration.scope).href); } else clients.openWindow("./" + ruta); }));
+    });
+  }
+} catch (e) {}

@@ -231,6 +231,22 @@
       return perfilYo;
     },
     // ---------- Datos de facturación (mismos campos que la ficha de cliente de la app central) ----------
+    // ---------- Notificaciones: cada móvil o navegador guarda su «token» en usuarios/{uid}/dispositivos ----------
+    async guardarDispositivo(token, tipo) {
+      if (!yo || !token) return;
+      try { await db.doc(`usuarios/${yo}/dispositivos/${token.slice(0, 60).replace(/[^A-Za-z0-9_-]/g, "_")}`).set({ token, tipo, actualizado: ahora(), agente: (navigator.userAgent || "").slice(0, 120) }); } catch (e) { console.warn("dispositivo:", e.code || e.message); }
+    },
+    async quitarDispositivo(token) {
+      if (!yo || !token) return;
+      try { await db.doc(`usuarios/${yo}/dispositivos/${token.slice(0, 60).replace(/[^A-Za-z0-9_-]/g, "_")}`).delete(); } catch (e) {}
+    },
+    // Solo la web: token de Firebase Cloud Messaging (hace falta la clave VAPID y el service worker)
+    async tokenWeb() {
+      if (!window.firebase || !firebase.messaging || !C.notificacionesWeb || !C.notificacionesWeb.vapid) return null;
+      const reg = await navigator.serviceWorker.ready;
+      return firebase.messaging().getToken({ vapidKey: C.notificacionesWeb.vapid, serviceWorkerRegistration: reg });
+    },
+
     // ---------- Correo confirmado ----------
     async correoVerificado() { await listo; return !!(perfilYo && perfilYo.oficial) || !!(auth.currentUser && auth.currentUser.emailVerified); },
     async comprobarCorreo() {
@@ -387,7 +403,7 @@
       const p = meSiguen.filter(s => s.estado === "pendiente");
       return (await Promise.all(p.map(async s => ({ ...s, perfil: await usuario(s.de) })))).filter(s => s.perfil && !bloqueados.has(s.de));
     },
-    async aceptar(id) { await db.doc(`seguimientos/${id}_${yo}`).update({ estado: "ok" }); },
+    async aceptar(id) { await db.doc(`seguimientos/${id}_${yo}`).update({ estado: "ok", aceptadoEn: ahora() }); },
     async rechazar(id) { await db.doc(`seguimientos/${id}_${yo}`).delete(); },
     async cuentas(id) {
       if (id === yo) {
