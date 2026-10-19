@@ -410,7 +410,59 @@ function etiquetaBonita(iso){
   const manISO=man.getFullYear()+'-'+String(man.getMonth()+1).padStart(2,'0')+'-'+String(man.getDate()).padStart(2,'0');
   return iso===manISO ? 'Mañana, '+fmtFecha(iso) : capital(fmtFecha(iso));
 }
-const urlMaps=e=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.direccion||e.empresa||'');
+// LO QUE GOOGLE MAPS PUEDE ENCONTRAR de una direccion escrita a mano. La oficina
+// apunta donde hay que ENTREGAR, no una direccion postal: «HOSPITAL MIGUEL SERVET -
+// PARITORIO + QUIROFANO INFANTIL 3ª PLANTA» (reparto del 20/10/2026). Mandado tal
+// cual, Maps busca la frase entera, no encuentra nada y el repartidor se queda sin
+// navegacion. Aqui se corta por el primer detalle de interior y se le añade la
+// ciudad si no la lleva. El texto completo se sigue viendo en la tarjeta: el
+// repartidor necesita saber que es el paritorio.
+var _INTERIOR = /\b(paritorio|quir[oó]fanos?|plantas?|plta|pta|piso|despachos?|consultas?|externas?|urgencias|reanimaci[oó]n|neurocirug[ií]a|oftalmolog[ií]a|traumatolog[ií]a|salas?|sal[oó]n|aula|pabell[oó]n|bloque|escalera|puerta|box|ala|unidad|hospitalizaci[oó]n|sesiones|infantil)\b/i;
+var _VACIO = /^(?:de|del|la|el|los|las|en|a|al|y|o|con|para|por|su|un|una|entrando|mano|izda|dcha|izquierda|derecha)$/i;
+var _BORDES = /^[\s,;:.\-–(){}\[\]+]+|[\s,;:.\-–(){}\[\]+]+$/g;
+// Sin lookbehind a proposito: Safari de iOS no lo soporta hasta la 16.4 y esto se
+// abre en el movil de los repartidores; un regex que no compila tumba TODO el script.
+var _CP = /(^|\D)\d{5}(\D|$)/;
+
+function _recorta(t){
+  var p = t.replace(_BORDES,'').trim(), q;
+  while(true){
+    q = p.replace(/[\s,]+\d+\s*[ªº°a-z]?$/i,'').replace(_BORDES,'').trim();
+    if(q === p) break;
+    p = q;
+  }
+  return p;
+}
+function _nucleo(t){
+  var m = t.match(_INTERIOR);
+  // SIN detalle de interior el trozo vale entero: ahi viven el portal («Nestares
+  // 10»), el numero suelto («, 74,») y el codigo postal.
+  if(!m) return t.replace(_BORDES,'').trim();
+  // CON detalle de interior cortamos antes y quitamos el ordinal que queda
+  // colgando («HOSPITAL SERVET 2ª PLANTA» -> «HOSPITAL SERVET»).
+  var n = _recorta(t.slice(0, m.index));
+  var palabras = n.split(/\s+/).filter(function(w){
+    return w.replace(/[^A-Za-zÀ-ÿ]/g,'').length >= 3 && !_VACIO.test(w); });
+  return palabras.length ? n : '';
+}
+function queryMapa(e){
+  var bruto = String((e && (e.direccion || e.empresa)) || '').trim();
+  if(!bruto) return '';
+  var trozos = bruto.split(/\s*[,;]\s*|\s+[-–—]\s+|\s*[()]\s*/)
+                    .map(function(x){ return x.trim(); }).filter(Boolean);
+  var buenos = [];
+  for(var i=0;i<trozos.length;i++){
+    var n = _nucleo(trozos[i]);
+    if(n) buenos.push(n);
+    else if(buenos.length) break;   // ya teniamos algo: paramos en el primer detalle
+  }
+  var q = buenos.join(', ') || _nucleo(bruto) || bruto;
+  var ciudad = String((e && e.ciudad) || '').trim();
+  if(ciudad && !_CP.test(q) && q.toLowerCase().indexOf(ciudad.toLowerCase().slice(0,6)) < 0)
+    q += ', ' + ciudad;
+  return q;
+}
+const urlMaps=e=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(queryMapa(e));
 // Pestañas de abajo: Ruta / Entregados
 function verVista(v){
   document.body.classList.toggle('vista-entregados', v==='entregados');
@@ -421,7 +473,7 @@ document.querySelectorAll('#pestanas button').forEach(b=>b.onclick=()=>verVista(
 // Ruta del día en Google Maps con TODAS las paradas (sin API key: Maps calcula la
 // ruta al abrir). Origen = ubicación actual del móvil; paradas en el orden de la lista.
 function urlRutaDia(entregas){
-  const dirs=entregas.map(e=>e.direccion).filter(Boolean).map(encodeURIComponent);
+  const dirs=entregas.map(queryMapa).filter(Boolean).map(encodeURIComponent);
   if(!dirs.length) return null;
   let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dirs[dirs.length-1];
   const wp=dirs.slice(0,-1).join('%7C');
