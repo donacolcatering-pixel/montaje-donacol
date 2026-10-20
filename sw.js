@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v24';   // v24 (20/10/2026): iconos y manifiesto propios de Repartos y Checklist (iPhone)
+const CACHE = 'montaje-v25';   // v25 (20/10/2026): el service worker ya no intercepta Firebase ni otras webs
 // eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
 // cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
 // primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
@@ -30,6 +30,11 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  // SOLO lo de esta web y solo lecturas (GET). Lo demás --Firebase (iniciar sesión, guardar
+  // asignaciones y entregas), Cloudinary, Google Maps-- va directo, sin pasar por aquí:
+  // interceptado por el service worker, el inicio de sesión fallaba con «error de red»
+  // (20/10/2026) y una petición fallida podía recibir index.html como respuesta.
+  if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
   // Documentos HTML, la raíz y eventos.js → RED PRIMERO (así los móviles cogen SIEMPRE la
   // última versión de la app y de los datos cuando hay internet), con la caché como
   // respaldo si no hay cobertura. Evita quedarse pegado a una versión vieja (que era la

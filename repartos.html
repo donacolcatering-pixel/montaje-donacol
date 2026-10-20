@@ -883,7 +883,9 @@ function pintarLista(){
             <b>${esc(nombreParada(e))}</b>
             <span class="p-dir">${esc(e.direccion||'Sin dirección')}</span>
             <span class="p-meta">${esc(metaParada(e))}</span>
-            ${(()=>{ const a=asignacionDe(e); return (a&&a.uid)?`<span class="p-quien" style="--quien:${colorDe(a.uid)}">${a.uid===(USUARIO&&USUARIO.uid)?'Lo llevas tú':'Lo lleva '+esc(a.nombre||'')}</span>`:''; })()}
+            ${(()=>{ const a=asignacionDe(e); if(a&&a.uid) return `<span class="p-quien" style="--quien:${colorDe(a.uid)}">${a.uid===(USUARIO&&USUARIO.uid)?'Lo llevas tú':'Lo lleva '+esc(a.nombre||'')}</span>`;
+              return (esRepartidor() && normCiudad(e.ciudad)==='Zaragoza' && estado==='pend')
+                ? `<div class="eq-acciones p-asig"><button class="prim" data-asignar="${esc(claveEntrega(e))}" data-a="${esc(USUARIO.uid)}">Me lo llevo</button></div>` : ''; })()}
             ${estado==='ok'?`<span class="chip ok">Entregado a las ${esc(ent.hora_entrega||'')}</span>`
               :estado==='sinsubir'?'<span class="chip amb">Guardado, falta subirlo</span>'
               :!h.ini?`<span class="chip">${esc(h.texto)}</span>`:''}
@@ -902,6 +904,7 @@ function pintarLista(){
     try{ localStorage.setItem('reparto_ciudad', CIUDAD); }catch(e){}
     pintarFiltros(); pintarLista(); window.scrollTo(0,0);
   });
+  activarBotonesAsig(cont);
   cont.querySelectorAll('[data-mios]').forEach(b=>b.onclick=()=>{
     if(b.dataset.mios==='todos'){ VER_UID=''; SOLO_MIOS=false; } else SOLO_MIOS=b.dataset.mios==='1';
     try{ localStorage.setItem('reparto_solo_mios', SOLO_MIOS?'1':'0'); }catch(e){} pintarLista(); });
@@ -955,6 +958,7 @@ function abrir(enc, fecha){
     <p class="det-hora">${esc(ev.fecha?capital(fmtFecha(ev.fecha))+', ':'')}${h.ini?'de '+esc(h.ini)+(h.fin?' a '+esc(h.fin):''):esc(h.texto).toLowerCase()}</p>
     <p class="det-dir">${esc(ev.direccion||'Sin dirección')}</p>
     <p class="det-meta">${esc(metaParada(ev))}</p>
+    <div id="detAsig"></div>
     ${(()=>{ const tels=telefonosParada(ev);
       if(!esDesayuno(ev)){
         if(!tels.length && !ev.contacto) return '';
@@ -971,6 +975,7 @@ function abrir(enc, fecha){
         + '</div>'; })()}
     ${ev.direccion?`<a class="boton contorno ancho" href="${esc(urlMaps(ev))}" target="_blank" rel="noopener">${ICO.navegar} Cómo llegar</a>`:''}`;
 
+  pintarDetAsig();
   const ent=entregaDe(ev);
   if(ent){ mostrarEntregado(ent, estaPendiente(ev)); }
   else { mostrarFormulario(); }
@@ -1212,7 +1217,7 @@ function iniciarEquipo(){
       _desuscribir.push(DB.collection('asignaciones').where('fecha','>=',hoyISO()).onSnapshot(sn=>{
         const nuevo={}; sn.forEach(d=>{ nuevo[d.id]=d.data(); }); ASIG=nuevo;
         try{ localStorage.setItem('reparto_asig', JSON.stringify(ASIG)); }catch(e){}
-        pintarEquipo(); pintarLista();
+        pintarEquipo(); pintarLista(); pintarDetAsig();
       }, ()=>{}));
     }catch(e){}
     pintarChip(); pintarEquipo(); pintarLista();
@@ -1228,6 +1233,32 @@ function iniciarEquipo(){
   });
 }
 
+// Botones de asignar un reparto (los mismos en Equipo, en la Ruta y en la ficha)
+function botonesAsig(e){
+  if(!USUARIO || !PERFIL) return '';
+  const a=asignacionDe(e), uid=(a&&a.uid)||'', clave=claveEntrega(e), mio=uid===USUARIO.uid;
+  const reps=EQUIPO.filter(p=>p.rol==='repartidor');
+  let b='';
+  if(PERFIL.rol==='repartidor' && !mio) b+=`<button class="prim" data-asignar="${esc(clave)}" data-a="${esc(USUARIO.uid)}">${uid?'Me lo quedo yo':'Me lo llevo'}</button>`;
+  reps.filter(p=>p.uid!==uid && !(PERFIL.rol==='repartidor' && p.uid===USUARIO.uid))
+      .forEach(p=>{ b+=`<button data-asignar="${esc(clave)}" data-a="${esc(p.uid)}">${uid?'Pasar a ':'Para '}${esc(p.nombre.split(' ')[0])}</button>`; });
+  if(uid) b+=`<button data-asignar="${esc(clave)}" data-a="">Dejar sin asignar</button>`;
+  return b;
+}
+function activarBotonesAsig(cont){
+  cont.querySelectorAll('[data-asignar]').forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); asignar(b.dataset.asignar, b.dataset.a, b); });
+}
+
+function pintarDetAsig(){
+  const c=$('detAsig'); if(!c || !pedidoActual) return;
+  if(!USUARIO || !PERFIL || normCiudad(pedidoActual.ciudad)!=='Zaragoza'){ c.innerHTML=''; return; }
+  const a=asignacionDe(pedidoActual), uid=(a&&a.uid)||'';
+  c.innerHTML=`<div class="eq-pedido" style="--quien:${uid?colorDe(uid):'var(--amb)'};margin:0 0 16px">
+    <span class="eq-quien ${uid?'':'libre'}" style="--quien:${uid?colorDe(uid):''};margin-top:0">${uid?(uid===USUARIO.uid?'Lo llevas tú':'Lo lleva '+esc(a.nombre||'')):'Sin asignar'}</span>
+    <div class="eq-acciones">${botonesAsig(pedidoActual)}</div></div>`;
+  activarBotonesAsig(c);
+}
+
 // --- Pantalla Equipo ---
 function diasZaragoza(){
   return [...new Set(REPARTOS.filter(e=>e.fecha>=hoyISO() && normCiudad(e.ciudad)==='Zaragoza').map(e=>e.fecha))].sort();
@@ -1238,7 +1269,11 @@ function pintarEquipo(){
   if(!PERFIL){ c.innerHTML=formPerfil(); activarPerfil(); return; }
   const dias=diasZaragoza();
   const man=(()=>{const d=new Date();d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-  if(!EQ_DIA || !dias.includes(EQ_DIA)) EQ_DIA = dias.includes(man) ? man : (dias[0]||'');
+  if(!EQ_DIA || !dias.includes(EQ_DIA)){
+    const hoy=hoyISO();
+    const quedanHoy=REPARTOS.some(e=>e.fecha===hoy && normCiudad(e.ciudad)==='Zaragoza' && !entregaDe(e));
+    EQ_DIA = (quedanHoy && dias.includes(hoy)) ? hoy : (dias.includes(man) ? man : (dias[0]||''));
+  }
   const reps=EQUIPO.filter(p=>p.rol==='repartidor');
   let h=`<h2>Equipo</h2><p class="eq-sub">Hola, <b>${esc(PERFIL.nombre)}</b>${PERFIL.rol==='admin'?' (administrador)':''}. Repartos de Zaragoza: cada uno se queda los suyos y la app le hace su ruta.</p>`;
   if(!dias.length){ c.innerHTML=h+'<p class="vacio">No hay repartos pendientes en Zaragoza.</p>'+pieEquipo(); activarPie(); return; }
@@ -1262,11 +1297,7 @@ function pintarEquipo(){
   delDia.forEach(e=>{
     const a=asignacionDe(e), uid=(a&&a.uid)||'', hc=horaCorta(e.hora), clave=claveEntrega(e);
     const mio=uid===USUARIO.uid, quien=uid?(EQUIPO.find(p=>p.uid===uid)||{nombre:a.nombre}):null;
-    let botones='';
-    if(PERFIL.rol==='repartidor' && !mio) botones+=`<button class="prim" data-asignar="${esc(clave)}" data-a="${esc(USUARIO.uid)}">${uid?'Me lo quedo yo':'Me lo llevo'}</button>`;
-    reps.filter(p=>p.uid!==uid && !(PERFIL.rol==='repartidor' && p.uid===USUARIO.uid))
-        .forEach(p=>{ botones+=`<button data-asignar="${esc(clave)}" data-a="${esc(p.uid)}">${uid?'Pasar a ':'Para '}${esc(p.nombre.split(' ')[0])}</button>`; });
-    if(uid) botones+=`<button data-asignar="${esc(clave)}" data-a="">Dejar sin asignar</button>`;
+    const botones=botonesAsig(e);
     const ult=(a&&a.historial&&a.historial.length)?a.historial[a.historial.length-1]:null;
     h+=`<div class="eq-pedido" style="--quien:${uid?colorDe(uid):'var(--amb)'}">
       <div class="fila"><span class="h">${esc(hc.ini||'—')}</span><div><b>${esc(nombreParada(e))}</b><span class="d">${esc(e.direccion||'Sin dirección')}</span></div></div>
@@ -1278,7 +1309,7 @@ function pintarEquipo(){
   });
   c.innerHTML=h+pieEquipo();
   c.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{ EQ_DIA=b.dataset.dia; pintarEquipo(); });
-  c.querySelectorAll('[data-asignar]').forEach(b=>b.onclick=()=>asignar(b.dataset.asignar, b.dataset.a, b));
+  activarBotonesAsig(c);
   c.querySelectorAll('[data-ruta]').forEach(b=>b.onclick=()=>{
     const uid=b.dataset.ruta; CIUDAD='Zaragoza';
     if(uid===USUARIO.uid){ VER_UID=''; SOLO_MIOS=true; } else VER_UID=uid;
