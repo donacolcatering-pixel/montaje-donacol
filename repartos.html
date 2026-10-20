@@ -285,6 +285,18 @@
   .eq-acciones button.prim{background:var(--acento);color:var(--sobre);box-shadow:none}
   .eq-acciones button:disabled{opacity:.5}
   .eq-hist{margin:8px 0 0;font-size:12px;color:var(--suave)}
+  .eq-pedido[data-abrir-enc]{cursor:pointer}
+  .eq-pedido .ver{float:right;color:var(--suave)} .eq-pedido .ver svg{width:18px;height:18px}
+  .ok-quien{margin:6px 0 0;color:var(--suave)} .ok-quien b{color:var(--tinta)}
+  .ok-donde{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-weight:700;color:var(--acento);text-decoration:underline}
+  /* Visor de firma y foto dentro de la app */
+  .visor{position:fixed;inset:0;z-index:50;background:rgba(10,7,5,.92);display:flex;flex-direction:column;
+         padding:calc(12px + var(--sup-seg)) 14px calc(14px + var(--inf))}
+  .visor[hidden]{display:none}
+  .visor-cab{display:flex;align-items:center;gap:10px;color:#F1E4C3;font-weight:800}
+  .visor-cab button,.visor-cab a{min-height:42px;padding:0 14px;border-radius:10px;background:rgba(241,228,195,.14);color:#F1E4C3;font-weight:700;display:inline-flex;align-items:center;text-decoration:none}
+  .visor-cab .cerrar{margin-left:auto}
+  .visor img{flex:1;min-height:0;width:100%;object-fit:contain;margin-top:12px;border-radius:12px;background:#fff}
   .p-quien{align-self:flex-start;margin-top:4px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:800;color:#fff;background:var(--quien,var(--taupe))}
   .mios{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:12px 0 0}
   .mios button{flex:1;min-height:38px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave)}
@@ -374,6 +386,10 @@
   <footer>Doña Col · Repartos</footer>
 </main>
 
+<div class="visor" id="visor" hidden>
+  <div class="visor-cab"><span id="visorTitulo">Foto</span><a id="visorOriginal" target="_blank" rel="noopener">Abrir el original</a><button class="cerrar" id="visorCerrar" type="button">Cerrar</button></div>
+  <img id="visorImg" alt="">
+</div>
 <nav class="pestanas" id="pestanas">
   <button data-vista="ruta" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.5 5H15a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h6.5"/></svg><span>Ruta</span></button>
   <button data-vista="equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.4c2.6-.4 4.6 1.2 5 4.1"/></svg><span>Equipo</span></button>
@@ -1004,13 +1020,26 @@ function mostrarEntregado(ent, pendiente){
     <h3>${pendiente?'Guardada':'Entregado'}</h3>
     <p class="ok-hora">${esc(ent.fecha?capital(fmtFecha(ent.fecha))+', ':'')}a las ${esc(ent.hora_entrega||'')}</p>
     <p style="margin:0">Lo recibió <b>${esc(ent.receptor||'—')}</b></p>`
+    +(ent.repartidor?`<p class="ok-quien">Lo entregó <b>${esc(ent.repartidor)}</b></p>`:'')
+    +(ent.geo&&ent.geo.lat?`<a class="ok-donde" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ent.geo.lat+','+ent.geo.lng)}">Ver dónde se entregó</a>`:'')
     +(ent.observaciones?`<p class="ok-obs">${esc(ent.observaciones)}</p>`:'');
   let pr='';
   const fu=safeUrl(ent.firma_url), fo=safeUrl(ent.foto_url);
-  if(fu)pr+=`<a href="${esc(fu)}" target="_blank" rel="noopener"><img src="${esc(fu)}" alt="Firma"><span>Firma</span></a>`;
-  if(fo)pr+=`<a href="${esc(fo)}" target="_blank" rel="noopener"><img src="${esc(fo)}" alt="Foto"><span>Foto</span></a>`;
+  if(fu)pr+=`<a href="${esc(fu)}" data-visor="Firma"><img src="${esc(fu)}" alt="Firma"><span>Firma</span></a>`;
+  if(fo)pr+=`<a href="${esc(fo)}" data-visor="Foto"><img src="${esc(fo)}" alt="Foto"><span>Foto</span></a>`;
+  if(!pr) pr='<p class="vacio" style="grid-column:1/-1;margin:0">Esta entrega no tiene firma ni foto guardadas.</p>';
   $('pruebas').innerHTML=pr;
+  $('pruebas').querySelectorAll('[data-visor]').forEach(a=>a.onclick=e=>{ e.preventDefault(); abrirVisor(a.getAttribute('href'), a.dataset.visor); });
 }
+
+// Visor de firma y foto (dentro de la app; «Abrir el original» la abre aparte, para guardarla)
+function abrirVisor(url, titulo){
+  $('visorImg').src=url; $('visorTitulo').textContent=titulo||''; $('visorOriginal').href=url;
+  $('visor').hidden=false;
+}
+function cerrarVisor(){ $('visor').hidden=true; $('visorImg').removeAttribute('src'); }
+$('visorCerrar').onclick=cerrarVisor;
+$('visor').addEventListener('click', e=>{ if(e.target.id==='visor') cerrarVisor(); });
 
 function volverALista(){
   $('detalle').style.display='none';
@@ -1219,17 +1248,19 @@ function iniciarEquipo(){
         try{ localStorage.setItem('reparto_asig', JSON.stringify(ASIG)); }catch(e){}
         pintarEquipo(); pintarLista(); pintarDetAsig();
       }, ()=>{}));
+      // ENTREGAS EN DIRECTO: lo que entrega cada repartidor aparece al momento en los demás móviles.
+      // Se vuelve a poner con cada cambio de sesión (al cerrar sesión, Firebase corta las escuchas).
+      const desde=(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+      _desuscribir.push(DB.collection('entregas').where('fecha','>=',desde).onSnapshot(sn=>{
+        let cambia=false, abierta=false;
+        sn.docChanges().forEach(ch=>{ if(ch.type!=='removed'){ ENTREGAS[ch.doc.id]=ch.doc.data(); cambia=true;
+          if(pedidoActual && ch.doc.id===claveEntrega(pedidoActual)) abierta=true; } });
+        if(cambia){ pintarLista(); pintarRegistro(); pintarEquipo(); }
+        // La ficha abierta se pone al día si su entrega llega mientras se mira
+        if(abierta){ const en=entregaDe(pedidoActual); if(en) mostrarEntregado(en, estaPendiente(pedidoActual)); }
+      }, ()=>{}));
     }catch(e){}
     pintarChip(); pintarEquipo(); pintarLista();
-  });
-  // ENTREGAS EN DIRECTO: lo que entrega cada repartidor aparece al momento en los demás móviles
-  ensureAuth().then(()=>{
-    const desde=(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-    DB.collection('entregas').where('fecha','>=',desde).onSnapshot(sn=>{
-      let cambia=false;
-      sn.docChanges().forEach(ch=>{ if(ch.type!=='removed'){ ENTREGAS[ch.doc.id]=ch.doc.data(); cambia=true; } });
-      if(cambia){ pintarLista(); pintarRegistro(); pintarEquipo(); }
-    }, ()=>{});
   });
 }
 
@@ -1299,7 +1330,8 @@ function pintarEquipo(){
     const mio=uid===USUARIO.uid, quien=uid?(EQUIPO.find(p=>p.uid===uid)||{nombre:a.nombre}):null;
     const botones=botonesAsig(e);
     const ult=(a&&a.historial&&a.historial.length)?a.historial[a.historial.length-1]:null;
-    h+=`<div class="eq-pedido" style="--quien:${uid?colorDe(uid):'var(--amb)'}">
+    h+=`<div class="eq-pedido" data-abrir-enc="${esc(e.enc)}" data-abrir-fecha="${esc(e.fecha||'')}" style="--quien:${uid?colorDe(uid):'var(--amb)'}">
+      <span class="ver">${ICO.chevron}</span>
       <div class="fila"><span class="h">${esc(hc.ini||'—')}</span><div><b>${esc(nombreParada(e))}</b><span class="d">${esc(e.direccion||'Sin dirección')}</span></div></div>
       <span class="eq-quien ${uid?'':'libre'}" style="--quien:${uid?colorDe(uid):''}">${uid?(mio?'Lo llevas tú':'Lo lleva '+esc(quien.nombre||'')):'Sin asignar'}</span>
       ${entregaDe(e)?`<span class="chip ok">Entregado a las ${esc(entregaDe(e).hora_entrega||'')}${entregaDe(e).repartidor?' por '+esc(entregaDe(e).repartidor):''}</span>`:''}
@@ -1310,6 +1342,9 @@ function pintarEquipo(){
   c.innerHTML=h+pieEquipo();
   c.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{ EQ_DIA=b.dataset.dia; pintarEquipo(); });
   activarBotonesAsig(c);
+  c.querySelectorAll('[data-abrir-enc]').forEach(t=>t.onclick=ev=>{
+    if(ev.target.closest('button')) return;   // los botones de asignar van aparte
+    abrir(t.dataset.abrirEnc, t.dataset.abrirFecha); });
   c.querySelectorAll('[data-ruta]').forEach(b=>b.onclick=()=>{
     const uid=b.dataset.ruta; CIUDAD='Zaragoza';
     if(uid===USUARIO.uid){ VER_UID=''; SOLO_MIOS=true; } else VER_UID=uid;
