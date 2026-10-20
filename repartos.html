@@ -552,11 +552,17 @@ function verVista(v){
 }
 document.querySelectorAll('#pestanas button').forEach(b=>b.onclick=()=>verVista(b.dataset.vista));
 // Ruta de una SALIDA en Google Maps con sus paradas (sin API key: Maps calcula la
-// ruta al abrir). Origen = ubicación actual del móvil; paradas en el orden de la lista.
+// ruta al abrir). Origen = el obrador de la ciudad; paradas en el orden de la lista.
+// La ruta EMPIEZA EN EL OBRADOR de la ciudad (20/10/2026). Antes salía de donde estuviera el
+// móvil: abierta desde Madrid, una ruta de Zaragoza daba 3 horas (el viaje Madrid-Zaragoza).
+// Mismas direcciones que la app central (rutas_reparto.py).
+const OBRADOR={Madrid:'Calle Nestares 10, 28045 Madrid', Zaragoza:'Avenida Pablo Gargallo 118, 50003 Zaragoza'};
 function urlRutaDia(entregas){
   const dirs=entregas.map(queryMapa).filter(Boolean).map(encodeURIComponent);
   if(!dirs.length) return null;
-  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dirs[dirs.length-1];
+  const origen=OBRADOR[normCiudad(entregas[0]&&entregas[0].ciudad)];
+  let u='https://www.google.com/maps/dir/?api=1&travelmode=driving'
+       +(origen?'&origin='+encodeURIComponent(origen):'')+'&destination='+dirs[dirs.length-1];
   const wp=dirs.slice(0,-1).join('%7C');
   if(wp) u+='&waypoints='+wp;
   return u;
