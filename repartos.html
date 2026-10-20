@@ -516,7 +516,7 @@ function esReparto(e){
 // ¿Es un desayuno de la tienda web? (los da de alta la app central con el código WEB-<nº>)
 function esDesayuno(e){ return /^WEB-/i.test((e&&e.enc)||'') || /^DESAYUNO WEB/i.test((e&&e.empresa)||''); }
 // El nombre sin el prefijo «DESAYUNO WEB ·» (la etiqueta de color ya dice qué es)
-function nombreParada(e){ return String(e.empresa||'(sin nombre)').replace(/^DESAYUNO WEB\s*·\s*/i,''); }
+function nombreParada(e){ return String(e.empresa||'(sin nombre)').replace(/^DESAYUNO WEB\s*·\s*/i,'') + (e.parte?' · '+e.parte:''); }
 // Debajo del nombre: en un desayuno, lo que se lleva; en catering, el menú y los comensales
 function metaParada(e){ return esDesayuno(e) ? (e.menu||'') : (e.menu||'Menú sin indicar')+' para '+(e.pax||0)+' personas'; }
 function etiquetaTipo(e){
@@ -548,6 +548,33 @@ function telefonosParada(e){
 }
 const ICO_TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
 const botonTel=t=>'<a class="tel" href="tel:'+esc(t.num)+'">'+ICO_TEL+' Llamar al '+esc(t.ver)+'</a>';
+
+// ---------- Pedidos con dos entregas el mismo día (coffee + lunch…) — 20/10/2026 ----------
+const RX_ENTREGA=/(COFFEE(?:\s*BREAK)?|LUNCH|COMIDA|DESAYUNO|MERIENDA|CENA|C[OÓ]CTEL|APERITIVO|BRUNCH)\s*:?\s*([01]?\d|2[0-3])[:.,h]([0-5]\d)(?:\s*(?:HRS?\.?)?\s*[-–]\s*([01]?\d|2[0-3])[:.,h]([0-5]\d))?/gi;
+const NOMBRE_PARTE={COFFEE:'Coffee',LUNCH:'Lunch',COMIDA:'Comida',DESAYUNO:'Desayuno',MERIENDA:'Merienda',CENA:'Cena','CÓCTEL':'Cóctel',COCTEL:'Cóctel',APERITIVO:'Aperitivo',BRUNCH:'Brunch'};
+function dividirEntregas(e){
+  const m=[...String(e.hora||'').matchAll(RX_ENTREGA)];
+  if(m.length<2 || new Set(m.map(x=>(+x[2])*60+(+x[3]))).size<2) return [e];
+  // Bloques de la descripción: el principal y los «NOMBRE – N PAX:»
+  const lineas=String(e.desc||'').split('\n'), bloques=[{titulo:String(e.menu||'').replace(/\s*\(\+\d+\s*men[uú]s?\)/i,'').split(' · ')[0], pax:0, texto:[]}];
+  lineas.forEach(l=>{ const h=l.match(/^\s*(.+?)\s*[–-]\s*(\d+)\s*PAX\s*:\s*$/i);
+    if(h) bloques.push({titulo:h[1], pax:+h[2], texto:[]}); else bloques[bloques.length-1].texto.push(l); });
+  const otros=bloques.slice(1).reduce((t,b)=>t+b.pax,0);
+  bloques[0].pax=Math.max(0,(+e.pax||0)-otros);
+  const usados=new Set();
+  return m.map(x=>{
+    const clave=x[1].toUpperCase().replace(/\s*BREAK/,'').replace('Ó','Ó');
+    const nombre=NOMBRE_PARTE[clave]||NOMBRE_PARTE[clave.normalize('NFD').replace(/[̀-ͯ]/g,'')]||clave;
+    // El bloque cuyo título nombra esta entrega; si ninguno, el principal
+    let b=bloques.find((bl,i)=>i>0 && !usados.has(i) && bl.titulo.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(clave.normalize('NFD').replace(/[̀-ͯ]/g,'')));
+    if(b) usados.add(bloques.indexOf(b)); else b=bloques[0];
+    const ini=(+x[2])+':'+x[3], fin=x[4]?((+x[4])+':'+x[5]):'';
+    const finVale=fin && ((+x[4])*60+(+x[5]))>((+x[2])*60+(+x[3]));
+    return Object.assign({}, e, {enc:e.enc+'·'+nombre, encOriginal:e.enc, parte:nombre,
+      hora:'ENTREGA '+nombre.toUpperCase()+' '+ini+(finVale?' - '+fin:''),
+      menu:b.titulo, pax:b.pax||e.pax, desc:b.texto.join('\n').trim()});
+  });
+}
 
 // ---------- Lista ----------
 // Iconos propios (los emojis se ven distintos en cada móvil)
@@ -947,7 +974,8 @@ function pintarRegistro(){
 // compartian documento y la firma del segundo borraba la del primero.
 function claveEntrega(ev){ return (ev.fecha||'sinfecha') + '_' + ev.enc; }
 // Compatibilidad: los documentos guardados antes del 2026-08-31 usan solo el enc.
-function entregaDe(ev){ return ENTREGAS[claveEntrega(ev)] || PENDIENTES[claveEntrega(ev)] || ENTREGAS[ev.enc] || null; }
+function entregaDe(ev){ return ENTREGAS[claveEntrega(ev)] || PENDIENTES[claveEntrega(ev)] || ENTREGAS[ev.enc]
+  || (ev.encOriginal ? (ENTREGAS[(ev.fecha||'sinfecha')+'_'+ev.encOriginal] || null) : null) || null; }
 // ¿Esta entregada pero todavia sin subir?
 function estaPendiente(ev){ return !!PENDIENTES[claveEntrega(ev)]; }
 
@@ -1197,7 +1225,7 @@ const COLORES_EQUIPO=['#2F6C7A','#B4543A','#4D7A3A','#6D4E9C','#B07A1E','#3E5C9A
 function colorDe(uid){ const i=EQUIPO.findIndex(p=>p.uid===uid); return COLORES_EQUIPO[(i<0?0:i)%COLORES_EQUIPO.length]; }
 function iniciales(n){ return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); }
 function esRepartidor(){ return !!(USUARIO && PERFIL && PERFIL.rol==='repartidor'); }
-function asignacionDe(ev){ return ASIG[claveEntrega(ev)]||null; }
+function asignacionDe(ev){ return ASIG[claveEntrega(ev)] || (ev.encOriginal ? ASIG[(ev.fecha||'sinfecha')+'_'+ev.encOriginal] : null) || null; }
 function usuarioACorreo(u){ return String(u||'').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'')+'@'+DOMINIO_EQUIPO; }
 async function llaveEquipo(){
   let k=null; try{ k=localStorage.getItem('eventos_clave'); }catch(e){}
@@ -1558,7 +1586,7 @@ async function cargarEntregas(){
   }
   // Solo REPARTOS (entregas a domicilio). Excluye montajes y también las RECOGIDAS
   // (el cliente recoge en el obrador → no hay reparto que hacer).
-  REPARTOS=(r||[]).filter(esReparto);
+  REPARTOS=(r||[]).filter(esReparto).flatMap(dividirEntregas);   // coffee + lunch = dos paradas
   await cargarPendientes();   // lo que quedo sin subir en este movil
   await cargarEntregas();
   pintarFiltros();
