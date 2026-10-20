@@ -6,6 +6,11 @@
 <title>Agenda del día · Doña Col</title>
 <meta name="theme-color" content="#1B1411">
 <link rel="icon" href="icon.svg">
+<link rel="manifest" href="agenda-manifest.json">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agenda">
 <style>
   /* Misma paleta y tipografías que el resto de las apps de la casa. */
   :root{
@@ -78,8 +83,13 @@
   tbody tr.sinaceptar{background:var(--ambbg)}
   tbody tr:hover{outline:2px solid var(--cafe);outline-offset:-2px}
 
+  /* La hora de recoger se queda pegada a la izquierda: con nueve columnas y
+     scroll lateral, sin esto al llegar al contacto ya no sabes de qué pedido
+     era la fila. */
   .c-rec{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;
-       background:var(--cacao);color:var(--nata);text-align:center;width:1%}
+       background:var(--cacao);color:var(--nata);text-align:center;width:1%;
+       position:sticky;left:0;z-index:1}
+  thead th:first-child{position:sticky;left:0;z-index:3}
   tbody tr.sinaceptar .c-rec{background:var(--amb);color:#fff}
   .c-rec small{display:block;font-size:9px;font-weight:600;opacity:.75;letter-spacing:.3px}
   .c-hora{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
@@ -134,6 +144,7 @@
 <div class="plazas" id="plazas"></div>
 <main id="lista"></main>
 <div class="pie" id="pie"></div>
+<div class="pie" id="sello" aria-live="polite"></div>
 
 <script src="agenda.js"></script>
 <script>
@@ -147,8 +158,8 @@ const tel = s => String(s==null?'':s).replace(/[^+\d]/g,'');
 // ---------- Descifrado (mismo algoritmo que checklist_export.py) ----------
 // agenda.js viaja cifrada porque el repositorio es público. La clave llega en
 // el enlace (#k=...) y se queda guardada en este móvil.
-async function descifrar(){
-  const c = window.AGENDA_CIFRADA;
+async function descifrar(c){
+  c = c || window.AGENDA_CIFRADA;
   if(!c) return null;
   let k = null;
   const m = location.hash.match(/[#&]k=([0-9a-fA-F]{32})/);
@@ -219,7 +230,9 @@ function pintarPlazas(){
 }
 
 function fila(e){
-  const aceptado = e.estado === 'ACEPTADO';
+  // El estado ya no viaja como palabra repetida 197 veces: solo viene una
+  // marca en las que NO estan aceptadas, que son las menos.
+  const aceptado = !e.sin;
   const notas = [];
   if(e.con && e.con.length) notas.push(`<span class="nota">Con ${esc(e.con.join(', '))}</span>`);
   if(e.sin_situar) notas.push(`<span class="nota aprox">Hora orientativa: la dirección no está en el mapa</span>`);
@@ -241,7 +254,7 @@ function fila(e){
 function bloque(titulo, lista){
   if(!lista.length) return '';
   const pax = lista.reduce((s,e)=>s+(Number(e.pax)||0),0);
-  const sin = lista.filter(e=>e.estado!=='ACEPTADO').length;
+  const sin = lista.filter(e=>e.sin).length;
   return `<h2 class="plaza">${esc(titulo)}
       <span>${lista.length} ${lista.length===1?'entrega':'entregas'}${pax?' · '+pax+' pax':''}${sin?' · '+sin+' sin aceptar':''}</span>
     </h2>
@@ -287,7 +300,41 @@ let _reloj; addEventListener('resize', () => {
   clearTimeout(_reloj); _reloj = setTimeout(() => { if(TODO.length) pintar(); }, 150);
 });
 
+let ULTIMA = null;           // cuándo se leyeron los datos por última vez
+let FIRMA = '';             // para no repintar si no ha cambiado nada
+
+function pintarSello(){
+  if(!ULTIMA){ $('sello').textContent = ''; return; }
+  const min = Math.round((Date.now() - ULTIMA) / 60000);
+  $('sello').textContent = min < 1 ? 'Actualizado ahora mismo'
+    : (min === 1 ? 'Actualizado hace 1 minuto' : 'Actualizado hace ' + min + ' minutos');
+}
+
+// Vuelve a leer agenda.js sin recargar la página, así no se pierde el día que
+// estabas mirando ni la posición de la tabla. El parámetro con la hora evita que
+// el móvil sirva el fichero de su caché.
+async function refrescar(primera){
+  try{
+    const r = await fetch('agenda.js?t=' + Date.now(), {cache: 'no-store'});
+    if(!r.ok) return false;
+    const txt = await r.text();
+    const m = txt.match(/window\.AGENDA_CIFRADA\s*=\s*(\{[\s\S]*\})\s*;/);
+    if(!m) return false;
+    if(m[1] === FIRMA && !primera){ ULTIMA = Date.now(); pintarSello(); return true; }
+    const datos = await descifrar(JSON.parse(m[1]));
+    if(!Array.isArray(datos)) return false;
+    FIRMA = m[1];
+    TODO = datos;
+    ULTIMA = Date.now();
+    pintar();
+    $('pie').textContent = TODO.length + ' entregas · se actualiza sola con cada pedido';
+    pintarSello();
+    return true;
+  }catch(e){ return false; }
+}
+
 (async function(){
+  // Primero lo que ya viene en la página, que es instantáneo.
   const datos = await descifrar();
   if(datos === null){
     document.querySelector('main').innerHTML =
@@ -298,8 +345,20 @@ let _reloj; addEventListener('resize', () => {
     return;
   }
   TODO = Array.isArray(datos) ? datos : [];
+  ULTIMA = Date.now();
   pintar();
-  $('pie').textContent = TODO.length + ' pedidos cargados · se actualiza cada vez que la oficina genera un pedido';
+  $('pie').textContent = TODO.length + ' entregas · se actualiza sola con cada pedido';
+  pintarSello();
+
+  // Y a partir de ahí se refresca sola: cada tres minutos, al volver a la
+  // pantalla y al recuperar la conexión. Lo de volver a la pantalla es lo que
+  // más importa: la agenda se deja abierta toda la mañana.
+  setInterval(() => refrescar(false), 180000);
+  setInterval(pintarSello, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) refrescar(false);
+  });
+  addEventListener('online', () => refrescar(false));
 })();
 </script>
 </body>
