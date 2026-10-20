@@ -289,6 +289,8 @@
   .mios{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:12px 0 0}
   .mios button{flex:1;min-height:38px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave)}
   .mios button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .pref-mapas{margin:22px 0 0;text-align:center;font-size:14px;color:var(--suave)}
+  .pref-mapas button{font-weight:800;color:var(--acento);text-decoration:underline}
   footer{text-align:center;font-size:12px;color:var(--suave);padding:24px 0 8px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -312,6 +314,7 @@
       </div>
       <div id="avisoCola" style="display:none"></div>
       <div id="pedidos"><p class="vacio">Cargando pedidos…</p></div>
+      <p class="pref-mapas" id="prefMapas" hidden></p>
     </div>
 
     <section id="cardRegistro">
@@ -610,7 +613,40 @@ function queryMapa(e){
     q += ', ' + ciudad;
   return q;
 }
-const urlMaps=e=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(queryMapa(e));
+// «Cómo llegar» = la RUTA hasta el sitio desde donde estás (antes buscaba el sitio)
+const urlMaps=e=>'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(queryMapa(e));
+// ===== Abrir la APP de mapas, no la web (20/10/2026) =====
+const SO_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const SO_ANDROID=/Android/i.test(navigator.userAgent), EN_APK=/DonaColRepartosApp/.test(navigator.userAgent);
+function prefMapas(){ try{ return localStorage.getItem('pref_mapas')||'google'; }catch(e){ return 'google'; } }
+function urlAppleMaps(href){
+  const u=new URL(href), p=u.searchParams;
+  if(/\/maps\/search\//.test(u.pathname)) return 'maps://?q='+encodeURIComponent(p.get('query')||'');
+  // Apple Maps no admite varias paradas en el enlace: lleva a la PRIMERA de la ruta
+  const primera=(p.get('waypoints')||'').split('|').filter(Boolean)[0]||p.get('destination')||'';
+  return 'maps://?daddr='+encodeURIComponent(primera)+'&dirflg=d'+(p.get('origin')&&!p.get('waypoints')?'&saddr='+encodeURIComponent(p.get('origin')):'');
+}
+function abrirEnMapas(href){
+  if(EN_APK){ location.href=href; return; }
+  if(SO_ANDROID){
+    location.href='intent://'+href.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url='+encodeURIComponent(href)+';end';
+    return;
+  }
+  if(SO_IOS){
+    if(prefMapas()==='apple'){ location.href=urlAppleMaps(href); return; }
+    // Google Maps instalado: se abre la app y la página pasa a segundo plano. Si no, a la web.
+    const t=setTimeout(()=>{ if(!document.hidden) location.href=href; }, 1500);
+    document.addEventListener('visibilitychange', function q(){ if(document.hidden){ clearTimeout(t); document.removeEventListener('visibilitychange', q); } });
+    location.href='comgooglemapsurl://'+href.replace(/^https?:\/\//,'');
+    return;
+  }
+  window.open(href,'_blank','noopener');
+}
+document.addEventListener('click', e=>{
+  const a=e.target.closest && e.target.closest('a[href*="google.com/maps"]');
+  if(!a) return;
+  e.preventDefault(); abrirEnMapas(a.href);
+}, true);
 // Pestañas de abajo: Ruta / Entregados
 function verVista(v){
   document.body.classList.toggle('vista-entregados', v==='entregados');
@@ -1357,6 +1393,15 @@ function activarPerfil(p){
   };
 }
 
+// iPhone: con qué app se abren las rutas (Google Maps por defecto; Apple Maps si no lo tienen)
+function pintarPrefMapas(){
+  const c=$('prefMapas'); if(!c || !SO_IOS) return;
+  const g=prefMapas()==='google';
+  c.hidden=false;
+  c.innerHTML='Las rutas se abren en <b>'+(g?'Google Maps':'Apple Maps')+'</b>. <button type="button" id="btnPrefMapas">Usar '+(g?'Apple Maps':'Google Maps')+'</button>';
+  $('btnPrefMapas').onclick=()=>{ try{ localStorage.setItem('pref_mapas', g?'apple':'google'); }catch(e){} pintarPrefMapas(); };
+}
+
 // ---------- Confirmar entrega ----------
 $('btnConfirmar').onclick=async ()=>{
   if(!pedidoActual)return;
@@ -1447,6 +1492,7 @@ async function cargarEntregas(){
   pintarLista();
   pintarRegistro();
   iniciarEquipo();            // cuenta del repartidor, equipo y asignaciones en directo
+  pintarPrefMapas();
   subirCola(true);            // reintento silencioso al abrir
 })();
 

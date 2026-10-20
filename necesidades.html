@@ -1290,6 +1290,39 @@ function activarDesbloqueo(){
   if(campo) campo.addEventListener('input',()=>{ if(claveDeTexto(campo.value)) desbloquearCon(campo.value,msg); });
 }
 
+// ===== Abrir la APP de mapas, no la web (20/10/2026) =====
+const SO_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const SO_ANDROID=/Android/i.test(navigator.userAgent), EN_APK=/DonaColRepartosApp/.test(navigator.userAgent);
+function prefMapas(){ try{ return localStorage.getItem('pref_mapas')||'google'; }catch(e){ return 'google'; } }
+function urlAppleMaps(href){
+  const u=new URL(href), p=u.searchParams;
+  if(/\/maps\/search\//.test(u.pathname)) return 'maps://?q='+encodeURIComponent(p.get('query')||'');
+  // Apple Maps no admite varias paradas en el enlace: lleva a la PRIMERA de la ruta
+  const primera=(p.get('waypoints')||'').split('|').filter(Boolean)[0]||p.get('destination')||'';
+  return 'maps://?daddr='+encodeURIComponent(primera)+'&dirflg=d'+(p.get('origin')&&!p.get('waypoints')?'&saddr='+encodeURIComponent(p.get('origin')):'');
+}
+function abrirEnMapas(href){
+  if(EN_APK){ location.href=href; return; }
+  if(SO_ANDROID){
+    location.href='intent://'+href.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url='+encodeURIComponent(href)+';end';
+    return;
+  }
+  if(SO_IOS){
+    if(prefMapas()==='apple'){ location.href=urlAppleMaps(href); return; }
+    // Google Maps instalado: se abre la app y la página pasa a segundo plano. Si no, a la web.
+    const t=setTimeout(()=>{ if(!document.hidden) location.href=href; }, 1500);
+    document.addEventListener('visibilitychange', function q(){ if(document.hidden){ clearTimeout(t); document.removeEventListener('visibilitychange', q); } });
+    location.href='comgooglemapsurl://'+href.replace(/^https?:\/\//,'');
+    return;
+  }
+  window.open(href,'_blank','noopener');
+}
+document.addEventListener('click', e=>{
+  const a=e.target.closest && e.target.closest('a[href*="google.com/maps"]');
+  if(!a) return;
+  e.preventDefault(); abrirEnMapas(a.href);
+}, true);
+
 // Contacto y teléfonos del evento. Un móvil o fijo por botón; los textos raros («ver correo») no se pintan.
 function telefonosDe(ev){
   const crudos=[ev.tel, ev.movil];
@@ -1328,7 +1361,7 @@ function pintarDireccion(ev){
   caja.innerHTML='<div class="dirTxt"><span class="ic">📍</span><span>'+esc(dir)+
     (ev.ciudad?'<br><span style="font-weight:600;color:var(--gris);font-size:13px">'+esc(ev.ciudad)+'</span>':'')+
     '</span></div>'+
-    '<a class="mapsBtn" href="https://www.google.com/maps/search/?api=1&query='+consulta+
+    '<a class="mapsBtn" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+consulta+
     '" target="_blank" rel="noopener">Cómo llegar</a>';
 }
 
