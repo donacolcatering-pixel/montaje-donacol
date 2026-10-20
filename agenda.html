@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Agenda del día · Doña Col</title>
+<meta name="theme-color" content="#1B1411">
+<link rel="icon" href="icon.svg">
+<style>
+  /* Misma paleta y tipografías que el resto de las apps de la casa. */
+  :root{
+    --cacao:#1B1411; --cafe:#61422A; --taupe:#907A69; --nata:#F1E4C3;
+    --fondo:#F4EFE6; --sup:#FFFFFF; --sup2:#EDE5D8; --tinta:#1F1712;
+    --suave:#6B6058; --linea:rgba(31,23,18,.12);
+    --ok:#2C7448; --okbg:#E1EFE5; --amb:#8A5208; --ambbg:#FAEAD0;
+    --display:"Bodoni","Bodoni Moda",Didot,Georgia,serif;
+    --texto:"Hanken",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:16px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --fondo:#14100D; --sup:#211915; --sup2:#2C221D; --tinta:#F3EBDD;
+      --suave:#B5A797; --linea:rgba(243,235,221,.14);
+      --ok:#79C795; --okbg:#1C3124; --amb:#F0B45C; --ambbg:#3A2A12;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font-family:var(--texto);
+       -webkit-text-size-adjust:100%}
+
+  header{background:var(--cacao);color:var(--nata);padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 14px}
+  header h1{margin:0;font-family:var(--display);font-size:24px;font-weight:500;letter-spacing:.2px}
+  header p{margin:3px 0 0;font-size:12.5px;opacity:.72}
+
+  /* --- barra del día --- */
+  .dia{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--sup);
+       border-bottom:1px solid var(--linea);position:sticky;top:0;z-index:5}
+  .dia button{flex:0 0 auto;width:42px;height:42px;border:1px solid var(--linea);
+       background:var(--sup2);color:var(--tinta);border-radius:12px;font-size:19px;cursor:pointer}
+  .dia button:active{transform:scale(.96)}
+  .dia .centro{flex:1;text-align:center;min-width:0}
+  /* Sin text-transform:capitalize: ponía «20 De Octubre». La primera letra se
+     pone en mayúscula desde el guion, que es lo único que hace falta. */
+  .dia .centro b{display:block;font-family:var(--display);font-size:19px;font-weight:500;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dia input[type=date]{border:0;background:transparent;color:var(--suave);font-family:var(--texto);
+       font-size:12px;text-align:center;width:100%;padding:2px 0}
+  .hoy-btn{padding:0 14px!important;width:auto!important;font-size:13px!important;font-weight:600}
+
+  /* --- plazas --- */
+  .plazas{display:flex;gap:8px;padding:12px 16px 4px}
+  .plazas button{flex:1;padding:10px 6px;border:1px solid var(--linea);background:var(--sup);
+       color:var(--suave);border-radius:12px;font-family:var(--texto);font-size:14px;
+       font-weight:600;cursor:pointer}
+  .plazas button.on{background:var(--cacao);color:var(--nata);border-color:var(--cacao)}
+  .plazas .cuenta{display:block;font-size:11px;font-weight:400;opacity:.7;margin-top:1px}
+
+  main{padding:8px 16px 40px;max-width:900px;margin:0 auto}
+  h2.plaza{font-family:var(--display);font-size:17px;font-weight:500;margin:22px 0 8px;
+       padding-bottom:6px;border-bottom:2px solid var(--cafe);display:flex;
+       justify-content:space-between;align-items:baseline;gap:10px}
+  h2.plaza span{font-family:var(--texto);font-size:12px;color:var(--suave);font-weight:400}
+
+  .ped{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);
+       padding:13px 14px;margin:0 0 10px;border-left:4px solid var(--cafe)}
+  .ped.sinaceptar{border-left-color:var(--amb);background:var(--sup)}
+  .ped .alto{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .ped .cli{font-weight:700;font-size:15.5px;line-height:1.25;min-width:0;overflow-wrap:anywhere}
+  .ped .num{font-size:11px;color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ped .lugar{margin:7px 0 0;font-size:13.5px;color:var(--tinta);opacity:.88;overflow-wrap:anywhere}
+  .ped .menu{margin:5px 0 0;font-size:12px;color:var(--suave);overflow-wrap:anywhere}
+  .ped .viaje{margin:6px 0 0;font-size:11.5px;color:var(--cafe);font-weight:600}
+  .ped .viaje.aprox{color:var(--amb);font-weight:400;font-style:italic}
+  .ped .contacto{margin:5px 0 0;font-size:12px;color:var(--suave)}
+  .ped .contacto a{color:var(--cafe);text-decoration:none;font-weight:600}
+
+  .horas{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chip{font-size:12px;padding:4px 9px;border-radius:999px;background:var(--sup2);
+        color:var(--tinta);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chip b{font-weight:700}
+  .chip.recoge{background:var(--cacao);color:var(--nata)}
+  .chip.pax{background:transparent;border:1px solid var(--linea);color:var(--suave)}
+  .chip.pendiente{background:var(--ambbg);color:var(--amb);font-weight:600}
+  .chip.tipo{background:var(--cafe);color:var(--nata);font-weight:700;letter-spacing:.3px}
+  .et{font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:999px;
+      text-transform:uppercase;white-space:nowrap}
+  .et.ok{background:var(--okbg);color:var(--ok)}
+  .et.no{background:var(--ambbg);color:var(--amb)}
+
+  .vacio{text-align:center;color:var(--suave);padding:34px 10px;font-size:14px}
+  .aviso{background:var(--ambbg);color:var(--amb);padding:14px 16px;border-radius:var(--r);
+         margin:16px;font-size:14px;line-height:1.5}
+  .pie{text-align:center;color:var(--suave);font-size:11px;padding:18px 16px 30px}
+  @media print{
+    header,.dia,.plazas,.pie{display:none}
+    body{background:#fff}
+    .ped{break-inside:avoid;border-left-width:3px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agenda del día</h1>
+  <p>Lo que hay que preparar y a qué hora se recoge</p>
+</header>
+
+<div class="dia">
+  <button id="ant" aria-label="Día anterior">‹</button>
+  <div class="centro">
+    <b id="etiqueta">—</b>
+    <input type="date" id="fecha">
+  </div>
+  <button id="sig" aria-label="Día siguiente">›</button>
+  <button id="hoy" class="hoy-btn">HOY</button>
+</div>
+
+<div class="plazas" id="plazas"></div>
+<main id="lista"></main>
+<div class="pie" id="pie"></div>
+
+<script src="agenda.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+// Todo dato que entra en innerHTML va escapado: los nombres y los lugares los
+// escribe la oficina a mano y pueden traer cualquier cosa.
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tel = s => String(s==null?'':s).replace(/[^+\d]/g,'');
+
+// ---------- Descifrado (mismo algoritmo que checklist_export.py) ----------
+// agenda.js viaja cifrada porque el repositorio es público. La clave llega en
+// el enlace (#k=...) y se queda guardada en este móvil.
+async function descifrar(){
+  const c = window.AGENDA_CIFRADA;
+  if(!c) return null;
+  let k = null;
+  const m = location.hash.match(/[#&]k=([0-9a-fA-F]{32})/);
+  if(m){ k = m[1]; try{ localStorage.setItem('eventos_clave', k); }catch(e){} }
+  else { try{ k = localStorage.getItem('eventos_clave'); }catch(e){} }
+  if(!k) return null;
+  try{
+    const key = Uint8Array.from(k.match(/../g).map(h=>parseInt(h,16)));
+    const nonce = Uint8Array.from(atob(c.n), ch=>ch.charCodeAt(0));
+    const data = Uint8Array.from(atob(c.d), ch=>ch.charCodeAt(0));
+    const out = new Uint8Array(data.length);
+    for(let off=0,i=0; off<data.length; off+=32,i++){
+      const buf = new Uint8Array(key.length+nonce.length+4);
+      buf.set(key); buf.set(nonce, key.length);
+      new DataView(buf.buffer).setUint32(key.length+nonce.length, i);
+      const blk = new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
+      for(let j=0; j<32 && off+j<data.length; j++) out[off+j] = data[off+j] ^ blk[j];
+    }
+    return JSON.parse(new TextDecoder().decode(out));
+  }catch(e){ return null; }
+}
+
+// ---------- Fechas ----------
+// Función y no constante: si el móvil se queda abierto toda la noche, una
+// constante dejaría «HOY» clavado en el día de ayer.
+function hoyISO(){ const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+             'septiembre','octubre','noviembre','diciembre'];
+// En el móvil la cabecera es estrecha y «Hoy · martes, 20 de octubre» se cortaba
+// con puntos suspensivos, así que ahí va abreviado.
+const estrecho = () => window.matchMedia('(max-width:430px)').matches;
+function fmt(iso){ const d=new Date(iso+'T00:00:00');
+  return estrecho()
+    ? DIAS[d.getDay()].slice(0,3)+' '+d.getDate()+' '+MESES[d.getMonth()].slice(0,3)
+    : DIAS[d.getDay()]+', '+d.getDate()+' de '+MESES[d.getMonth()]; }
+function etiquetaDe(iso){
+  if(iso===hoyISO()) return 'Hoy · '+fmt(iso);
+  const m=new Date(hoyISO()+'T00:00:00'); m.setDate(m.getDate()+1);
+  const man=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-'+String(m.getDate()).padStart(2,'0');
+  if(iso===man) return 'Mañana · '+fmt(iso);
+  const t = fmt(iso);
+  return t.charAt(0).toUpperCase() + t.slice(1);   // «Martes, 20 de octubre»
+}
+function mueve(iso, dias){
+  const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+dias);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ---------- Estado ----------
+let TODO = [];
+let dia = hoyISO();
+let plaza = 'Todas';
+const PLAZAS = ['Todas','Zaragoza','Madrid'];
+
+function delDia(){ return TODO.filter(e => e.dia === dia); }
+
+function pintarPlazas(){
+  const hoy = delDia();
+  $('plazas').innerHTML = PLAZAS.map(p => {
+    const n = p==='Todas' ? hoy.length : hoy.filter(e=>e.ciudad===p).length;
+    return `<button data-p="${esc(p)}" class="${p===plaza?'on':''}">${esc(p)}
+      <span class="cuenta">${n} ${n===1?'pedido':'pedidos'}</span></button>`;
+  }).join('');
+  $('plazas').querySelectorAll('button').forEach(b =>
+    b.onclick = () => { plaza = b.dataset.p; pintar(); });
+}
+
+function tarjeta(e){
+  const aceptado = e.estado === 'ACEPTADO';
+  return `<article class="ped ${aceptado?'':'sinaceptar'}">
+    <div class="alto">
+      <div class="cli">${esc(e.cliente || 'Sin nombre')}</div>
+      <span class="et ${aceptado?'ok':'no'}">${aceptado?'Aceptado':'Sin aceptar'}</span>
+    </div>
+    <div class="num">${esc(e.num)}${e.ciudad?' · '+esc(e.ciudad):''}</div>
+    ${e.lugar ? `<p class="lugar">${esc(e.lugar)}</p>` : ''}
+    ${e.menu ? `<p class="menu">${esc(e.menu)}</p>` : ''}
+    <div class="horas">
+      ${e.recoge ? `<span class="chip recoge">Recoger <b>${esc(e.recoge)}</b></span>`
+                 : `<span class="chip pendiente">Hora por concretar</span>`}
+      ${e.hora ? `<span class="chip">${esc(e.hora)}</span>` : ''}
+      ${e.pax ? `<span class="chip pax">${esc(e.pax)} pax</span>` : ''}
+      ${e.tipo && e.tipo !== 'REPARTO' ? `<span class="chip tipo">${esc(e.tipo)}</span>` : ''}
+    </div>
+    ${e.con && e.con.length
+      ? `<p class="viaje">Sale en el mismo viaje que ${esc(e.con.join(', '))}</p>` : ''}
+    ${e.sin_situar
+      ? `<p class="viaje aprox">Esta dirección no está en el mapa: la hora de recogida es orientativa</p>` : ''}
+    ${e.contacto || e.tel ? `<p class="contacto">${esc(e.contacto||'')}
+      ${e.tel ? ` · <a href="tel:${esc(tel(e.tel))}">${esc(e.tel)}</a>` : ''}</p>` : ''}
+  </article>`;
+}
+
+function bloque(titulo, lista){
+  if(!lista.length) return '';
+  const pax = lista.reduce((s,e)=>s+(Number(e.pax)||0),0);
+  const sin = lista.filter(e=>e.estado!=='ACEPTADO').length;
+  return `<h2 class="plaza">${esc(titulo)}
+      <span>${lista.length} ${lista.length===1?'pedido':'pedidos'}${pax?' · '+pax+' pax':''}${sin?' · '+sin+' sin aceptar':''}</span>
+    </h2>` + lista.map(tarjeta).join('');
+}
+
+function pintar(){
+  $('etiqueta').textContent = etiquetaDe(dia);
+  $('fecha').value = dia;
+  pintarPlazas();
+
+  const hoy = delDia();
+  if(!hoy.length){
+    $('lista').innerHTML = `<p class="vacio">No hay nada para este día.</p>`;
+  } else if(plaza === 'Todas'){
+    // Zaragoza y Madrid por separado, que es como se trabaja.
+    let h = '';
+    for(const p of ['Zaragoza','Madrid']) h += bloque(p, hoy.filter(e=>e.ciudad===p));
+    const otras = hoy.filter(e => e.ciudad!=='Zaragoza' && e.ciudad!=='Madrid');
+    h += bloque('Sin plaza', otras);
+    $('lista').innerHTML = h;
+  } else {
+    const sel = hoy.filter(e=>e.ciudad===plaza);
+    $('lista').innerHTML = sel.length ? bloque(plaza, sel)
+      : `<p class="vacio">Nada en ${esc(plaza)} para este día.</p>`;
+  }
+}
+
+$('ant').onclick = () => { dia = mueve(dia,-1); pintar(); };
+$('sig').onclick = () => { dia = mueve(dia, 1); pintar(); };
+$('hoy').onclick = () => { dia = hoyISO(); pintar(); };
+$('fecha').onchange = ev => { if(ev.target.value){ dia = ev.target.value; pintar(); } };
+// Al girar el móvil cambia si el título cabe entero o va abreviado, así que se
+// vuelve a pintar; si no, se queda cortado con puntos suspensivos.
+let _reloj; addEventListener('resize', () => {
+  clearTimeout(_reloj); _reloj = setTimeout(() => { if(TODO.length) pintar(); }, 150);
+});
+
+(async function(){
+  const datos = await descifrar();
+  if(datos === null){
+    document.querySelector('main').innerHTML =
+      `<div class="aviso">Esta agenda va cifrada y en este móvil todavía no hay clave.
+       Abre el enlace completo que te pasaron desde la app (el que acaba en <b>#k=…</b>)
+       y se quedará guardada.</div>`;
+    $('plazas').style.display = 'none';
+    return;
+  }
+  TODO = Array.isArray(datos) ? datos : [];
+  pintar();
+  $('pie').textContent = TODO.length + ' pedidos cargados · se actualiza cada vez que la oficina genera un pedido';
+})();
+</script>
+</body>
+</html>
