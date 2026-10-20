@@ -17,7 +17,12 @@
     --cacao:#1B1411; --cafe:#61422A; --taupe:#907A69; --nata:#F1E4C3;
     --fondo:#F4EFE6; --sup:#FFFFFF; --sup2:#EDE5D8; --tinta:#1F1712;
     --suave:#6B6058; --linea:rgba(31,23,18,.12);
-    --ok:#2C7448; --okbg:#E1EFE5; --amb:#8A5208; --ambbg:#FAEAD0;
+    --ok:#1E5B38; --okbg:#DCEFE2; --amb:#8A5208; --ambbg:#FAEAD0;
+    /* Las cuatro señales de la tabla. El azul de la entrega no sale en ningún
+       otro sitio de la pantalla a propósito: así no se confunde con nada. */
+    --sal-f:#1B1411; --sal-t:#F7E9C6;      /* hora de SALIDA del obrador */
+    --ent-f:#18506E; --ent-t:#EAF4FA;      /* hora de ENTREGA al cliente */
+    --no-f:#A8322D; --no-sup:#FCE4E1;      /* SIN ACEPTAR */
     --display:"Bodoni","Bodoni Moda",Didot,Georgia,serif;
     --texto:"Hanken",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --r:16px;
@@ -27,6 +32,9 @@
       --fondo:#14100D; --sup:#211915; --sup2:#2C221D; --tinta:#F3EBDD;
       --suave:#B5A797; --linea:rgba(243,235,221,.14);
       --ok:#79C795; --okbg:#1C3124; --amb:#F0B45C; --ambbg:#3A2A12;
+      --sal-f:#F7E9C6; --sal-t:#1B1411;    /* de noche se invierte: la salida en claro */
+      --ent-f:#8FC7E8; --ent-t:#0E2E40;
+      --no-f:#F08A80; --no-sup:#3A1C19;
     }
   }
   *{box-sizing:border-box}
@@ -80,19 +88,26 @@
        vertical-align:top}
   tbody td:last-child{border-right:0}
   tbody tr:nth-child(even){background:var(--sup2)}
-  tbody tr.sinaceptar{background:var(--ambbg)}
+  /* Sin aceptar: la fila entera, con un filo rojo. Es lo que NO se cocina. */
+  tbody tr.sinaceptar{background:var(--no-sup)}
+  tbody tr.sinaceptar td:first-child{box-shadow:inset 4px 0 0 var(--no-f)}
   tbody tr:hover{outline:2px solid var(--cafe);outline-offset:-2px}
 
   /* La hora de recoger se queda pegada a la izquierda: con nueve columnas y
      scroll lateral, sin esto al llegar al contacto ya no sabes de qué pedido
      era la fila. */
-  .c-rec{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;
-       background:var(--cacao);color:var(--nata);text-align:center;width:1%;
-       position:sticky;left:0;z-index:1}
+  .c-rec{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap;
+       background:var(--sal-f);color:var(--sal-t);text-align:center;width:1%;
+       position:sticky;left:0;z-index:1;border-right:2px solid var(--cafe)!important}
   thead th:first-child{position:sticky;left:0;z-index:3}
-  tbody tr.sinaceptar .c-rec{background:var(--amb);color:#fff}
+  tbody tr.sinaceptar .c-rec{background:var(--no-f);color:#fff}
   .c-rec small{display:block;font-size:9px;font-weight:600;opacity:.75;letter-spacing:.3px}
-  .c-hora{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+  /* La hora de entrega, en azul: es el compromiso con el cliente. */
+  .c-hora{font-variant-numeric:tabular-nums;white-space:nowrap;width:1%}
+  .c-hora b{display:inline-block;background:var(--ent-f);color:var(--ent-t);
+       font-weight:800;font-size:13.5px;padding:3px 8px;border-radius:5px;letter-spacing:.2px}
+  .c-hora .franja{display:block;font-size:10.5px;color:var(--suave);margin-top:2px;
+       font-weight:600;letter-spacing:.2px}
   .c-num{font-size:11px;color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
   .c-cli{font-weight:700;min-width:170px;overflow-wrap:anywhere}
   .c-lugar{min-width:210px;overflow-wrap:anywhere;font-size:12.5px}
@@ -106,7 +121,7 @@
   .et{font-size:10px;font-weight:800;letter-spacing:.3px;padding:3px 7px;border-radius:4px;
       text-transform:uppercase;white-space:nowrap;display:inline-block}
   .et.ok{background:var(--okbg);color:var(--ok)}
-  .et.no{background:#fff;color:var(--amb);border:1px solid currentColor}
+  .et.no{background:var(--no-f);color:#fff}
   .tipo{font-size:9.5px;font-weight:800;letter-spacing:.3px;background:var(--cafe);
         color:var(--nata);padding:2px 5px;border-radius:3px;margin-left:5px}
   .pendiente{color:var(--amb);font-weight:700;font-size:11px}
@@ -229,6 +244,23 @@ function pintarPlazas(){
     b.onclick = () => { plaza = b.dataset.p; pintar(); });
 }
 
+// «ENTREGA 08:30 – 09:00 HRS» → la hora en grande y azul, y la franja debajo en
+// pequeño. Repetir «ENTREGA» y «HRS» en cada fila no dice nada que no se sepa.
+function horaBonita(txt){
+  const t = String(txt || '');
+  const m = t.match(/([01]?\d|2[0-3])[:.,h]([0-5]\d)/);
+  if(!m) return esc(t);
+  const primera = m[1].padStart(2,'0') + ':' + m[2];
+  const resto = t.replace(/^\s*(ENTREGA|MONTADO|MONTAJE|RECOGIDA)\s*/i,'')
+                 .replace(/\s*HRS?\.?\s*$/i,'').trim();
+  // La segunda hora también a formato 08:30: la oficina las escribe de las dos
+  // maneras («10.00 - 10.30») y mezclarlas en la misma columna se lee fatal.
+  const dos = resto.match(/([01]?\d|2[0-3])[:.,h]([0-5]\d)/g) || [];
+  const m2 = dos[1] ? dos[1].match(/([01]?\d|2[0-3])[:.,h]([0-5]\d)/) : null;
+  const segunda = m2 ? m2[1].padStart(2,'0') + ':' + m2[2] : '';
+  return `<b>${esc(primera)}</b>` + (segunda ? `<span class="franja">hasta ${esc(segunda)}</span>` : '');
+}
+
 function fila(e){
   // El estado ya no viaja como palabra repetida 197 veces: solo viene una
   // marca en las que NO estan aceptadas, que son las menos.
@@ -238,7 +270,7 @@ function fila(e){
   if(e.sin_situar) notas.push(`<span class="nota aprox">Hora orientativa: la dirección no está en el mapa</span>`);
   return `<tr class="${aceptado?'':'sinaceptar'}">
     <td class="c-rec">${e.recoge ? esc(e.recoge) : '<span class="pendiente">—</span>'}</td>
-    <td class="c-hora">${e.hora ? esc(e.hora) : '<span class="pendiente">por concretar</span>'}
+    <td class="c-hora">${e.hora ? horaBonita(e.hora) : '<span class="pendiente">por concretar</span>'}
         ${e.tipo && e.tipo !== 'REPARTO' ? `<span class="tipo">${esc(e.tipo)}</span>` : ''}</td>
     <td class="c-cli">${esc(e.cliente || 'Sin nombre')}${notas.join('')}</td>
     <td class="c-lugar">${esc(e.lugar || '—')}</td>
