@@ -277,7 +277,8 @@
   .eq-pedido{margin:10px 0;padding:14px;border-radius:14px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);border-left:5px solid var(--quien,var(--linea))}
   .eq-pedido .fila{display:flex;gap:12px;align-items:baseline}
   .eq-pedido .h{font-weight:800;font-variant-numeric:tabular-nums;min-width:48px}
-  .eq-pedido b{display:block;font-size:16px} .eq-pedido .d{font-size:14px;color:var(--suave)}
+  .eq-pedido b{display:block;font-size:16px} .eq-pedido .d{display:block;font-size:14px;color:var(--suave)}
+  .eq-pedido .tipo{margin:0 0 4px}
   .eq-quien{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:800;color:#fff;background:var(--quien,var(--taupe))}
   .eq-quien.libre{background:var(--ambbg);color:var(--amb)}
   .eq-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -1187,7 +1188,7 @@ window.addEventListener('online', ()=>subirCola(true));
 // ======================= EQUIPO (20/10/2026) =======================
 // Ver la explicación en repartos-v2-propuesta/parche_equipo.py.
 const DOMINIO_EQUIPO='equipo.donacol.es';
-let USUARIO=null, PERFIL=null, EQUIPO=[], ASIG={}, EQ_DIA='', EQ_MODO='entrar';
+let USUARIO=null, PERFIL=null, EQUIPO=[], ASIG={}, EQ_DIA='', EQ_MODO='entrar', EQ_TIPO='';   // EQ_TIPO: '' todo, 'rep' repartos, 'desa' desayunos
 let SOLO_MIOS=true; try{ SOLO_MIOS=localStorage.getItem('reparto_solo_mios')!=='0'; }catch(e){}
 let VER_UID='';   // ruta de otra persona (el administrador o quien quiera mirar la de un compañero)
 function uidRuta(){ return VER_UID || (esRepartidor() && SOLO_MIOS ? USUARIO.uid : ''); }
@@ -1325,14 +1326,19 @@ function pintarEquipo(){
   h+=`<div class="eq-persona"><i style="background:var(--amb)">?</i><div><b>Sin asignar</b><span>${libres} ${libres===1?'reparto':'repartos'}</span></div></div></div>`;
   if(!reps.length) h+='<p class="aviso">Todavía no hay ningún repartidor con perfil. Cuando Kevin y Luis Miguel creen el suyo, aparecerán aquí.</p>';
   // Lista de repartos del día con sus botones
-  delDia.forEach(e=>{
+  // DESAYUNOS WEB TAMBIÉN AQUÍ, y que se distingan (20/10/2026): el administrador no los veía porque la
+  // tarjeta no decía que era un desayuno. Filtro Todo / Repartos / Desayunos si ese día hay de los dos.
+  const nDesa=delDia.filter(esDesayuno).length, nRep=delDia.length-nDesa;
+  if(nDesa && nRep) h+=`<div class="eq-seg" style="margin:12px 0 2px"><button data-tipo="" class="${EQ_TIPO===''?'on':''}">Todo (${delDia.length})</button><button data-tipo="rep" class="${EQ_TIPO==='rep'?'on':''}">Repartos (${nRep})</button><button data-tipo="desa" class="${EQ_TIPO==='desa'?'on':''}">Desayunos (${nDesa})</button></div>`;
+  const verTipo = (nDesa && nRep) ? EQ_TIPO : '';
+  delDia.filter(e=>!verTipo || (verTipo==='desa')===esDesayuno(e)).forEach(e=>{
     const a=asignacionDe(e), uid=(a&&a.uid)||'', hc=horaCorta(e.hora), clave=claveEntrega(e);
     const mio=uid===USUARIO.uid, quien=uid?(EQUIPO.find(p=>p.uid===uid)||{nombre:a.nombre}):null;
     const botones=botonesAsig(e);
     const ult=(a&&a.historial&&a.historial.length)?a.historial[a.historial.length-1]:null;
     h+=`<div class="eq-pedido" data-abrir-enc="${esc(e.enc)}" data-abrir-fecha="${esc(e.fecha||'')}" style="--quien:${uid?colorDe(uid):'var(--amb)'}">
       <span class="ver">${ICO.chevron}</span>
-      <div class="fila"><span class="h">${esc(hc.ini||'—')}</span><div><b>${esc(nombreParada(e))}</b><span class="d">${esc(e.direccion||'Sin dirección')}</span></div></div>
+      <div class="fila"><span class="h">${esc(hc.ini||'—')}</span><div>${etiquetaTipo(e)}<b>${esc(nombreParada(e))}</b><span class="d">${esc(e.direccion||'Sin dirección')}</span>${esDesayuno(e)&&e.menu?`<span class="d">${esc(e.menu)}</span>`:''}</div></div>
       <span class="eq-quien ${uid?'':'libre'}" style="--quien:${uid?colorDe(uid):''}">${uid?(mio?'Lo llevas tú':'Lo lleva '+esc(quien.nombre||'')):'Sin asignar'}</span>
       ${entregaDe(e)?`<span class="chip ok">Entregado a las ${esc(entregaDe(e).hora_entrega||'')}${entregaDe(e).repartidor?' por '+esc(entregaDe(e).repartidor):''}</span>`:''}
       <div class="eq-acciones">${botones}</div>
@@ -1341,6 +1347,7 @@ function pintarEquipo(){
   });
   c.innerHTML=h+pieEquipo();
   c.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{ EQ_DIA=b.dataset.dia; pintarEquipo(); });
+  c.querySelectorAll('[data-tipo]').forEach(b=>b.onclick=()=>{ EQ_TIPO=b.dataset.tipo; pintarEquipo(); });
   activarBotonesAsig(c);
   c.querySelectorAll('[data-abrir-enc]').forEach(t=>t.onclick=ev=>{
     if(ev.target.closest('button')) return;   // los botones de asignar van aparte
