@@ -501,9 +501,16 @@ try{
 }catch(e){ console.warn('Firebase no disponible:', e); }
 // Login ANÓNIMO (best-effort, no bloquea): permite cerrar las reglas de Firestore. Si el
 // método aún no está activado en la consola, la app sigue funcionando con las reglas actuales.
+// Esperar a la sesión guardada antes de entrar como anónimo (20/10/2026): en el mismo móvil la app de
+// Repartos puede tener abierta la cuenta del repartidor; entrar como anónimo antes de recuperarla la cerraba.
+let _sesionLista=null;
+function sesionLista(){
+  if(!_sesionLista) _sesionLista=new Promise(res=>{ const q=firebase.auth().onAuthStateChanged(u=>{ q(); res(u); }); });
+  return _sesionLista;
+}
 async function ensureAuth(){
   if(!window.firebase || !firebase.auth) return;
-  try{ if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
+  try{ await sesionLista(); if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
   catch(e){ console.warn('Auth anónima no disponible:', e.code||e.message); }
 }
 </script>

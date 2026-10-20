@@ -247,6 +247,48 @@
   .pruebas a img{width:100%;height:130px;object-fit:contain;display:block;background:#fff}
   .pruebas a span{display:block;padding:8px;font-size:14px;font-weight:700;background:var(--sup);color:var(--tinta)}
 
+  /* ===== Equipo ===== */
+  .perfil-chip{margin-left:auto;display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px 0 4px;border-radius:99px;
+               background:rgba(241,228,195,.12);color:var(--nata);font-weight:700;font-size:14px}
+  .perfil-chip i{width:28px;height:28px;border-radius:50%;background:var(--nata);color:var(--cacao);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px}
+  .perfil-chip.fuera{padding:0 14px}
+  #vistaEquipo{display:none;padding-top:22px}
+  body.vista-equipo #vistaEquipo{display:block} body.vista-equipo #vistaRuta{display:none}
+  #vistaEquipo h2{margin:0 0 6px;font-family:var(--display);font-weight:500;font-size:36px;line-height:1}
+  .eq-sub{margin:0 0 14px;color:var(--suave)}
+  .eq-card{margin:14px 0;padding:18px;border-radius:var(--r);background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  .eq-card label{display:block;margin:12px 0 6px;font-size:14px;font-weight:700}
+  .eq-card .boton{width:100%;margin-top:16px}
+  .eq-recordar{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px}
+  .eq-recordar input{width:22px;height:22px;accent-color:var(--acento)}
+  .eq-error{margin:10px 0 0;color:var(--no);font-size:14px;min-height:1.2em}
+  .eq-enlace{display:block;margin:14px auto 0;font-weight:700;color:var(--acento);text-decoration:underline;background:none}
+  .eq-seg{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:4px 0 0}
+  .eq-seg button{flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave)}
+  .eq-seg button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .eq-dias{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 6px;padding:0 18px 4px;scrollbar-width:none}
+  .eq-dias button{flex:none;min-height:40px;padding:0 14px;border-radius:99px;font-weight:700;font-size:14px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  .eq-dias button.on{background:var(--acento);color:var(--sobre);box-shadow:none}
+  .eq-resumen{display:grid;gap:8px;margin:12px 0 4px}
+  .eq-persona{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  .eq-persona i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;color:#fff;flex:none}
+  .eq-persona div{flex:1;min-width:0} .eq-persona b{display:block} .eq-persona span{font-size:14px;color:var(--suave)}
+  .eq-persona .boton{min-height:40px;padding:6px 12px;font-size:14px}
+  .eq-pedido{margin:10px 0;padding:14px;border-radius:14px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);border-left:5px solid var(--quien,var(--linea))}
+  .eq-pedido .fila{display:flex;gap:12px;align-items:baseline}
+  .eq-pedido .h{font-weight:800;font-variant-numeric:tabular-nums;min-width:48px}
+  .eq-pedido b{display:block;font-size:16px} .eq-pedido .d{font-size:14px;color:var(--suave)}
+  .eq-quien{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:800;color:#fff;background:var(--quien,var(--taupe))}
+  .eq-quien.libre{background:var(--ambbg);color:var(--amb)}
+  .eq-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .eq-acciones button{min-height:40px;padding:0 14px;border-radius:10px;font-weight:700;font-size:14px;box-shadow:inset 0 0 0 1.5px var(--linea)}
+  .eq-acciones button.prim{background:var(--acento);color:var(--sobre);box-shadow:none}
+  .eq-acciones button:disabled{opacity:.5}
+  .eq-hist{margin:8px 0 0;font-size:12px;color:var(--suave)}
+  .p-quien{align-self:flex-start;margin-top:4px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:800;color:#fff;background:var(--quien,var(--taupe))}
+  .mios{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:12px 0 0}
+  .mios button{flex:1;min-height:38px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave)}
+  .mios button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
   footer{text-align:center;font-size:12px;color:var(--suave);padding:24px 0 8px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -255,6 +297,7 @@
 <header class="barra-app">
   <img src="logo.png" alt="Doña Col">
   <span class="titulo">Repartos</span>
+  <button class="perfil-chip fuera" id="btnPerfil" type="button">Entrar</button>
 </header>
 <main>
 
@@ -275,6 +318,9 @@
       <h2>Entregados</h2>
       <div id="registro"></div>
     </section>
+
+    <!-- EQUIPO: perfiles, quién lleva cada pedido y traspasos -->
+    <section id="vistaEquipo"><div id="equipo"></div></section>
   </div>
 
   <!-- DETALLE / pantalla de entrega -->
@@ -327,6 +373,7 @@
 
 <nav class="pestanas" id="pestanas">
   <button data-vista="ruta" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.5 5H15a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h6.5"/></svg><span>Ruta</span></button>
+  <button data-vista="equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.4c2.6-.4 4.6 1.2 5 4.1"/></svg><span>Equipo</span></button>
   <button data-vista="entregados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg><span>Entregados</span><b id="cuentaEntregados"></b></button>
 </nav>
 
@@ -351,9 +398,21 @@ catch(e){ console.warn('Firebase no disponible:', e); }
 // abiertas). Es best-effort y NO bloquea: si el login anónimo aún no está activado en la
 // consola, la app sigue funcionando (con las reglas abiertas actuales). Una vez la oficina
 // active "Anonymous" y ponga las reglas, esto establece la sesión antes de leer/escribir.
+// Pruebas en este ordenador: emuladores de Firebase (solo con ?emulador=1 y en localhost).
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emulador=1/.test(location.search) && DB){
+  firebase.auth().useEmulator('http://127.0.0.1:9099'); DB.useEmulator('127.0.0.1', 8080);
+}
+// ESPERAR A LA SESIÓN GUARDADA antes de entrar como anónimo (20/10/2026): al abrir la app, Firebase
+// tarda un momento en recuperar la cuenta del repartidor; si en ese rato se entraba como anónimo,
+// se perdía su sesión y tenía que volver a poner la contraseña.
+let _sesionLista=null;
+function sesionLista(){
+  if(!_sesionLista) _sesionLista=new Promise(res=>{ const q=firebase.auth().onAuthStateChanged(u=>{ q(); res(u); }); });
+  return _sesionLista;
+}
 async function ensureAuth(){
   if(!window.firebase || !firebase.auth) return;
-  try{ if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
+  try{ await sesionLista(); if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
   catch(e){ console.warn('Auth anónima no disponible:', e.code||e.message); }
 }
 </script>
@@ -555,6 +614,8 @@ const urlMaps=e=>'https://www.google.com/maps/search/?api=1&query='+encodeURICom
 // Pestañas de abajo: Ruta / Entregados
 function verVista(v){
   document.body.classList.toggle('vista-entregados', v==='entregados');
+  document.body.classList.toggle('vista-equipo', v==='equipo');
+  if(v==='equipo') pintarEquipo();
   document.querySelectorAll('#pestanas button').forEach(b=>b.classList.toggle('on', b.dataset.vista===v));
   window.scrollTo(0,0);
 }
@@ -707,6 +768,10 @@ function pintarLista(){
   const cont=$('pedidos');
   let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
+  // Repartidor con cuenta: «Míos» enseña solo lo que lleva él, y las salidas, horas y rutas
+  // se calculan con SUS pedidos. «Todos» es la vista de siempre.
+  const verUid = uidRuta(), verMios = !!verUid;
+  if(verMios) prox=prox.filter(e=>{ const a=asignacionDe(e); return a && a.uid===verUid; });
   prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(minutosHora(a.hora)-minutosHora(b.hora))||(finFranja(a)-finFranja(b))||a.enc.localeCompare(b.enc));
 
   // Resumen del día: cuántas llevas y cuántas faltan
@@ -721,7 +786,7 @@ function pintarLista(){
   const aviso = AVISO_ENTREGAS
     ? `<p class="aviso"><b>No he podido comprobar qué repartos están ya entregados.</b> Los que no salen como entregados quizá estén hechos. <small>(${esc(AVISO_ENTREGAS)})</small></p>`
     : '';
-  if(!prox.length){
+  if(!prox.length && !verMios){
     cont.innerHTML = aviso + (CIUDAD
       ? `<p class="vacio">No hay repartos pendientes en <b>${esc(CIUDAD)}</b>.<br>Pulsa «Todas» para ver los de la otra ciudad.</p>`
       : '<p class="vacio">No hay pedidos de reparto pendientes.<br>Aparecerán aquí en cuanto la oficina genere las hojas.</p>');
@@ -731,6 +796,11 @@ function pintarLista(){
   const elegirCiudad=!CIUDAD && ciudadesHoy.length>1;
   const sig=elegirCiudad ? null : deHoy.find(e=>!entregaDe(e));
   let html=aviso;
+  if(VER_UID){ const q=EQUIPO.find(p=>p.uid===VER_UID);
+    html+=`<div class="mios"><button class="on">Ruta de ${esc(q?q.nombre.split(' ')[0]:'')}</button><button data-mios="todos">Ver todos</button></div>`; }
+  else if(esRepartidor()) html+=`<div class="mios"><button data-mios="1" class="${SOLO_MIOS?'on':''}">Míos</button><button data-mios="0" class="${SOLO_MIOS?'':'on'}">Todos</button></div>`;
+  if(verMios && !prox.length) html+= VER_UID&&VER_UID!==(USUARIO&&USUARIO.uid) ? '<p class="vacio">No tiene repartos asignados.</p>'
+      : '<p class="vacio">No tienes repartos asignados.<br>Ve a <b>Equipo</b> y quédate los tuyos con «Me lo llevo».</p>';
   if(elegirCiudad) html+=`<section class="siguiente elegir"><p class="sig-etiqueta">Para ver tu siguiente parada</p>
       <h3>¿En qué ciudad repartes hoy?</h3>
       <div class="sig-botones">${ciudadesHoy.map(c=>`<button class="boton" data-elegir-ciudad="${esc(c)}">${esc(c)}</button>`).join('')}</div>
@@ -777,6 +847,7 @@ function pintarLista(){
             <b>${esc(nombreParada(e))}</b>
             <span class="p-dir">${esc(e.direccion||'Sin dirección')}</span>
             <span class="p-meta">${esc(metaParada(e))}</span>
+            ${(()=>{ const a=asignacionDe(e); return (a&&a.uid)?`<span class="p-quien" style="--quien:${colorDe(a.uid)}">${a.uid===(USUARIO&&USUARIO.uid)?'Lo llevas tú':'Lo lleva '+esc(a.nombre||'')}</span>`:''; })()}
             ${estado==='ok'?`<span class="chip ok">Entregado a las ${esc(ent.hora_entrega||'')}</span>`
               :estado==='sinsubir'?'<span class="chip amb">Guardado, falta subirlo</span>'
               :!h.ini?`<span class="chip">${esc(h.texto)}</span>`:''}
@@ -795,6 +866,9 @@ function pintarLista(){
     try{ localStorage.setItem('reparto_ciudad', CIUDAD); }catch(e){}
     pintarFiltros(); pintarLista(); window.scrollTo(0,0);
   });
+  cont.querySelectorAll('[data-mios]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.mios==='todos'){ VER_UID=''; SOLO_MIOS=false; } else SOLO_MIOS=b.dataset.mios==='1';
+    try{ localStorage.setItem('reparto_solo_mios', SOLO_MIOS?'1':'0'); }catch(e){} pintarLista(); });
   cont.querySelectorAll('.siguiente [data-abrir]').forEach(b=>b.onclick=()=>{const s=b.closest('.siguiente');abrir(s.getAttribute('data-enc'), s.getAttribute('data-fecha'));});
 }
 
@@ -1039,6 +1113,250 @@ async function subirCola(silencioso){
 // Cuando el movil recupera cobertura, se sube solo.
 window.addEventListener('online', ()=>subirCola(true));
 
+
+// ======================= EQUIPO (20/10/2026) =======================
+// Ver la explicación en repartos-v2-propuesta/parche_equipo.py.
+const DOMINIO_EQUIPO='equipo.donacol.es';
+let USUARIO=null, PERFIL=null, EQUIPO=[], ASIG={}, EQ_DIA='', EQ_MODO='entrar';
+let SOLO_MIOS=true; try{ SOLO_MIOS=localStorage.getItem('reparto_solo_mios')!=='0'; }catch(e){}
+let VER_UID='';   // ruta de otra persona (el administrador o quien quiera mirar la de un compañero)
+function uidRuta(){ return VER_UID || (esRepartidor() && SOLO_MIOS ? USUARIO.uid : ''); }
+try{ ASIG=JSON.parse(localStorage.getItem('reparto_asig')||'{}'); }catch(e){ ASIG={}; }   // última copia, para sin cobertura
+const COLORES_EQUIPO=['#2F6C7A','#B4543A','#4D7A3A','#6D4E9C','#B07A1E','#3E5C9A'];
+function colorDe(uid){ const i=EQUIPO.findIndex(p=>p.uid===uid); return COLORES_EQUIPO[(i<0?0:i)%COLORES_EQUIPO.length]; }
+function iniciales(n){ return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); }
+function esRepartidor(){ return !!(USUARIO && PERFIL && PERFIL.rol==='repartidor'); }
+function asignacionDe(ev){ return ASIG[claveEntrega(ev)]||null; }
+function usuarioACorreo(u){ return String(u||'').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'')+'@'+DOMINIO_EQUIPO; }
+async function llaveEquipo(){
+  let k=null; try{ k=localStorage.getItem('eventos_clave'); }catch(e){}
+  if(!k) return '';
+  const h=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('repartidores:'+k.toLowerCase()));
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function errorAuth(e){
+  const c=(e&&e.code)||'';
+  if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c)) return 'Usuario o contraseña incorrectos.';
+  if(/email-already-in-use/.test(c)) return 'Ese usuario ya existe. Elige otro o entra con él.';
+  if(/weak-password/.test(c)) return 'La contraseña tiene que tener al menos 6 caracteres.';
+  if(/invalid-email/.test(c)) return 'El usuario solo puede llevar letras, números, puntos o guiones.';
+  if(/network/.test(c)) return 'Sin conexión. Inténtalo con cobertura.';
+  if(/too-many-requests/.test(c)) return 'Demasiados intentos. Espera un par de minutos.';
+  if(/operation-not-allowed/.test(c)) return 'El acceso con contraseña aún no está activado. Avisa a la oficina.';
+  if(/permission/.test(c)) return 'No tienes permiso. Abre antes la app con el enlace completo de la oficina.';
+  return (e&&e.message)||'No se pudo completar.';
+}
+
+// --- Sesión ---
+function pintarChip(){
+  const b=$('btnPerfil'); if(!b) return;
+  if(USUARIO && PERFIL){ b.className='perfil-chip'; b.innerHTML='<i>'+esc(iniciales(PERFIL.nombre))+'</i>'+esc(PERFIL.nombre.split(' ')[0]); }
+  else { b.className='perfil-chip fuera'; b.textContent='Entrar'; }
+  b.onclick=()=>verVista('equipo');
+}
+let _desuscribir=[];
+function iniciarEquipo(){
+  if(!DB || !firebase.auth) return;
+  firebase.auth().onAuthStateChanged(async u=>{
+    _desuscribir.forEach(f=>{ try{f();}catch(e){} }); _desuscribir=[];
+    USUARIO=(u && !u.isAnonymous)?u:null; PERFIL=null; EQUIPO=[];
+    if(USUARIO){
+      try{ const d=await DB.collection('repartidores').doc(USUARIO.uid).get(); PERFIL=d.exists?d.data():null; }catch(e){}
+      if(!PERFIL) EQ_MODO='perfil';
+      _desuscribir.push(DB.collection('repartidores').onSnapshot(sn=>{
+        EQUIPO=[]; sn.forEach(d=>EQUIPO.push(Object.assign({uid:d.id}, d.data())));
+        EQUIPO.sort((a,b)=>(a.rol===b.rol?0:(a.rol==='repartidor'?-1:1)) || String(a.nombre).localeCompare(String(b.nombre)));
+        const yo=EQUIPO.find(p=>p.uid===USUARIO.uid); if(yo) PERFIL=yo;
+        pintarChip(); pintarEquipo(); pintarLista();
+      }, ()=>{}));
+    }
+    // Las asignaciones las ve cualquiera con la app (también sin cuenta): así la ruta dice quién lleva cada pedido
+    try{
+      await ensureAuth();
+      _desuscribir.push(DB.collection('asignaciones').where('fecha','>=',hoyISO()).onSnapshot(sn=>{
+        const nuevo={}; sn.forEach(d=>{ nuevo[d.id]=d.data(); }); ASIG=nuevo;
+        try{ localStorage.setItem('reparto_asig', JSON.stringify(ASIG)); }catch(e){}
+        pintarEquipo(); pintarLista();
+      }, ()=>{}));
+    }catch(e){}
+    pintarChip(); pintarEquipo(); pintarLista();
+  });
+  // ENTREGAS EN DIRECTO: lo que entrega cada repartidor aparece al momento en los demás móviles
+  ensureAuth().then(()=>{
+    const desde=(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+    DB.collection('entregas').where('fecha','>=',desde).onSnapshot(sn=>{
+      let cambia=false;
+      sn.docChanges().forEach(ch=>{ if(ch.type!=='removed'){ ENTREGAS[ch.doc.id]=ch.doc.data(); cambia=true; } });
+      if(cambia){ pintarLista(); pintarRegistro(); pintarEquipo(); }
+    }, ()=>{});
+  });
+}
+
+// --- Pantalla Equipo ---
+function diasZaragoza(){
+  return [...new Set(REPARTOS.filter(e=>e.fecha>=hoyISO() && normCiudad(e.ciudad)==='Zaragoza').map(e=>e.fecha))].sort();
+}
+function pintarEquipo(){
+  const c=$('equipo'); if(!c || !document.body.classList.contains('vista-equipo')) return;
+  if(!USUARIO){ c.innerHTML=formAcceso(); activarAcceso(); return; }
+  if(!PERFIL){ c.innerHTML=formPerfil(); activarPerfil(); return; }
+  const dias=diasZaragoza();
+  const man=(()=>{const d=new Date();d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  if(!EQ_DIA || !dias.includes(EQ_DIA)) EQ_DIA = dias.includes(man) ? man : (dias[0]||'');
+  const reps=EQUIPO.filter(p=>p.rol==='repartidor');
+  let h=`<h2>Equipo</h2><p class="eq-sub">Hola, <b>${esc(PERFIL.nombre)}</b>${PERFIL.rol==='admin'?' (administrador)':''}. Repartos de Zaragoza: cada uno se queda los suyos y la app le hace su ruta.</p>`;
+  if(!dias.length){ c.innerHTML=h+'<p class="vacio">No hay repartos pendientes en Zaragoza.</p>'+pieEquipo(); activarPie(); return; }
+  h+='<div class="eq-dias">'+dias.map(d=>`<button data-dia="${d}" class="${d===EQ_DIA?'on':''}">${esc(capital(etiquetaBonita(d).replace('Paradas de hoy','Hoy')))}</button>`).join('')+'</div>';
+  const delDia=REPARTOS.filter(e=>e.fecha===EQ_DIA && normCiudad(e.ciudad)==='Zaragoza')
+    .sort((a,b)=>(minutosHora(a.hora)-minutosHora(b.hora))||(finFranja(a)-finFranja(b))||a.enc.localeCompare(b.enc));
+  // Resumen: cuántos lleva cada uno y a qué hora sale
+  h+='<div class="eq-resumen">';
+  reps.forEach(p=>{
+    const suyos=delDia.filter(e=>{const a=asignacionDe(e);return a&&a.uid===p.uid;});
+    const sals=salidasDe(suyos).filter(t=>!t.sinHora);
+    const hechos=suyos.filter(e=>entregaDe(e)).length;
+    const txt=suyos.length ? `${hechos} de ${suyos.length} entregados · ${sals.length} ${sals.length===1?'salida':'salidas'}${sals.length?' · sale '+hhmm(sals[0].sale):''}` : 'Sin repartos';
+    h+=`<div class="eq-persona"><i style="background:${colorDe(p.uid)}">${esc(iniciales(p.nombre))}</i><div><b>${esc(p.nombre)}${p.uid===USUARIO.uid?' (tú)':''}</b><span>${txt}${p.furgoneta?' · furgoneta '+esc(p.furgoneta):''}</span></div>`
+      +(suyos.length?`<button class="boton" data-ruta="${esc(p.uid)}">${p.uid===USUARIO.uid?'Mi ruta':'Su ruta'}</button>`:'')+'</div>';
+  });
+  const libres=delDia.filter(e=>{const a=asignacionDe(e);return !a||!a.uid;}).length;
+  h+=`<div class="eq-persona"><i style="background:var(--amb)">?</i><div><b>Sin asignar</b><span>${libres} ${libres===1?'reparto':'repartos'}</span></div></div></div>`;
+  if(!reps.length) h+='<p class="aviso">Todavía no hay ningún repartidor con perfil. Cuando Kevin y Luis Miguel creen el suyo, aparecerán aquí.</p>';
+  // Lista de repartos del día con sus botones
+  delDia.forEach(e=>{
+    const a=asignacionDe(e), uid=(a&&a.uid)||'', hc=horaCorta(e.hora), clave=claveEntrega(e);
+    const mio=uid===USUARIO.uid, quien=uid?(EQUIPO.find(p=>p.uid===uid)||{nombre:a.nombre}):null;
+    let botones='';
+    if(PERFIL.rol==='repartidor' && !mio) botones+=`<button class="prim" data-asignar="${esc(clave)}" data-a="${esc(USUARIO.uid)}">${uid?'Me lo quedo yo':'Me lo llevo'}</button>`;
+    reps.filter(p=>p.uid!==uid && !(PERFIL.rol==='repartidor' && p.uid===USUARIO.uid))
+        .forEach(p=>{ botones+=`<button data-asignar="${esc(clave)}" data-a="${esc(p.uid)}">${uid?'Pasar a ':'Para '}${esc(p.nombre.split(' ')[0])}</button>`; });
+    if(uid) botones+=`<button data-asignar="${esc(clave)}" data-a="">Dejar sin asignar</button>`;
+    const ult=(a&&a.historial&&a.historial.length)?a.historial[a.historial.length-1]:null;
+    h+=`<div class="eq-pedido" style="--quien:${uid?colorDe(uid):'var(--amb)'}">
+      <div class="fila"><span class="h">${esc(hc.ini||'—')}</span><div><b>${esc(nombreParada(e))}</b><span class="d">${esc(e.direccion||'Sin dirección')}</span></div></div>
+      <span class="eq-quien ${uid?'':'libre'}" style="--quien:${uid?colorDe(uid):''}">${uid?(mio?'Lo llevas tú':'Lo lleva '+esc(quien.nombre||'')):'Sin asignar'}</span>
+      ${entregaDe(e)?`<span class="chip ok">Entregado a las ${esc(entregaDe(e).hora_entrega||'')}${entregaDe(e).repartidor?' por '+esc(entregaDe(e).repartidor):''}</span>`:''}
+      <div class="eq-acciones">${botones}</div>
+      ${ult?`<p class="eq-hist">${esc(ult.texto||'')}</p>`:''}
+    </div>`;
+  });
+  c.innerHTML=h+pieEquipo();
+  c.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{ EQ_DIA=b.dataset.dia; pintarEquipo(); });
+  c.querySelectorAll('[data-asignar]').forEach(b=>b.onclick=()=>asignar(b.dataset.asignar, b.dataset.a, b));
+  c.querySelectorAll('[data-ruta]').forEach(b=>b.onclick=()=>{
+    const uid=b.dataset.ruta; CIUDAD='Zaragoza';
+    if(uid===USUARIO.uid){ VER_UID=''; SOLO_MIOS=true; } else VER_UID=uid;
+    try{ localStorage.setItem('reparto_solo_mios', SOLO_MIOS?'1':'0'); localStorage.setItem('reparto_ciudad','Zaragoza'); }catch(e){}
+    pintarFiltros(); pintarLista(); verVista('ruta'); });
+  activarPie();
+}
+function pieEquipo(){
+  return `<div class="eq-card"><b>${esc(PERFIL.nombre)}</b><br><span class="eq-sub">Usuario: ${esc(PERFIL.usuario||'')} · ${PERFIL.rol==='admin'?'Administrador':'Repartidor'}${PERFIL.furgoneta?' · furgoneta '+esc(PERFIL.furgoneta):''}</span>
+    <button class="eq-enlace" id="eqEditar">Cambiar mis datos</button><button class="eq-enlace" id="eqSalir">Cerrar sesión</button></div>`;
+}
+function activarPie(){
+  const s=$('eqSalir'); if(s) s.onclick=async()=>{ if(!confirm('¿Cerrar sesión en este móvil?')) return;
+    await firebase.auth().signOut(); _sesionLista=null; EQ_MODO='entrar'; ensureAuth(); };
+  const e=$('eqEditar'); if(e) e.onclick=()=>{ const c=$('equipo'); c.innerHTML=formPerfil(PERFIL); activarPerfil(PERFIL); };
+}
+
+// Asignar o traspasar (a '' = dejar sin asignar). Se guarda quién lo hizo y cuándo.
+async function asignar(clave, aUid, boton){
+  const ev=REPARTOS.find(e=>claveEntrega(e)===clave); if(!ev) return;
+  const destino=aUid?EQUIPO.find(p=>p.uid===aUid):null;
+  const antes=ASIG[clave]||null;
+  const de=antes&&antes.uid?(antes.nombre||''):'';
+  const texto = !aUid ? `${PERFIL.nombre} lo dejó sin asignar`
+              : (aUid===USUARIO.uid ? (de?`${PERFIL.nombre} se lo quedó (era de ${de})`:`${PERFIL.nombre} se lo llevó`)
+                                    : `${PERFIL.nombre} se lo pasó a ${destino?destino.nombre:''}`);
+  const doc={fecha:ev.fecha, enc:ev.enc, uid:aUid||'', nombre:destino?destino.nombre:'',
+             por:USUARIO.uid, porNombre:PERFIL.nombre, ts:new Date().toISOString(),
+             historial:firebase.firestore.FieldValue.arrayUnion({texto, ts:new Date().toISOString()})};
+  if(boton){ boton.disabled=true; boton.textContent='Guardando…'; }
+  try{ await DB.collection('asignaciones').doc(clave).set(doc,{merge:true}); }
+  catch(e){ alert('No se pudo guardar: '+errorAuth(e)); pintarEquipo(); }
+}
+
+// --- Entrar / crear perfil ---
+function formAcceso(){
+  const crear=EQ_MODO==='crear';
+  return `<h2>${crear?'Crear perfil':'Entrar'}</h2>
+  <p class="eq-sub">${crear?'Solo la primera vez. Después la app te recuerda en este móvil.':'Con tu usuario y contraseña del equipo de reparto.'}</p>
+  <div class="eq-card">
+    ${crear?`<label for="eqNombre">Tu nombre</label><input class="campo" id="eqNombre" autocomplete="name" autocapitalize="words" placeholder="Nombre y apellido">`:''}
+    <label for="eqUsuario">Usuario</label><input class="campo" id="eqUsuario" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Por ejemplo: kevin">
+    <label for="eqClave">Contraseña</label><input class="campo" id="eqClave" type="password" autocomplete="${crear?'new-password':'current-password'}" placeholder="${crear?'Mínimo 6 caracteres':''}">
+    ${crear?`<label for="eqClave2">Repite la contraseña</label><input class="campo" id="eqClave2" type="password" autocomplete="new-password">`:''}
+    <label class="eq-recordar"><input type="checkbox" id="eqRecordar" checked> Recordarme en este móvil</label>
+    <button class="boton" id="eqEntrar">${crear?'Crear y entrar':'Entrar'}</button>
+    <p class="eq-error" id="eqError"></p>
+    <button class="eq-enlace" id="eqCambiar">${crear?'Ya tengo perfil: entrar':'¿Primera vez? Crear mi perfil'}</button>
+  </div>`;
+}
+function activarAcceso(){
+  $('eqCambiar').onclick=()=>{ EQ_MODO=EQ_MODO==='crear'?'entrar':'crear'; pintarEquipo(); };
+  $('eqEntrar').onclick=async()=>{
+    const err=$('eqError'), u=$('eqUsuario').value.trim(), cl=$('eqClave').value;
+    err.textContent='';
+    if(!/^[a-zA-Z0-9._-]{3,30}$/.test(u)){ err.textContent='El usuario: de 3 a 30 letras o números, sin espacios.'; return; }
+    const crear=EQ_MODO==='crear';
+    if(crear){
+      if(($('eqNombre').value.trim()).length<2){ err.textContent='Escribe tu nombre.'; return; }
+      if(cl.length<6){ err.textContent='La contraseña tiene que tener al menos 6 caracteres.'; return; }
+      if(cl!==$('eqClave2').value){ err.textContent='Las dos contraseñas no coinciden.'; return; }
+      if(!(await llaveEquipo())){ err.textContent='Primero desbloquea los pedidos con el enlace completo de la oficina (pestaña Ruta).'; return; }
+    }
+    $('eqEntrar').disabled=true; $('eqEntrar').textContent=crear?'Creando…':'Entrando…';
+    try{
+      await firebase.auth().setPersistence($('eqRecordar').checked ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+      if(crear){
+        sessionStorage.setItem('eq_nombre_nuevo', $('eqNombre').value.trim());
+        await firebase.auth().createUserWithEmailAndPassword(usuarioACorreo(u), cl);
+      } else {
+        await firebase.auth().signInWithEmailAndPassword(usuarioACorreo(u), cl);
+      }
+    }catch(e){ err.textContent=errorAuth(e); $('eqEntrar').disabled=false; $('eqEntrar').textContent=crear?'Crear y entrar':'Entrar'; }
+  };
+}
+function formPerfil(p){
+  const nombre=(p&&p.nombre)||sessionStorage.getItem('eq_nombre_nuevo')||'';
+  const rol=(p&&p.rol)||'repartidor', furgo=(p&&p.furgoneta)||'';
+  return `<h2>${p?'Mis datos':'Tu perfil'}</h2><p class="eq-sub">${p?'Puedes cambiarlos cuando quieras.':'Un último paso: cuéntanos quién eres.'}</p>
+  <div class="eq-card">
+    <label for="pfNombre">Nombre</label><input class="campo" id="pfNombre" value="${esc(nombre)}" autocapitalize="words" placeholder="Nombre y apellido">
+    <label>¿Qué haces?</label>
+    <div class="eq-seg" id="pfRol"><button type="button" data-v="repartidor" class="${rol==='repartidor'?'on':''}">Reparto</button><button type="button" data-v="admin" class="${rol==='admin'?'on':''}">Administrador</button></div>
+    <label>Furgoneta</label>
+    <div class="eq-seg" id="pfFurgo"><button type="button" data-v="pequeña" class="${furgo==='pequeña'?'on':''}">Pequeña</button><button type="button" data-v="grande" class="${furgo==='grande'?'on':''}">Grande</button><button type="button" data-v="" class="${furgo?'':'on'}">Cualquiera</button></div>
+    <label for="pfTel">Teléfono <small style="font-weight:500;color:var(--suave)">(opcional)</small></label><input class="campo" id="pfTel" type="tel" value="${esc((p&&p.telefono)||'')}" placeholder="600 000 000">
+    <button class="boton" id="pfGuardar">${p?'Guardar':'Empezar'}</button>
+    <p class="eq-error" id="pfError"></p>
+    ${p?'<button class="eq-enlace" id="pfVolver">Volver</button>':''}
+  </div>`;
+}
+function activarPerfil(p){
+  ['pfRol','pfFurgo'].forEach(id=>$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }));
+  if($('pfVolver')) $('pfVolver').onclick=()=>pintarEquipo();
+  $('pfGuardar').onclick=async()=>{
+    const err=$('pfError'), nombre=$('pfNombre').value.trim().replace(/\s+/g,' ');
+    if(nombre.length<2 || nombre.length>40){ err.textContent='Escribe tu nombre (de 2 a 40 letras).'; return; }
+    const datos={nombre, rol:$('pfRol').querySelector('.on').dataset.v, furgoneta:$('pfFurgo').querySelector('.on').dataset.v,
+                 telefono:$('pfTel').value.trim().slice(0,20), ciudad:'Zaragoza'};
+    $('pfGuardar').disabled=true;
+    try{
+      const ref=DB.collection('repartidores').doc(USUARIO.uid);
+      if(p){ await ref.update(datos); }
+      else {
+        datos.usuario=(USUARIO.email||'').split('@')[0]; datos.creado=new Date().toISOString(); datos.llave=await llaveEquipo();
+        await ref.set(datos);
+      }
+      PERFIL=Object.assign({}, PERFIL||{}, datos); sessionStorage.removeItem('eq_nombre_nuevo');
+      pintarChip(); pintarEquipo(); pintarLista();
+    }catch(e){ err.textContent=errorAuth(e); $('pfGuardar').disabled=false; }
+  };
+}
+
 // ---------- Confirmar entrega ----------
 $('btnConfirmar').onclick=async ()=>{
   if(!pedidoActual)return;
@@ -1063,6 +1381,7 @@ $('btnConfirmar').onclick=async ()=>{
     hora_entrega:ahoraTexto(), entregado_en:new Date().toISOString(),
     geo: geo||null
   };
+  if(USUARIO && PERFIL){ reg.repartidor=PERFIL.nombre||''; reg.repartidor_uid=USUARIO.uid; }
 
   // Guardar en el movil. Es el ultimo recurso, y NUNCA debe fallar en silencio:
   // aqui ya hay una firma de un cliente de por medio.
@@ -1127,6 +1446,7 @@ async function cargarEntregas(){
   pintarFiltros();
   pintarLista();
   pintarRegistro();
+  iniciarEquipo();            // cuenta del repartidor, equipo y asignaciones en directo
   subirCola(true);            // reintento silencioso al abrir
 })();
 
