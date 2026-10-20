@@ -55,38 +55,54 @@
   .plazas button.on{background:var(--cacao);color:var(--nata);border-color:var(--cacao)}
   .plazas .cuenta{display:block;font-size:11px;font-weight:400;opacity:.7;margin-top:1px}
 
-  main{padding:8px 16px 40px;max-width:900px;margin:0 auto}
+  main{padding:8px 12px 40px;max-width:1180px;margin:0 auto}
   h2.plaza{font-family:var(--display);font-size:17px;font-weight:500;margin:22px 0 8px;
        padding-bottom:6px;border-bottom:2px solid var(--cafe);display:flex;
        justify-content:space-between;align-items:baseline;gap:10px}
   h2.plaza span{font-family:var(--texto);font-size:12px;color:var(--suave);font-weight:400}
 
-  .ped{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);
-       padding:13px 14px;margin:0 0 10px;border-left:4px solid var(--cafe)}
-  .ped.sinaceptar{border-left-color:var(--amb);background:var(--sup)}
-  .ped .alto{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-  .ped .cli{font-weight:700;font-size:15.5px;line-height:1.25;min-width:0;overflow-wrap:anywhere}
-  .ped .num{font-size:11px;color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .ped .lugar{margin:7px 0 0;font-size:13.5px;color:var(--tinta);opacity:.88;overflow-wrap:anywhere}
-  .ped .menu{margin:5px 0 0;font-size:12px;color:var(--suave);overflow-wrap:anywhere}
-  .ped .viaje{margin:6px 0 0;font-size:11.5px;color:var(--cafe);font-weight:600}
-  .ped .viaje.aprox{color:var(--amb);font-weight:400;font-style:italic}
-  .ped .contacto{margin:5px 0 0;font-size:12px;color:var(--suave)}
-  .ped .contacto a{color:var(--cafe);text-decoration:none;font-weight:600}
+  /* --- TABLA, estilo hoja de cálculo: rejilla visible, filas alternas y
+         números alineados para poder comparar las horas de un vistazo. --- */
+  .tabla-caja{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--linea);
+       border-radius:10px;background:var(--sup)}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}
+  thead th{position:sticky;top:0;z-index:2;background:var(--cacao);color:var(--nata);
+       font-family:var(--texto);font-size:11px;font-weight:700;letter-spacing:.4px;
+       text-transform:uppercase;text-align:left;padding:9px 8px;white-space:nowrap;
+       border-right:1px solid rgba(241,228,195,.18)}
+  thead th:last-child{border-right:0}
+  tbody td{padding:8px;border-top:1px solid var(--linea);border-right:1px solid var(--linea);
+       vertical-align:top}
+  tbody td:last-child{border-right:0}
+  tbody tr:nth-child(even){background:var(--sup2)}
+  tbody tr.sinaceptar{background:var(--ambbg)}
+  tbody tr:hover{outline:2px solid var(--cafe);outline-offset:-2px}
 
-  .horas{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
-  .chip{font-size:12px;padding:4px 9px;border-radius:999px;background:var(--sup2);
-        color:var(--tinta);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .chip b{font-weight:700}
-  .chip.recoge{background:var(--cacao);color:var(--nata)}
-  .chip.pax{background:transparent;border:1px solid var(--linea);color:var(--suave)}
-  .chip.pendiente{background:var(--ambbg);color:var(--amb);font-weight:600}
-  .chip.tipo{background:var(--cafe);color:var(--nata);font-weight:700;letter-spacing:.3px}
-  .et{font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:999px;
-      text-transform:uppercase;white-space:nowrap}
+  .c-rec{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;
+       background:var(--cacao);color:var(--nata);text-align:center;width:1%}
+  tbody tr.sinaceptar .c-rec{background:var(--amb);color:#fff}
+  .c-rec small{display:block;font-size:9px;font-weight:600;opacity:.75;letter-spacing:.3px}
+  .c-hora{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+  .c-num{font-size:11px;color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .c-cli{font-weight:700;min-width:170px;overflow-wrap:anywhere}
+  .c-lugar{min-width:210px;overflow-wrap:anywhere;font-size:12.5px}
+  .c-menu{font-size:11.5px;color:var(--suave);min-width:150px;overflow-wrap:anywhere}
+  .c-pax{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+  .c-est{white-space:nowrap;text-align:center}
+  .c-tel{font-size:11.5px;white-space:nowrap}
+  .c-tel a{color:var(--cafe);text-decoration:none;font-weight:700}
+  .nota{display:block;font-size:10.5px;color:var(--cafe);font-weight:600;margin-top:3px}
+  .nota.aprox{color:var(--amb);font-weight:400;font-style:italic}
+  .et{font-size:10px;font-weight:800;letter-spacing:.3px;padding:3px 7px;border-radius:4px;
+      text-transform:uppercase;white-space:nowrap;display:inline-block}
   .et.ok{background:var(--okbg);color:var(--ok)}
-  .et.no{background:var(--ambbg);color:var(--amb)}
-
+  .et.no{background:#fff;color:var(--amb);border:1px solid currentColor}
+  .tipo{font-size:9.5px;font-weight:800;letter-spacing:.3px;background:var(--cafe);
+        color:var(--nata);padding:2px 5px;border-radius:3px;margin-left:5px}
+  .pendiente{color:var(--amb);font-weight:700;font-size:11px}
+  /* El total de cada plaza, como la fila de sumas de una hoja. */
+  tfoot td{padding:8px;background:var(--sup2);border-top:2px solid var(--cafe);
+       font-size:11.5px;font-weight:700;color:var(--suave)}
   .vacio{text-align:center;color:var(--suave);padding:34px 10px;font-size:14px}
   .aviso{background:var(--ambbg);color:var(--amb);padding:14px 16px;border-radius:var(--r);
          margin:16px;font-size:14px;line-height:1.5}
@@ -202,30 +218,24 @@ function pintarPlazas(){
     b.onclick = () => { plaza = b.dataset.p; pintar(); });
 }
 
-function tarjeta(e){
+function fila(e){
   const aceptado = e.estado === 'ACEPTADO';
-  return `<article class="ped ${aceptado?'':'sinaceptar'}">
-    <div class="alto">
-      <div class="cli">${esc(e.cliente || 'Sin nombre')}</div>
-      <span class="et ${aceptado?'ok':'no'}">${aceptado?'Aceptado':'Sin aceptar'}</span>
-    </div>
-    <div class="num">${esc(e.num)}${e.ciudad?' · '+esc(e.ciudad):''}</div>
-    ${e.lugar ? `<p class="lugar">${esc(e.lugar)}</p>` : ''}
-    ${e.menu ? `<p class="menu">${esc(e.menu)}</p>` : ''}
-    <div class="horas">
-      ${e.recoge ? `<span class="chip recoge">Recoger <b>${esc(e.recoge)}</b></span>`
-                 : `<span class="chip pendiente">Hora por concretar</span>`}
-      ${e.hora ? `<span class="chip">${esc(e.hora)}</span>` : ''}
-      ${e.pax ? `<span class="chip pax">${esc(e.pax)} pax</span>` : ''}
-      ${e.tipo && e.tipo !== 'REPARTO' ? `<span class="chip tipo">${esc(e.tipo)}</span>` : ''}
-    </div>
-    ${e.con && e.con.length
-      ? `<p class="viaje">Sale en el mismo viaje que ${esc(e.con.join(', '))}</p>` : ''}
-    ${e.sin_situar
-      ? `<p class="viaje aprox">Esta dirección no está en el mapa: la hora de recogida es orientativa</p>` : ''}
-    ${e.contacto || e.tel ? `<p class="contacto">${esc(e.contacto||'')}
-      ${e.tel ? ` · <a href="tel:${esc(tel(e.tel))}">${esc(e.tel)}</a>` : ''}</p>` : ''}
-  </article>`;
+  const notas = [];
+  if(e.con && e.con.length) notas.push(`<span class="nota">Con ${esc(e.con.join(', '))}</span>`);
+  if(e.sin_situar) notas.push(`<span class="nota aprox">Hora orientativa: la dirección no está en el mapa</span>`);
+  return `<tr class="${aceptado?'':'sinaceptar'}">
+    <td class="c-rec">${e.recoge ? esc(e.recoge) : '<span class="pendiente">—</span>'}</td>
+    <td class="c-hora">${e.hora ? esc(e.hora) : '<span class="pendiente">por concretar</span>'}
+        ${e.tipo && e.tipo !== 'REPARTO' ? `<span class="tipo">${esc(e.tipo)}</span>` : ''}</td>
+    <td class="c-cli">${esc(e.cliente || 'Sin nombre')}${notas.join('')}</td>
+    <td class="c-lugar">${esc(e.lugar || '—')}</td>
+    <td class="c-pax">${e.pax ? esc(e.pax) : '—'}</td>
+    <td class="c-menu">${esc(e.menu || '—')}</td>
+    <td class="c-est"><span class="et ${aceptado?'ok':'no'}">${aceptado?'Aceptado':'Sin aceptar'}</span></td>
+    <td class="c-num">${esc(e.enc || e.num)}</td>
+    <td class="c-tel">${e.tel ? `<a href="tel:${esc(tel(e.tel))}">${esc(e.tel)}</a>` : '—'}
+        ${e.contacto ? `<br>${esc(e.contacto)}` : ''}</td>
+  </tr>`;
 }
 
 function bloque(titulo, lista){
@@ -233,8 +243,16 @@ function bloque(titulo, lista){
   const pax = lista.reduce((s,e)=>s+(Number(e.pax)||0),0);
   const sin = lista.filter(e=>e.estado!=='ACEPTADO').length;
   return `<h2 class="plaza">${esc(titulo)}
-      <span>${lista.length} ${lista.length===1?'pedido':'pedidos'}${pax?' · '+pax+' pax':''}${sin?' · '+sin+' sin aceptar':''}</span>
-    </h2>` + lista.map(tarjeta).join('');
+      <span>${lista.length} ${lista.length===1?'entrega':'entregas'}${pax?' · '+pax+' pax':''}${sin?' · '+sin+' sin aceptar':''}</span>
+    </h2>
+    <div class="tabla-caja"><table>
+      <thead><tr>
+        <th>Recoger</th><th>Entrega</th><th>Cliente</th><th>Lugar</th>
+        <th>Pax</th><th>Qué lleva</th><th>Estado</th><th>Código</th><th>Contacto</th>
+      </tr></thead>
+      <tbody>${lista.map(fila).join('')}</tbody>
+      <tfoot><tr><td colspan="9">${lista.length} entregas · ${pax} pax${sin?' · '+sin+' sin aceptar':''}</td></tr></tfoot>
+    </table></div>`;
 }
 
 function pintar(){
