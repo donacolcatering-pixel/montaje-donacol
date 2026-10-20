@@ -94,7 +94,22 @@
   .siguiente.terminada .sig-hora{font-size:40px}
 
   /* Ruta: paradas unidas por una línea, como una hoja de ruta */
-  .dia-sep{margin:30px 0 4px;font-size:20px;font-weight:800;line-height:1.2}
+  .dia-sep{margin:30px 0 4px;font-size:20px;font-weight:800;line-height:1.2;display:flex;align-items:center;gap:10px}
+  .dia-sep::before{content:"";width:14px;height:14px;border-radius:4px;background:var(--dia,var(--taupe));flex:none}
+  /* Una SALIDA del obrador: sus paradas y su ruta. Mismo color que su día */
+  .salida{margin:12px 0 14px;padding:12px 12px 4px 10px;border-radius:16px;border-left:5px solid var(--dia,var(--taupe));
+          background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  @supports (background:color-mix(in srgb,red 10%,white)){
+    .salida{background:color-mix(in srgb,var(--dia) 7%,var(--sup))}
+  }
+  .salida-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 4px 2px}
+  .salida-cab .n{padding:3px 10px;border-radius:99px;background:var(--dia,var(--taupe));color:#fff;font-size:13px;font-weight:800}
+  .salida-cab b{font-size:16px}
+  .salida-cab span{color:var(--suave);font-size:14px}
+  .salida-cab .franja{flex-basis:100%;margin-top:-2px}
+  .salida .boton-ruta{margin:8px 0 4px;background:var(--sup)}
+  .salida .boton-ruta svg{color:var(--dia,currentColor)}
+  .aviso-salida{margin:8px 0 2px;padding:8px 12px;border-radius:10px;background:var(--ambbg);color:var(--amb);font-size:14px;font-weight:600}
   .ciudad-sep{margin:18px 0 8px;font-size:15px;font-weight:700;color:var(--suave)}
   .boton-ruta{display:flex;align-items:center;gap:10px;min-height:52px;margin:10px 0 6px;padding:12px 16px;border-radius:12px;
               background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);font-weight:700}
@@ -536,7 +551,7 @@ function verVista(v){
   window.scrollTo(0,0);
 }
 document.querySelectorAll('#pestanas button').forEach(b=>b.onclick=()=>verVista(b.dataset.vista));
-// Ruta del día en Google Maps con TODAS las paradas (sin API key: Maps calcula la
+// Ruta de una SALIDA en Google Maps con sus paradas (sin API key: Maps calcula la
 // ruta al abrir). Origen = ubicación actual del móvil; paradas en el orden de la lista.
 function urlRutaDia(entregas){
   const dirs=entregas.map(queryMapa).filter(Boolean).map(encodeURIComponent);
@@ -546,6 +561,36 @@ function urlRutaDia(entregas){
   if(wp) u+='&waypoints='+wp;
   return u;
 }
+// SALIDAS DEL OBRADOR (20/10/2026). Ver la explicación al principio de parche_salidas.py:
+// 8 min por entrega, salida media hora antes, y una salida nueva cuando da tiempo a volver al obrador.
+const ENTREGA_MIN=8, SALIDA_ANTES=30, HUECO_VUELTA=60;
+function finFranja(e){        // fin de la franja escrita ('12:00 - 12:30'); si no hay, inicio + 30
+  const t=[...String(e.hora||'').matchAll(/\b([01]?\d|2[0-3])[:.,h]([0-5]\d)\b/g)].map(m=>parseInt(m[1],10)*60+parseInt(m[2],10));
+  return t.length>1 ? t[1] : (t.length ? t[0]+30 : 99999);
+}
+const hhmm=m=>Math.floor(m/60)+':'+String(m%60).padStart(2,'0');
+function salidasDe(grupo){
+  const conHora=grupo.filter(e=>minutosHora(e.hora)<99999), sinHora=grupo.filter(e=>minutosHora(e.hora)>=99999);
+  const out=[]; let cur=null, libre=0;
+  conHora.forEach(e=>{
+    const ini=minutosHora(e.hora);
+    if(!cur || ini-libre>HUECO_VUELTA){ cur={paradas:[], ini, fin:0}; out.push(cur); libre=ini; }
+    // Varias en la misma franja: se encadenan desde el inicio de la franja. Aviso honesto si,
+    // solo con los 8 min de cada entrega (sin contar el trayecto, que lo da Maps), ya se llega
+    // a una parada después del final de SU franja.
+    const llega=Math.max(libre, ini);
+    if(llega>finFranja(e)) cur.justo=true;
+    libre=llega+ENTREGA_MIN;
+    cur.paradas.push(e); cur.fin=Math.max(cur.fin, finFranja(e));
+    cur.terminaSobre=libre;
+  });
+  out.forEach(t=>{ t.sale=t.ini-SALIDA_ANTES; });
+  if(sinHora.length) out.push({paradas:sinHora, sinHora:true});
+  return out;
+}
+// Un color por día (los dos de los tipos de reparto, café y frambuesa, no se usan aquí)
+const COLORES_DIA=['#2F6C7A','#4D7A3A','#B07A1E','#3E5C9A','#B4543A','#6D4E9C','#5B6770'];
+
 // Ciudad seleccionada: '' = todas. Se recuerda en el movil de cada repartidor.
 let CIUDAD = '';
 try { CIUDAD = localStorage.getItem('reparto_ciudad') || ''; } catch(e) {}
@@ -618,7 +663,7 @@ function pintarLista(){
   const cont=$('pedidos');
   let prox=REPARTOS.filter(e=>e.fecha>=hoyISO());
   if(CIUDAD) prox=prox.filter(e=>normCiudad(e.ciudad)===CIUDAD);
-  prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(minutosHora(a.hora)-minutosHora(b.hora))||a.enc.localeCompare(b.enc));
+  prox.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(minutosHora(a.hora)-minutosHora(b.hora))||(finFranja(a)-finFranja(b))||a.enc.localeCompare(b.enc));
 
   // Resumen del día: cuántas llevas y cuántas faltan
   const hoy=hoyISO(), deHoy=prox.filter(e=>e.fecha===hoy), hechos=deHoy.filter(e=>entregaDe(e)).length;
@@ -651,8 +696,9 @@ function pintarLista(){
 
   const dias={};
   prox.forEach(e=>{ (dias[e.fecha]=dias[e.fecha]||[]).push(e); });
-  Object.keys(dias).sort().forEach(fecha=>{
-    html+=`<h2 class="dia-sep">${esc(etiquetaBonita(fecha))}</h2>`;
+  Object.keys(dias).sort().forEach((fecha,iDia)=>{
+    const color=COLORES_DIA[iDia%COLORES_DIA.length];
+    html+=`<div class="dia-bloque" style="--dia:${color}"><h2 class="dia-sep">${esc(etiquetaBonita(fecha))}</h2>`;
     // Dentro de cada día se agrupa por CIUDAD. No es solo estético: la ruta de Maps
     // no puede mezclar Madrid y Zaragoza, saldrían 300 km de por medio.
     const porCiudad={};
@@ -661,13 +707,22 @@ function pintarLista(){
     ciudades.forEach(ciudad=>{
       const grupo=porCiudad[ciudad];
       if(!CIUDAD && ciudades.length>1) html+=`<h3 class="ciudad-sep">${esc(ciudad)}</h3>`;
-      const conDir=grupo.filter(e=>e.direccion);
-      const rutaUrl=urlRutaDia(grupo);
-      if(rutaUrl && conDir.length>1){
-        html+=`<a class="boton-ruta" href="${esc(rutaUrl)}" target="_blank" rel="noopener">${ICO.mapa} Abrir la ruta en Maps<span>${conDir.length} paradas</span></a>`;
+      const sals=salidasDe(grupo);
+      sals.forEach((t,iS)=>{
+      const conDir=t.paradas.filter(e=>e.direccion);
+      const rutaUrl=urlRutaDia(t.paradas);
+      const nParadas=t.paradas.length+(t.paradas.length===1?' parada':' paradas');
+      html+='<section class="salida">';
+      html+= t.sinHora
+        ? `<div class="salida-cab"><span class="n">Sin hora</span><span>${nParadas} por confirmar con la oficina</span></div>`
+        : `<div class="salida-cab"><span class="n">Salida ${iS+1}</span><b>Sale ${esc(hhmm(t.sale))}</b>`
+          +`<span class="franja">Entregas de ${esc(hhmm(t.ini))} a ${esc(hhmm(t.fin))} · ${nParadas}</span></div>`;
+      if(t.justo) html+=`<p class="aviso-salida">No da tiempo a todas: solo con 8 minutos por entrega, sin contar el trayecto, alguna se sale de su franja. Avisa a la oficina.</p>`;
+      if(rutaUrl && conDir.length){
+        html+=`<a class="boton-ruta" href="${esc(rutaUrl)}" target="_blank" rel="noopener">${ICO.mapa} ${conDir.length>1?'Ruta en Maps':'Cómo llegar'}<span>${conDir.length} ${conDir.length===1?'parada':'paradas'}</span></a>`;
       }
       html+='<ol class="ruta">';
-      grupo.forEach(e=>{
+      t.paradas.forEach(e=>{
         const ent=entregaDe(e), h=horaCorta(e.hora);
         const estado=!ent?'pend':(estaPendiente(e)?'sinsubir':'ok');
         html+=`<li class="parada ${estado}${esDesayuno(e)?' desayuno':''}${e===sig?' es-siguiente':''}" data-enc="${esc(e.enc)}" data-fecha="${esc(e.fecha||'')}">
@@ -684,8 +739,10 @@ function pintarLista(){
           </div>
         </li>`;
       });
-      html+='</ol>';
+      html+='</ol></section>';
+      });
     });
+    html+='</div>';
   });
   cont.innerHTML=html;
   cont.querySelectorAll('.parada').forEach(p=>p.onclick=()=>abrir(p.getAttribute('data-enc'), p.getAttribute('data-fecha')));
