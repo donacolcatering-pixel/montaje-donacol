@@ -2,311 +2,469 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#3F2920">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Checklist">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<meta name="theme-color" content="#1B1411">
 <title>Checklist de Montaje · Doña Col</title>
 <style>
+  /* Tipografías de la marca, guardadas en la app (funcionan sin cobertura). Mismas que Repartos. */
+  @font-face{font-family:"Hanken";src:url(fonts/hanken.woff2) format("woff2");font-weight:300 800;font-display:swap}
+  @font-face{font-family:"Bodoni";src:url(fonts/bodoni.woff2) format("woff2");font-weight:400 700;font-display:swap}
   :root{
-    --beige:#F5EAD8; --marron:#3F2920; --marron2:#5A3B27; --oro:#D08434; --oro-d:#b06d24;
-    --crema:#FFFDF8; --linea:#E6D6BC; --tinta:#3a2c22; --gris:#8c7a68;
-    --ok:#4e7d3a; --okbg:#eef4e6; --falta:#b58900; --faltabg:#faf3d3; --no:#b23b3b; --nobg:#fbeeee;
-    --cargado:#2f6fb0; --cargadobg:#e7f0fa;
+    --cacao:#1B1411; --cafe:#61422A; --taupe:#907A69; --nata:#F1E4C3;
+    --fondo:#F4EFE6; --sup:#FFFFFF; --sup2:#EDE5D8; --tinta:#1F1712; --suave:#6B6058; --linea:rgba(31,23,18,.12);
+    --acento:var(--cafe); --sobre:#FFFFFF;
+    --ok:#2C7448; --okbg:#E1EFE5; --amb:#8A5208; --ambbg:#FAEAD0; --no:#A8322D; --nobg:#F8E3E1;
+    --azul:#2D5F8F; --azulbg:#E2ECF5;
+    --display:"Bodoni","Bodoni Moda",Didot,Georgia,serif;
+    --texto:"Hanken",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:16px; --nav:64px; --inf:env(safe-area-inset-bottom,0px); --sup-seg:env(safe-area-inset-top,0px);
+    /* Nombres antiguos que todavía usa algún texto generado por el código */
+    --gris:var(--suave); --marron:var(--tinta); --marron2:var(--cafe); --oro:var(--cafe); --oro-d:var(--cafe);
+    --falta:var(--amb); --faltabg:var(--ambbg); --cargado:var(--azul); --cargadobg:var(--azulbg); --crema:var(--sup);
   }
+  /* El almacén a primera hora o una furgoneta de noche: la app pasa a oscuro con el móvil */
+  @media (prefers-color-scheme:dark){:root{
+    --fondo:#14100D; --sup:#211915; --sup2:#2C221D; --tinta:#F3EBDD; --suave:#B5A797; --linea:rgba(243,235,221,.14);
+    --acento:var(--nata); --sobre:#1B1411; --ok:#79C795; --okbg:#1C3124; --amb:#F0B45C; --ambbg:#3A2A12;
+    --no:#F08A80; --nobg:#3A1D1B; --azul:#8DB8E8; --azulbg:#18283A;
+  }}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--beige);color:var(--tinta);font-size:16px;line-height:1.4}
-  .serif{font-family:Georgia,'Times New Roman',serif}
-  header{background:var(--marron);color:#f7ecdc;padding:14px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px rgba(63,41,32,.25);border-bottom:3px solid var(--oro)}
-  .brand{display:flex;align-items:center;gap:12px;max-width:620px;margin:0 auto}
-  .brand .logo{width:54px;height:54px;flex:none;border-radius:50%;background:#fbf4e7;padding:4px;object-fit:contain;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-  header h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px;font-family:Georgia,'Times New Roman',serif}
-  header p{margin:2px 0 0;font-size:11px;color:var(--oro);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-  main{padding:14px;max-width:620px;margin:0 auto}
-  .card{background:var(--crema);border:1px solid var(--linea);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(90,59,39,.06)}
-  label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px;color:var(--marron2)}
-  input,select{width:100%;padding:11px;font-size:16px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta)}
-  input:focus,select:focus{outline:none;border-color:var(--oro);box-shadow:0 0 0 3px rgba(208,132,52,.15)}
-  .row{display:flex;gap:10px}.row>div{flex:1}
-  .seg{display:flex;gap:6px;margin-top:4px}
-  .seg button{flex:1;padding:10px;border:1px solid var(--linea);background:#fff;border-radius:10px;font-size:13px;font-weight:600;color:var(--marron2)}
-  .seg button.on{background:var(--marron2);color:#f7ecdc;border-color:var(--marron2)}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--oro-d);margin:0 0 8px;font-weight:700}
-  .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--marron2);margin-top:10px}
-  .chk input{width:auto;accent-color:var(--oro)}
-  .intol{display:flex;gap:8px;margin-top:8px;align-items:center}
-  .intol input[type=text]{flex:2}.intol input[type=number]{flex:1}
-  .intol button{background:#ecdcc4;border:none;border-radius:8px;padding:0 12px;font-size:18px;color:var(--marron2);cursor:pointer}
-  .addBtn{margin-top:8px;background:#f6ecdb;border:1px dashed var(--oro);color:var(--oro-d);border-radius:10px;padding:9px;width:100%;font-weight:700;font-size:13px}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:var(--texto);background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.45;
+       padding-bottom:calc(var(--nav) + var(--inf) + 12px);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+  button,input,select{font:inherit;color:inherit}
+  button{background:none;border:0;cursor:pointer}
+  a{color:inherit}
+  svg{width:20px;height:20px;flex:none}
+  :focus-visible{outline:2px solid var(--acento);outline-offset:3px}
 
-  /* Destacado */
-  .destacado{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:8px}
-  .tile{background:linear-gradient(160deg,var(--marron2),var(--marron));color:#f7ecdc;border-radius:12px;padding:10px 6px;text-align:center;border:1px solid rgba(208,132,52,.35)}
-  .tile b{display:block;font-size:22px;line-height:1.05;color:#fff;font-family:Georgia,serif}
-  .tile span{font-size:9px;opacity:.9;letter-spacing:.5px;color:var(--oro);font-weight:700;text-transform:uppercase}
+  /* Barra superior */
+  .barra-app{position:sticky;top:0;z-index:20;background:var(--cacao);color:var(--nata);padding:calc(10px + var(--sup-seg)) 18px 10px;
+             display:flex;align-items:center;gap:12px}
+  .barra-app img{width:40px;height:40px;object-fit:contain;flex:none;border-radius:50%;background:#FBF4E7;padding:3px}
+  .barra-app .titulo{font-family:var(--display);font-size:22px;line-height:1;font-weight:500}
+  .barra-app .sub{margin-left:auto;font-size:13px;color:rgba(241,228,195,.75);text-align:right;max-width:50%;
+                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  main{max-width:640px;margin:0 auto;padding:0 18px}
+  #vista{display:none}
 
-  /* Contador */
-  .contador{display:flex;gap:6px;margin:10px 0 4px;font-size:12px;font-weight:700;flex-wrap:wrap}
-  .contador span{padding:4px 9px;border-radius:20px}
-  .c-ok{background:var(--okbg);color:var(--ok)} .c-falta{background:var(--faltabg);color:var(--falta)}
-  .c-cargado{background:var(--cargadobg);color:var(--cargado)}
-  .c-no{background:var(--nobg);color:var(--no)} .c-pend{background:#efe5d4;color:var(--gris)}
-  .barra{height:8px;background:#e7d8c1;border-radius:6px;overflow:hidden;margin-bottom:8px}
-  .barra>i{display:block;height:100%;background:linear-gradient(90deg,var(--oro),var(--ok));transition:width .3s}
+  /* Títulos de cada pantalla */
+  .pant{padding:22px 0 4px}
+  .pant h1{margin:0;font-family:var(--display);font-weight:500;font-size:40px;line-height:1}
+  .pant p{margin:8px 0 0;color:var(--suave);font-size:15px}
 
-  /* Filtro de ciudad: identico al de repartos.html, que ya lo tenia */
-  .filtros{display:flex;gap:8px;margin:0 0 10px}
-  .fbtn{flex:1;padding:10px 6px;border:1px solid var(--linea);border-radius:10px;background:#fff;
-        color:var(--marron);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
-  .fbtn.on{background:var(--marron);color:#fff;border-color:var(--marron)}
-  .fbtn .n{display:inline-block;min-width:17px;margin-left:5px;padding:1px 4px;border-radius:9px;
-           background:var(--linea);color:var(--marron);font-size:11px;font-weight:800}
-  .fbtn.on .n{background:rgba(255,255,255,.25);color:#fff}
-  .fbtn.vacio{opacity:.45}
-  /* Aviso de lo que el filtro esta dejando fuera: quien lleva las dos ciudades no
-     puede perderse un montaje solo porque un dia dejo puesto un filtro. */
-  .otraCiudad{margin:8px 0 0;padding:8px 10px;border-radius:9px;background:var(--faltabg);
-              border:1px solid var(--falta);color:#6b5200;font-size:13px;font-weight:600}
+  /* Tarjetas y grupos */
+  .card{background:var(--sup);border-radius:var(--r);padding:18px;margin:16px 0 0;box-shadow:inset 0 0 0 1px var(--linea)}
+  h2{margin:0 0 12px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--suave)}
+  label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px;color:var(--tinta)}
+  input,select{width:100%;min-height:50px;padding:12px 14px;font-size:16px;border:0;border-radius:12px;background:var(--fondo);
+               box-shadow:inset 0 0 0 1.5px var(--linea);color:var(--tinta);-webkit-appearance:none;appearance:none}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23907A69' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+         background-repeat:no-repeat;background-position:right 12px center;background-size:20px;padding-right:42px}
+  input:focus,select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--acento)}
+  input[type=checkbox]{width:22px;height:22px;min-height:0;padding:0;border-radius:7px;flex:none;cursor:pointer;
+       box-shadow:inset 0 0 0 1.5px var(--taupe);background:var(--sup);display:grid;place-items:center}
+  input[type=checkbox]:checked{background:var(--acento);box-shadow:none}
+  input[type=checkbox]:checked::after{content:"";width:12px;height:12px;background:var(--sobre);
+       -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7'/%3E%3C/svg%3E") center/contain no-repeat;
+               mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7'/%3E%3C/svg%3E") center/contain no-repeat}
+  .row{display:flex;gap:12px}.row>div{flex:1;min-width:0}
+  .nota{margin:10px 0 0;font-size:14px;color:var(--suave)}
+  .nota b{color:var(--tinta)}
+
+  /* Controles segmentados (servicio, montaje, ciudad) */
+  .seg,.segmentos{display:flex;background:var(--sup2);border-radius:12px;padding:3px;gap:0;margin:0}
+  .seg button,.segmentos button{flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px;color:var(--suave);padding:6px 8px}
+  .seg button.on,.segmentos button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .segmentos{margin:0 0 12px}
+  .segmentos .fbtn{white-space:nowrap;padding:6px 4px;font-size:14px}
+  .fbtn .n{display:inline-block;min-width:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--linea);font-size:12px;line-height:18px}
+  .fbtn.on .n{background:var(--acento);color:var(--sobre)}
+  .fbtn.vacio{opacity:.5}
+  .chk{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:15px;font-weight:600}
+  .chk label{margin:0;font-weight:600;font-size:15px;cursor:pointer}
+
+  /* Evento elegido */
+  #cardEventos{background:var(--cacao);color:var(--nata);box-shadow:0 12px 28px -20px rgba(27,20,17,.8)}
+  @media (prefers-color-scheme:dark){#cardEventos{background:var(--sup2)}}
+  #cardEventos h2{color:rgba(241,228,195,.7)}
+  #cardEventos .segmentos{background:rgba(241,228,195,.12)}
+  #cardEventos .segmentos button{color:rgba(241,228,195,.75)}
+  #cardEventos .segmentos button.on{background:var(--nata);color:var(--cacao)}
+  #cardEventos .fbtn .n{background:rgba(241,228,195,.18)}
+  #cardEventos .fbtn.on .n{background:var(--cacao);color:var(--nata)}
+  #cardEventos select{background-color:rgba(241,228,195,.1);color:var(--nata);box-shadow:inset 0 0 0 1.5px rgba(241,228,195,.25);font-weight:700}
+  #cardEventos select option,#cardEventos select optgroup{color:#1F1712;background:#fff}
+  #evInfo{margin:14px 0 0;font-size:15px;line-height:1.5;color:rgba(241,228,195,.85)}
+  #evInfo b{color:var(--nata)}
+  #evInfo:empty{display:none}
+  #evInfo details{margin-top:10px!important;padding:12px 14px;border-radius:12px;background:rgba(241,228,195,.08)}
+  #evInfo summary{color:var(--nata)!important;font-weight:700!important;list-style-position:outside}
+  #evInfo summary span{color:#F0B45C!important}
+  .otraCiudad{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:var(--ambbg);color:var(--amb);font-size:14px;font-weight:600}
   .otraCiudad b{cursor:pointer;text-decoration:underline}
+  .evDir{display:none;margin-top:14px;padding:14px;border-radius:14px;background:rgba(241,228,195,.08)}
+  .evDir .dirTxt{display:flex;gap:10px;align-items:flex-start;font-size:16px;font-weight:700;line-height:1.35;color:var(--nata)}
+  .evDir .dirTxt .ic{flex:none;font-size:0;width:20px;height:20px;margin-top:1px;background:currentColor;
+       -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3C/svg%3E") center/contain no-repeat;
+               mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3C/svg%3E") center/contain no-repeat}
+  .evDir .dirTxt span[style]{color:rgba(241,228,195,.7)!important}
+  .evDir .dirFalta{color:#F0B45C;font-weight:700;font-size:15px}
+  .evDir .mapsBtn{display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:12px;border-radius:12px;
+       background:var(--nata);color:var(--cacao);text-decoration:none;font-weight:800;font-size:16px}
+  .evDir .mapsBtn:active{transform:scale(.97)}
+  /* Contacto del evento: llamar de un toque */
+  .evTel{display:none;margin-top:10px;padding:14px;border-radius:14px;background:rgba(241,228,195,.08)}
+  .evTel .quien{margin:0 0 10px;font-size:15px;color:rgba(241,228,195,.75)}
+  .evTel .quien b{color:var(--nata);font-size:16px}
+  .evTel a{display:flex;align-items:center;justify-content:center;gap:10px;min-height:50px;margin-top:8px;border-radius:12px;
+       box-shadow:inset 0 0 0 1.5px rgba(241,228,195,.35);color:var(--nata);text-decoration:none;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+  .evTel a:first-of-type{margin-top:0}
+  .evTel a:active{transform:scale(.97)}
+  .evTel a svg{width:20px;height:20px}
 
-  /* Ubicacion del evento: se saca de la linea gris para que se lea de un vistazo */
-  .evDir{display:none;margin-top:10px;border:1px solid var(--linea);border-left:4px solid var(--oro);border-radius:10px;background:#fff;padding:10px 12px}
-  .evDir .dirTxt{display:flex;gap:8px;align-items:flex-start;font-size:15px;font-weight:700;color:var(--marron);line-height:1.35}
-  .evDir .dirTxt .ic{flex:none;font-size:16px}
-  .evDir .dirFalta{color:var(--no);font-weight:700;font-size:14px}
-  .evDir .mapsBtn{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:800;font-size:14px;margin-top:10px}
-  .evDir .mapsBtn:active{background:var(--oro-d)}
+  /* Ajustes del cálculo: plegables para que la lista quede a mano */
+  .ajustes{margin:16px 0 0;border-radius:var(--r);background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);overflow:hidden}
+  .ajustes>summary{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 18px;cursor:pointer;font-weight:800;list-style:none}
+  .ajustes>summary::-webkit-details-marker{display:none}
+  .ajustes>summary small{display:block;font-weight:500;font-size:13px;color:var(--suave)}
+  .ajustes>summary::after{content:"";margin-left:auto;width:20px;height:20px;flex:none;background:var(--taupe);transition:transform .2s;
+       -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;
+               mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat}
+  .ajustes[open]>summary::after{transform:rotate(180deg)}
+  .ajustes>summary svg{width:22px;height:22px;color:var(--acento)}
+  .ajustes .card{margin:0;border-radius:0;box-shadow:none;border-top:1px solid var(--linea)}
+  #menuInfo{margin:12px 0 0;font-size:14px;color:var(--suave);line-height:1.55}
+  #menuInfo:empty{display:none}
+  #menuInfo b{color:var(--tinta)}
+  #menuInfo span[style*="b06d24"]{color:var(--acento)!important;font-weight:700!important}
+  #menuInfo span[style*="999"]{color:var(--suave)!important}
+  .intol{display:flex;gap:8px;margin-top:10px;align-items:center}
+  .intol input[type=text]{flex:2}.intol input[type=number]{flex:1}
+  .intol button{width:50px;min-height:50px;border-radius:12px;background:var(--sup2);font-size:22px;color:var(--suave);flex:none}
+  .addBtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;margin-top:10px;border-radius:12px;
+          box-shadow:inset 0 0 0 1.5px var(--linea);font-weight:700;color:var(--acento)}
 
-  /* Checklist */
-  .seccion h3{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:#f7ecdc;background:var(--marron2);border-radius:9px;padding:7px 11px;margin:16px 0 4px;border-left:4px solid var(--oro)}
-  .item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #efe3d0;cursor:pointer;user-select:none}
-  .item .st{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid #d6c4a8;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#c3ad8e;background:#fff}
-  .item .nm{flex:1;font-size:15px;color:var(--tinta)}
-  .item .nt{font-size:11px;color:var(--gris);display:block}
-  .item .qt{font-weight:800;color:var(--oro-d);white-space:nowrap;font-size:17px;font-family:Georgia,serif}
-  .item .ret{display:flex;align-items:center;gap:5px;flex:none}
-  .item .ret .retnum{width:54px;padding:6px 4px;border:1px solid var(--linea);border-radius:8px;font-size:16px;font-weight:800;text-align:center;color:var(--marron);font-family:Georgia,serif;background:#fff}
-  .item .ret .retde{font-size:12px;color:var(--gris);font-weight:700;white-space:nowrap}
-  .item .ret .retroto{font-size:12px;font-weight:800;color:var(--no);min-width:26px}
-  .item.ok{background:var(--okbg)} .item.ok .st{border-color:var(--ok);color:var(--ok)}
-  .item.falta{background:var(--faltabg)} .item.falta .st{border-color:var(--falta);color:var(--falta)}
-  .item.no{background:var(--nobg)} .item.no .st{border-color:var(--no);color:var(--no)} .item.no .nm{text-decoration:line-through;color:#a99}
-  .item.cargado{background:var(--cargadobg)} .item.cargado .st{border-color:var(--cargado);color:var(--cargado)}
+  /* Lo que lleva este servicio: las cifras grandes */
+  .resumen{margin:16px 0 0;padding:20px;border-radius:20px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  .resumen-cab{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+  .resumen-cab h2{margin:0}
+  .destacado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 20px}
+  .tile{background:var(--fondo);border-radius:12px;padding:14px 6px 12px;text-align:center}
+  .tile b{display:block;font-family:var(--display);font-weight:500;font-size:34px;line-height:1;font-variant-numeric:lining-nums}
+  .tile span{display:block;margin-top:6px;font-size:12px;font-weight:700;color:var(--suave);line-height:1.2}
 
-  .acciones{display:flex;gap:10px;margin:14px 0}
-  .acciones button{flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
-  .btnPrint{background:var(--oro);color:#fff;box-shadow:0 2px 6px rgba(208,132,52,.35)}.btnReset{background:#ecdcc4;color:var(--marron2)}
-  .leyenda{font-size:11px;color:var(--gris);text-align:center;margin-top:-4px}
+  /* Progreso */
+  .progreso-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .progreso-cab b{font-family:var(--display);font-weight:500;font-size:30px;line-height:1}
+  .progreso-cab span{color:var(--suave);font-size:15px}
+  .barra{height:8px;margin:10px 0 0;border-radius:4px;background:var(--sup2);overflow:hidden}
+  .barra>i{display:block;height:100%;border-radius:4px;background:var(--ok);transition:width .35s}
+  .contador{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+  .contador span{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:13px;font-weight:700;background:var(--sup2);color:var(--suave)}
+  .contador span::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+  .contador .c-ok{background:var(--okbg);color:var(--ok)} .contador .c-cargado{background:var(--azulbg);color:var(--azul)}
+  .contador .c-falta{background:var(--ambbg);color:var(--amb)} .contador .c-no{background:var(--nobg);color:var(--no)}
+  .contador .c-pend::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+  .contador span.cero{opacity:.45}
 
-  /* Eventos cargados desde la app de pedidos + registro de pasados */
-  .regrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;
-    border-bottom:1px solid #efe3d0;cursor:pointer;font-size:14px}
-  .regrow:last-child{border-bottom:none}
-  .regrow .nt{display:block;font-size:11px;color:var(--gris)}
-  .badge{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-  @media(min-width:1100px){
-    #cardEventos{position:fixed;right:18px;top:96px;width:320px;z-index:4;
-      max-height:78vh;overflow:auto;box-shadow:0 8px 22px rgba(63,41,32,.18)}
-  }
+  /* La lista */
+  .seccion h3{display:flex;align-items:center;gap:10px;margin:28px 0 4px;font-size:20px;font-weight:800;line-height:1.2}
+  .seccion h3 span{margin-left:auto;font-size:14px;font-weight:600;color:var(--suave)}
+  .item{display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 0;border-bottom:1px solid var(--linea);cursor:pointer;user-select:none;-webkit-user-select:none}
+  .item:active{opacity:.6}
+  .item .st{flex:none;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--taupe);font-size:0;color:#fff;
+            display:grid;place-items:center;transition:background .2s,box-shadow .2s}
+  .item .st::before{content:"";width:16px;height:16px;background:currentColor;-webkit-mask:var(--icono) center/contain no-repeat;mask:var(--icono) center/contain no-repeat}
+  .item .nm{flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.3}
+  .item .nt{display:block;margin-top:2px;font-size:13px;font-weight:500;color:var(--suave)}
+  .item .qt{flex:none;font-family:var(--display);font-weight:500;font-size:28px;line-height:1;font-variant-numeric:lining-nums;text-align:right;min-width:36px}
+  .item.ok .st{background:var(--ok);box-shadow:none;--icono:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7'/%3E%3C/svg%3E")}
+  .item.cargado .st{background:var(--azul);box-shadow:none;--icono:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7h11v9H3zM14 10h4l3 3v3h-7z'/%3E%3Ccircle cx='7' cy='17.5' r='1.8'/%3E%3Ccircle cx='17' cy='17.5' r='1.8'/%3E%3C/svg%3E")}
+  .item.falta .st{background:var(--amb);box-shadow:none;--icono:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M12 5v9M12 19.5v.01'/%3E%3C/svg%3E")}
+  .item.no .st{background:var(--no);box-shadow:none;--icono:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6 6 18'/%3E%3C/svg%3E")}
+  @media (prefers-color-scheme:dark){.item .st{color:#14100D}}
+  .item.ok .nm,.item.ok .qt,.item.cargado .nm,.item.cargado .qt{color:var(--suave)}
+  .item.no .nm{text-decoration:line-through;color:var(--suave)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;font-size:13px;color:var(--suave)}
+  .leyenda span{display:inline-flex;align-items:center;gap:6px}
+  .leyenda i{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--taupe)}
+  .leyenda i.ok{background:var(--ok);box-shadow:none} .leyenda i.cargado{background:var(--azul);box-shadow:none}
+  .leyenda i.falta{background:var(--amb);box-shadow:none} .leyenda i.no{background:var(--no);box-shadow:none}
+  .ayuda{margin:6px 0 0;font-size:13px;color:var(--suave)}
 
-  .nubeBtn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
-  .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px;margin-top:10px}
-  .galeria a{display:block;position:relative}
-  .galeria img{width:100%;height:95px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}
-  .galeria .dl{position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;font-size:14px;padding:1px 6px;text-decoration:none}
-  .galeria .del{position:absolute;right:4px;top:4px;background:rgba(178,59,59,.9);color:#fff;border-radius:6px;font-size:13px;padding:1px 6px;cursor:pointer}
-  footer{text-align:center;font-size:11px;color:var(--gris);padding:10px 0 30px}
-  footer b{color:var(--marron2)}
-  @media print{header,.config,.acciones,.leyenda,footer{display:none}body{background:#fff;font-size:12px}
-    .card{box-shadow:none;border:none;padding:0}.item{cursor:auto}.tile{background:#efe3d0;color:#3F2920}.tile b{color:#3F2920}.seccion h3{background:#efe3d0;color:#3F2920}}
-  .navbar{position:sticky;top:0;z-index:30;background:#fff;padding:8px 0 10px;margin:-4px 0 6px;box-shadow:0 4px 10px -8px rgba(0,0,0,.4)}
-  .navbar select{width:100%;padding:12px;border-radius:12px;border:2px solid var(--marron2);background:#fff;font-size:16px;font-weight:800;color:var(--marron2);cursor:pointer}
-  .vista{display:block}
+  /* Retorno: número que vuelve */
+  .item .ret{display:flex;align-items:center;gap:6px;flex:none}
+  .item .ret .retnum{width:64px;min-height:44px;padding:6px;border-radius:10px;font-family:var(--display);font-size:22px;text-align:center;background:var(--fondo)}
+  .item .ret .retde{font-size:14px;color:var(--suave);font-weight:700;white-space:nowrap}
+  .item .ret .retroto{min-width:30px;font-size:14px;font-weight:800;color:var(--no)}
+
+  /* Botones */
+  .boton,.nubeBtn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:54px;padding:12px 18px;border-radius:12px;
+         font-weight:700;font-size:16px;background:var(--acento);color:var(--sobre);transition:transform .15s,opacity .2s}
+  .boton:active,.nubeBtn:active{transform:scale(.97)}
+  .boton.contorno{background:transparent;color:var(--tinta);box-shadow:inset 0 0 0 1.5px var(--linea)}
+  .boton.verde,.nubeBtn.verde{background:var(--ok);color:#fff}
+  @media (prefers-color-scheme:dark){.boton.verde,.nubeBtn.verde{color:#0F2417}}
+  .boton svg,.nubeBtn svg{width:20px;height:20px}
+  .acciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0 0}
+  .acciones .ancho{grid-column:1/-1}
+  .estado{margin:10px 0 0;min-height:1.2em;text-align:center;font-size:14px;color:var(--suave)}
+
+  /* Cerrados */
+  .regrow{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--linea);cursor:pointer}
+  .regrow:last-child{border-bottom:0}
+  .regrow>div{flex:1;min-width:0}
+  .regrow .nt{display:block;font-size:14px;color:var(--suave)}
+  .badge{flex:none;padding:5px 10px;border-radius:99px;font-size:13px;font-weight:700;white-space:nowrap}
+  .badge.c-ok{background:var(--okbg);color:var(--ok)}
+
+  /* Fotos */
+  #fotoInput{position:absolute;width:1px;height:1px;opacity:0}
+  .camara{display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px;border-radius:12px;background:var(--fondo);
+          box-shadow:inset 0 0 0 1.5px var(--linea);font-weight:700;cursor:pointer}
+  .camara svg{width:24px;height:24px}
+  .galeria{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px}
+  .galeria a{display:block;position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--sup2)}
+  .galeria img{width:100%;height:100%;object-fit:cover;display:block}
+  .galeria .dl,.galeria .del{position:absolute;bottom:6px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:0;
+          background:rgba(27,20,17,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer}
+  .galeria .dl{right:6px} .galeria .del{left:6px}
+  .galeria .dl::before,.galeria .del::before{content:"";width:16px;height:16px;background:#fff}
+  .galeria .dl::before{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m-5-5 5 5 5-5M5 20h14'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m-5-5 5 5 5-5M5 20h14'/%3E%3C/svg%3E") center/contain no-repeat}
+  .galeria .del::before{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E") center/contain no-repeat}
+  .galeria p{grid-column:1/-1;color:var(--suave)!important;font-size:14px!important}
+
+  /* Pestañas inferiores (como en Repartos) */
+  .pestanas{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;height:calc(var(--nav) + var(--inf));padding-bottom:var(--inf);
+            background:var(--sup);box-shadow:0 -1px 0 var(--linea)}
+  .pestanas button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;color:var(--suave)}
+  .pestanas button.on{color:var(--tinta)}
+  .pestanas button svg{width:24px;height:24px}
+
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:28px 0 8px}
   #printHead{display:none}
-  @media print{#printHead{display:block;margin-bottom:8px}#printHead h1{margin:0;font-size:18px}#printHead p{margin:2px 0;font-size:12px}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* Imprimir / PDF: la hoja limpia, sin la app alrededor */
+  @media print{
+    .barra-app,.pestanas,.ajustes,#cardEventos,.acciones,.leyenda,.ayuda,#cardGuardar,footer,.pant,.progreso-cab,.contador,.barra{display:none!important}
+    body{background:#fff;color:#000;padding:0;font-size:12px}
+    .resumen{box-shadow:none;padding:0;margin:0}
+    .destacado{background:#ddd;margin:6px 0 10px}.tile{background:#fff;padding:6px}.tile b{font-size:22px}
+    #printHead{display:block;margin-bottom:6px}#printHead h1{margin:0;font-family:var(--display);font-size:22px;font-weight:500}#printHead p{margin:2px 0}
+    .seccion h3{margin:12px 0 2px;font-size:14px}
+    .item{min-height:0;padding:4px 0;cursor:auto}.item .st{width:16px;height:16px}.item .qt{font-size:16px}.item .nm{font-size:12px}.item .nt{font-size:10px}
+  }
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img src="logo.png" class="logo" alt="Doña Col Catering">
-    <div>
-      <h1>Checklist de Montaje</h1>
-      <p>Doña Col · Catering &amp; Eventos</p>
-    </div>
-  </div>
+<header class="barra-app">
+  <img src="logo.png" alt="Doña Col">
+  <span class="titulo">Checklist</span>
+  <span class="sub" id="barraSub"></span>
 </header>
 <main>
 
-  <div class="navbar">
-    <select id="vista" aria-label="Sección">
-      <option value="montaje">🧰 Montaje · checklist</option>
-      <option value="retorno">🔄 Retorno · recogida</option>
-      <option value="cerrados">🗂️ Cerrados</option>
-      <option value="fotos">📷 Fotos del evento</option>
-    </select>
-  </div>
+  <!-- El código sigue usando este desplegable para cambiar de pantalla; las pestañas de abajo lo manejan -->
+  <select id="vista" aria-hidden="true" tabindex="-1">
+    <option value="montaje">Montaje</option>
+    <option value="retorno">Retorno</option>
+    <option value="cerrados">Cerrados</option>
+    <option value="fotos">Fotos</option>
+  </select>
 
+  <!-- ======================= MONTAJE ======================= -->
   <section id="view-montaje" class="vista">
 
+  <div class="pant"><h1>Montaje</h1><p>Lo que hay que cargar para el evento.</p></div>
+
   <div class="card config" id="cardEventos" style="display:none">
-    <h2>📅 Eventos cargados</h2>
-    <div class="filtros" id="filtroCiudad">
+    <h2>Evento</h2>
+    <div class="segmentos" id="filtroCiudad">
       <button class="fbtn" data-ciudad="">Todas</button>
       <button class="fbtn" data-ciudad="Madrid">Madrid</button>
       <button class="fbtn" data-ciudad="Zaragoza">Zaragoza</button>
     </div>
-    <select id="selEvento"><option value="">— Manual / elegir evento —</option></select>
+    <select id="selEvento" aria-label="Evento"><option value="">— Manual / elegir evento —</option></select>
     <div id="avisoOtraCiudad"></div>
-    <p id="evInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
+    <p id="evInfo"></p>
     <div class="evDir" id="evDir"></div>
+    <div class="evTel" id="evTel"></div>
   </div>
 
-  <div class="card config">
-    <h2>Menú</h2>
-    <select id="menu">
-      <option value="">— Manual (sin menú) —</option>
-      <optgroup label="Coffee break">
-        <option value="bienvenida">Coffee Break Bienvenida</option>
-        <option value="cb1">Coffee Break 1</option>
-        <option value="cb2">Coffee Break 2</option>
-        <option value="cb3">Coffee Break 3</option>
-        <option value="cb4">Coffee Break 4</option>
-        <option value="healthy">Coffee Break Healthy</option>
-      </optgroup>
-      <optgroup label="Cóctel">
-        <option value="c1">Cóctel 1</option>
-        <option value="c2">Cóctel 2</option>
-        <option value="c3">Cóctel 3</option>
-        <option value="c4">Cóctel 4</option>
-        <option value="c5">Cóctel 5</option>
-        <option value="c6">Cóctel 6</option>
-        <option value="c7">Cóctel 7</option>
-        <option value="arag1">Menú Aragonés 1</option>
-        <option value="arag2">Menú Aragonés 2</option>
-      </optgroup>
-    </select>
-    <p id="menuInfo" style="font-size:12px;color:#777;margin:8px 0 0"></p>
-  </div>
+  <details class="ajustes config" open>
+    <summary>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      <span>Datos del cálculo<small>Menú, personas, caliente y mesas</small></span>
+    </summary>
 
-  <div class="card config">
-    <h2>Datos del evento</h2>
-    <div class="row">
-      <div><label>Nº de personas</label><input id="pax" type="number" inputmode="numeric" value="120" min="1"></div>
-      <div><label>Cliente</label><input id="cliente" type="text" placeholder="Fundación ONCE"></div>
+    <div class="card">
+      <h2>Menú</h2>
+      <select id="menu" aria-label="Menú">
+        <option value="">— Manual (sin menú) —</option>
+        <optgroup label="Coffee break">
+          <option value="bienvenida">Coffee Break Bienvenida</option>
+          <option value="cb1">Coffee Break 1</option>
+          <option value="cb2">Coffee Break 2</option>
+          <option value="cb3">Coffee Break 3</option>
+          <option value="cb4">Coffee Break 4</option>
+          <option value="healthy">Coffee Break Healthy</option>
+        </optgroup>
+        <optgroup label="Cóctel">
+          <option value="c1">Cóctel 1</option>
+          <option value="c2">Cóctel 2</option>
+          <option value="c3">Cóctel 3</option>
+          <option value="c4">Cóctel 4</option>
+          <option value="c5">Cóctel 5</option>
+          <option value="c6">Cóctel 6</option>
+          <option value="c7">Cóctel 7</option>
+          <option value="arag1">Menú Aragonés 1</option>
+          <option value="arag2">Menú Aragonés 2</option>
+        </optgroup>
+      </select>
+      <p id="menuInfo"></p>
     </div>
-    <label>Tipo de servicio</label>
-    <div class="seg" id="servicio">
-      <button data-v="coffee" class="on">Coffee break</button>
-      <button data-v="coctel">Cóctel</button>
-    </div>
-    <div class="chk"><input id="vino" type="checkbox"><label for="vino" style="margin:0">Con alcohol — vino/cerveza (→ copas)</label></div>
-    <label>Montaje</label>
-    <div class="seg" id="montajeSeg">
-      <button data-mv="sport" class="on">Sport · desechable</button>
-      <button data-mv="elegante">Elegante · se devuelve</button>
-    </div>
-    <div class="row">
-      <div><label>Piezas saladas / pax</label><input id="saladasPP" type="number" step="0.5" value="3"></div>
-      <div><label>Piezas dulces / pax</label><input id="dulcesPP" type="number" step="0.5" value="2"></div>
-    </div>
-    <label>Surtido (curados/quesos/dulces) / pax</label>
-    <input id="surtidoPP" type="number" step="0.5" value="0">
-    <p style="font-size:12px;color:#777;margin:10px 0 0">Bandejas: normales <b>20/ud</b>; curados, quesos y surtido de dulces <b>10/ud</b> (doblan).</p>
-  </div>
 
-  <div class="card config">
-    <h2>Caliente (chafing)</h2>
-    <p style="font-size:12px;color:#777;margin:0 0 4px">Fritos (croquetas, langostino panko, cremosas): 1 de cada tipo por persona · cap 150 (≤2 tipos) / 120 (3+). Hamburguesas: cap 30.</p>
-    <div class="row">
-      <div><label>Tipos de frito</label><input id="fritoTipos" type="number" value="0" min="0"></div>
-      <div><label>Nº de hamburguesas</label><input id="hamburguesas" type="number" value="0" min="0"></div>
+    <div class="card">
+      <h2>Datos del evento</h2>
+      <div class="row">
+        <div><label for="pax">Personas</label><input id="pax" type="number" inputmode="numeric" value="120" min="1"></div>
+        <div><label for="cliente">Cliente</label><input id="cliente" type="text" placeholder="Fundación ONCE"></div>
+      </div>
+      <label>Tipo de servicio</label>
+      <div class="seg" id="servicio">
+        <button data-v="coffee" class="on">Coffee break</button>
+        <button data-v="coctel">Cóctel</button>
+      </div>
+      <div class="chk"><input id="vino" type="checkbox"><label for="vino">Con alcohol: vino o cerveza (lleva copas)</label></div>
+      <label>Montaje</label>
+      <div class="seg" id="montajeSeg">
+        <button data-mv="sport" class="on">Sport · desechable</button>
+        <button data-mv="elegante">Elegante · se devuelve</button>
+      </div>
+      <div class="row">
+        <div><label for="saladasPP">Saladas por persona</label><input id="saladasPP" type="number" inputmode="decimal" step="0.5" value="3"></div>
+        <div><label for="dulcesPP">Dulces por persona</label><input id="dulcesPP" type="number" inputmode="decimal" step="0.5" value="2"></div>
+      </div>
+      <label for="surtidoPP">Surtido por persona (curados, quesos, dulces)</label>
+      <input id="surtidoPP" type="number" inputmode="decimal" step="0.5" value="0">
+      <p class="nota">Bandejas normales de <b>20</b>. Curados, quesos y surtido de dulces, de <b>10</b>.</p>
     </div>
-    <label>Calientes preparados (risotto, milhojas…)</label>
-    <input id="calientesPrep" type="number" value="0" min="0">
-    <div class="chk"><input id="tortChaf" type="checkbox"><label for="tortChaf" style="margin:0">Mini tortilla al chafing (cap 30) · si no, va en bandeja (20)</label></div>
-    <div class="chk"><input id="tenedorCroq" type="checkbox" checked><label for="tenedorCroq" style="margin:0">Los fritos necesitan tenedor</label></div>
-  </div>
 
-  <div class="card config">
-    <h2>Intolerancias / dietas (bandeja aparte)</h2>
-    <div id="intolList"></div>
-    <button class="addBtn" id="addIntol">+ Añadir intolerancia</button>
-  </div>
-
-  <div class="card config">
-    <h2>Mesas (ajustable)</h2>
-    <div class="row">
-      <div><label>Mesas bajas (0=auto)</label><input id="mesas" type="number" value="0" min="0"></div>
-      <div><label>Nº de líneas</label><input id="lineas" type="number" value="1" min="1"></div>
+    <div class="card">
+      <h2>Caliente · chafing</h2>
+      <p class="nota" style="margin:0">Fritos: uno de cada tipo por persona, 150 por chafing con 1-2 tipos y 120 con 3 o más. Hamburguesas: 30 por chafing.</p>
+      <div class="row">
+        <div><label for="fritoTipos">Tipos de frito</label><input id="fritoTipos" type="number" inputmode="numeric" value="0" min="0"></div>
+        <div><label for="hamburguesas">Hamburguesas</label><input id="hamburguesas" type="number" inputmode="numeric" value="0" min="0"></div>
+      </div>
+      <label for="calientesPrep">Calientes preparados (risotto, milhojas…)</label>
+      <input id="calientesPrep" type="number" inputmode="numeric" value="0" min="0">
+      <div class="chk"><input id="tortChaf" type="checkbox"><label for="tortChaf">Mini tortilla al chafing (30 por chafing; si no, en bandeja de 20)</label></div>
+      <div class="chk"><input id="tenedorCroq" type="checkbox" checked><label for="tenedorCroq">Los fritos llevan tenedor</label></div>
     </div>
-    <div class="row">
-      <div><label>Mesas altas (0=auto)</label><input id="mesasAltas" type="number" value="0" min="0"></div>
-      <div><label>Pax por mesa alta</label><input id="paxAlta" type="number" value="15" min="1"></div>
-    </div>
-    <p style="font-size:12px;color:#777;margin:6px 0 0">Bajas: mínimo 4–5 bandejas/mesa + bebidas. Altas de cóctel: 1 cada ~10 pax (ajústalo).</p>
-  </div>
 
-  <div class="card">
+    <div class="card">
+      <h2>Intolerancias y dietas</h2>
+      <p class="nota" style="margin:0">Cada una va en su bandeja aparte.</p>
+      <div id="intolList"></div>
+      <button class="addBtn" id="addIntol">+ Añadir intolerancia</button>
+    </div>
+
+    <div class="card">
+      <h2>Mesas</h2>
+      <div class="row">
+        <div><label for="mesas">Mesas bajas (0 = auto)</label><input id="mesas" type="number" inputmode="numeric" value="0" min="0"></div>
+        <div><label for="lineas">Líneas</label><input id="lineas" type="number" inputmode="numeric" value="1" min="1"></div>
+      </div>
+      <div class="row">
+        <div><label for="mesasAltas">Mesas altas (0 = auto)</label><input id="mesasAltas" type="number" inputmode="numeric" value="0" min="0"></div>
+        <div><label for="paxAlta">Personas por mesa alta</label><input id="paxAlta" type="number" inputmode="numeric" value="15" min="1"></div>
+      </div>
+      <p class="nota">Mesa baja: 4-5 bandejas y las bebidas como mínimo. Mesa alta de cóctel: una cada 10 personas, más o menos.</p>
+    </div>
+  </details>
+
+  <div class="resumen">
+    <h2>Para este servicio</h2>
     <div id="destacado" class="destacado"></div>
-    <div id="contador"></div>
+    <div class="progreso-cab"><b id="progresoNum">0 de 0</b><span>listos para salir</span></div>
     <div class="barra"><i id="barraFill" style="width:0%"></i></div>
-    <div id="hoja"></div>
+    <div id="contador"></div>
   </div>
-  <p class="leyenda">Toca cada línea: ○ pendiente → ✓ preparado → 📦 cargado → ! falta → ✕ no tengo</p>
+
+  <div class="leyenda" aria-hidden="true">
+    <span><i></i>Pendiente</span><span><i class="ok"></i>Preparado</span><span><i class="cargado"></i>Cargado</span>
+    <span><i class="falta"></i>Falta</span><span><i class="no"></i>No hay</span>
+  </div>
+  <p class="ayuda">Toca cada línea para pasar al siguiente estado.</p>
+
+  <div id="hoja"></div>
 
   <div class="acciones">
-    <button class="btnPrint" onclick="window.print()">🖨️ Imprimir / PDF</button>
-    <button class="btnReset" id="reiniciar">↻ Reiniciar marcas</button>
-  </div>
-  <div class="acciones" style="margin-top:-6px">
-    <button id="irPlano" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">📄 Hoja de montaje (para imprimir)</button>
+    <button class="boton contorno" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6M7 18H4v-7h16v7h-3"/><path d="M7 14h10v7H7z"/></svg>Imprimir</button>
+    <button class="boton contorno" id="reiniciar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/></svg>Borrar marcas</button>
+    <button class="boton ancho" id="irPlano"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Hoja de montaje para imprimir</button>
   </div>
 
   <!-- Guardar el checklist en la nube (solo con un evento elegido) -->
   <div class="card" id="cardGuardar" style="display:none">
-    <h2>☁️ Guardar checklist</h2>
-    <button id="btnGuardarNube" class="nubeBtn" style="background:var(--ok);color:#fff">💾 Guardar checklist</button>
-    <p id="nubeEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+    <h2>Sincronizar</h2>
+    <button id="btnGuardarNube" class="nubeBtn verde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/><path d="m9.5 13 2 2 3.5-4"/></svg>Guardar checklist</button>
+    <p id="nubeEstado" class="estado"></p>
   </div>
 
   </section> <!-- /view-montaje -->
 
   <!-- ======================= RETORNO (recogida) ======================= -->
   <section id="view-retorno" class="vista" style="display:none">
-    <div class="card">
-      <h2>🔄 Retorno — traer de vuelta al obrador</h2>
-      <p id="retornoInfo" style="font-size:12px;color:#777;margin:0 0 6px"></p>
-      <p class="leyenda" style="margin:0 0 6px">Toca cada línea: ○ pendiente → ✓ recogido → ! falta → ✕ no estaba.<br>Baja el <b>número que vuelve</b> si algo se rompió o se perdió (queda registrado).</p>
-      <div id="retornoLista"></div>
-      <div class="acciones" style="margin-top:12px">
-        <button id="btnCerrarRetorno" class="nubeBtn" style="background:var(--marron2);color:#f7ecdc;flex:1;padding:13px;font-size:15px;font-weight:800">🔒 Cerrar retorno y guardar en Cerrados</button>
-      </div>
-      <p id="retornoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+    <div class="pant"><h1>Retorno</h1><p id="retornoInfo"></p></div>
+    <div class="leyenda" aria-hidden="true">
+      <span><i></i>Pendiente</span><span><i class="ok"></i>Recogido</span><span><i class="falta"></i>Falta</span><span><i class="no"></i>No estaba</span>
     </div>
+    <p class="ayuda">Toca cada línea para marcarla. Si algo se rompió o se perdió, baja el <b>número que vuelve</b>: queda registrado.</p>
+    <div class="seccion"><div id="retornoLista"></div></div>
+    <div class="acciones">
+      <button id="btnCerrarRetorno" class="nubeBtn ancho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Cerrar retorno</button>
+    </div>
+    <p id="retornoEstado" class="estado"></p>
   </section>
 
   <!-- ======================= CERRADOS ======================= -->
   <section id="view-cerrados" class="vista" style="display:none">
-    <div class="card">
-      <h2>🗂️ Cerrados</h2>
-      <p style="font-size:12px;color:#777;margin:0 0 8px">Eventos con el retorno cerrado. Toca uno para revisarlo en Montaje.</p>
-      <div id="cerradosLista"></div>
-    </div>
+    <div class="pant"><h1>Cerrados</h1><p>Eventos con el retorno cerrado. Toca uno para revisarlo.</p></div>
+    <div class="card"><div id="cerradosLista"></div></div>
   </section>
 
   <!-- ======================= FOTOS ======================= -->
   <section id="view-fotos" class="vista" style="display:none">
+    <div class="pant"><h1>Fotos</h1><p id="fotosInfo">Elige un evento en Montaje. Haz fotos de cómo ha quedado; la oficina las descarga para redes.</p></div>
     <div class="card">
-      <h2>📷 Fotos del evento (para la oficina)</h2>
-      <p id="fotosInfo" style="font-size:12px;color:#777;margin:0 0 8px">Elige un evento en Montaje. Haz fotos de cómo ha quedado; la oficina las descarga para redes.</p>
-      <input id="fotoInput" type="file" accept="image/*" multiple capture="environment" style="font-size:13px">
-      <button id="btnSubirFotos" class="nubeBtn" style="background:var(--oro);color:#fff;margin-top:8px">⬆️ Subir fotos</button>
-      <p id="fotoEstado" style="font-size:12px;color:var(--gris);margin:8px 0 0;text-align:center"></p>
+      <label class="camara" for="fotoInput" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span id="fotoTexto">Hacer o elegir fotos</span></label>
+      <input id="fotoInput" type="file" accept="image/*" multiple capture="environment">
+      <button id="btnSubirFotos" class="nubeBtn" style="margin-top:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9m-5 5 5-5 5 5M5 4h14"/></svg>Subir fotos</button>
+      <p id="fotoEstado" class="estado"></p>
       <div id="galeria" class="galeria"></div>
     </div>
   </section>
 
-  <footer>Doña Col · checklist de montaje v3 (vistas)</footer>
+  <footer>Doña Col · Checklist de montaje · diseño 2</footer>
 </main>
+
+<nav class="pestanas" id="pestanas">
+  <button data-vista="montaje" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M15 5.5h3v15H6v-15h3"/><path d="m9 13.5 2 2 4-4.5"/></svg><span>Montaje</span></button>
+  <button data-vista="retorno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3"/><path d="M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg><span>Retorno</span></button>
+  <button data-vista="cerrados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v10.5h14V9M10 13h4"/></svg><span>Cerrados</span></button>
+  <button data-vista="fotos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Fotos</span></button>
+</nav>
 
 <!-- Firebase (guardar checklist en la nube + fotos del evento) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -479,7 +637,7 @@ function renderRetorno(){
     const roto=Math.max(0,llevadas-vuelven);
     return `<div class="item${cls}" data-key="${key}">
       <div class="st">${ICONO[st]}</div>
-      <div class="nm">${i.nm}${i.nt?`<span class="nt">${i.nt}</span>`:''}</div>
+      <div class="nm">${i.nm.replace(/^Recoger · /,'')}${i.nt?`<span class="nt">${i.nt}</span>`:''}</div>
       <div class="ret">
         <input class="retnum" type="number" inputmode="numeric" min="0" max="${llevadas}"
                value="${vuelven}" data-key="${key}" aria-label="Cantidad que vuelve">
@@ -551,7 +709,7 @@ function pintarCerrados(){
     rows.sort((a,b)=>(b.retorno_cerrado_en||'').localeCompare(a.retorno_cerrado_en||''));
     cont.innerHTML=rows.map(r=>`<div class="regrow" data-enc="${esc((r.fecha||'sinfecha')+'_'+r.enc)}">
       <div><b>${esc(r.enc)}</b> · ${esc(r.empresa||'')}<span class="nt">${esc(r.fecha?fmtFecha(r.fecha):'')} · cerrado ${esc((r.retorno_cerrado_en||'').slice(0,10))}</span></div>
-      <span class="badge c-ok">🔒 cerrado</span></div>`).join('');
+      <span class="badge c-ok">Cerrado</span></div>`).join('');
   }).catch(e=>{ cont.innerHTML=`<p style="font-size:12px;color:#999">No se pudieron cargar (${e.message}).</p>`; });
 }
 $('cerradosLista').addEventListener('click',e=>{
@@ -964,17 +1122,17 @@ function calcular(){
 function pintar(S,m){
   // Destacado según servicio
   const tiles=[];
-  tiles.push(`<div class="tile"><b>${m.bandejasTot}</b><span>BANDEJAS</span></div>`);
-  tiles.push(`<div class="tile"><b>${m.chafing}</b><span>CHAFING</span></div>`);
+  tiles.push(`<div class="tile"><b>${m.bandejasTot}</b><span>Bandejas</span></div>`);
+  tiles.push(`<div class="tile"><b>${m.chafing}</b><span>Chafing</span></div>`);
   if(m.servicio==='coffee'){
-    tiles.push(`<div class="tile"><b>${m.cafeBricks}</b><span>CAJAS CAFÉ</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.miniboxCafe}</b><span>MINI BOX</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.miniboxCal}</b><span>MINI BOX CALIENTE</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>AGUA 5L</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.cafeBricks}</b><span>Cajas de café</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.miniboxCafe}</b><span>Mini box café</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.miniboxCal}</b><span>Mini box agua caliente</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>Fuentes de agua</span></div>`);
   }else{
-    if(m.copas>0)tiles.push(`<div class="tile"><b>${m.copas}</b><span>COPAS VINO</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.mesasAltas}</b><span>MESAS ALTAS</span></div>`);
-    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>AGUA fuentes</span></div>`);
+    if(m.copas>0)tiles.push(`<div class="tile"><b>${m.copas}</b><span>Copas de vino</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.mesasAltas}</b><span>Mesas altas</span></div>`);
+    tiles.push(`<div class="tile"><b>${m.dispensadores}</b><span>Fuentes de agua</span></div>`);
   }
   $('destacado').innerHTML=tiles.join('');
 
@@ -982,7 +1140,7 @@ function pintar(S,m){
   let html='';
   html+=`<div id="printHead"><h1>✅ Checklist de Montaje</h1><p>${m.cliente?esc(m.cliente)+' · ':''}${esc(m.pax)} pax · ${m.servicio==='coffee'?'Coffee break':'Cóctel'} · ${m.montaje||'SPORT'}</p></div>`;
   S.forEach(s=>{
-    html+=`<div class="seccion"><h3>${s.icono} ${s.titulo}</h3>`;
+    html+=`<div class="seccion"><h3>${s.titulo}<span>${s.items.length}</span></h3>`;
     s.items.forEach(i=>{
       const st=estados[i.nm]||'';
       const cls=st?(' '+st):'';
@@ -1003,12 +1161,11 @@ function actualizarContador(){
   rows.forEach(r=>{const st=estados[r.getAttribute('data-key')]||'';
     if(st==='ok')nOk++;else if(st==='cargado')nCargado++;else if(st==='falta')nFalta++;else if(st==='no')nNo++;});
   const nPend=total-nOk-nCargado-nFalta-nNo;
-  $('contador').innerHTML=`<div class="contador">
-    <span class="c-ok">✓ ${nOk} preparado</span>
-    <span class="c-cargado">📦 ${nCargado} cargado</span>
-    <span class="c-falta">! ${nFalta} falta</span>
-    <span class="c-no">✕ ${nNo} no tengo</span>
-    <span class="c-pend">○ ${nPend} pendiente</span></div>`;
+  const _c=(n,cls,txt)=>`<span class="${cls}${n?'':' cero'}">${n} ${txt}</span>`;
+  $('contador').innerHTML=`<div class="contador">`+_c(nOk,'c-ok',nOk===1?'preparado':'preparados')
+    +_c(nCargado,'c-cargado',nCargado===1?'cargado':'cargados')+_c(nFalta,'c-falta',nFalta===1?'falta':'faltan')
+    +_c(nNo,'c-no','no hay')+_c(nPend,'c-pend',nPend===1?'pendiente':'pendientes')+`</div>`;
+  if($('progresoNum'))$('progresoNum').textContent=(nOk+nCargado)+' de '+total;
   // La barra avanza con lo ya preparado o cargado (lo "resuelto").
   $('barraFill').style.width=total?Math.round((nOk+nCargado)/total*100)+'%':'0%';
 }
@@ -1084,6 +1241,30 @@ function matchMenu(nombre){
 // Ubicacion del evento. Se pinta aparte y no dentro de la linea gris de info:
 // es el dato que se mira desde la furgoneta, con prisa. La ciudad entra en la
 // busqueda de Maps porque muchas direcciones vienen sin ella ("HALL SALON ARAGON").
+// Contacto y teléfonos del evento. Un móvil o fijo por botón; los textos raros («ver correo») no se pintan.
+function telefonosDe(ev){
+  const crudos=[ev.tel, ev.movil];
+  const d=String(ev.desc||'').match(/Tel\. destinatario:\s*([^\n]+)/i);
+  if(d)crudos.push(d[1]);
+  const vistos={}, out=[];
+  crudos.filter(Boolean).forEach(t=>String(t).split(/\s*[\/,;·]\s*|\s+-\s+/).forEach(x=>{
+    const limpio=x.replace(/^(m[oó]vil|tel[eé]fono|tel\.?|fijo)\s*:?\s*/i,'').trim();
+    const dig=limpio.replace(/[^\d+]/g,'');
+    if(dig.replace(/\D/g,'').length>=9 && !vistos[dig]){vistos[dig]=1; out.push({ver:limpio, num:dig});}
+  }));
+  return out;
+}
+function pintarTelefono(ev){
+  const caja=$('evTel'); if(!caja) return;
+  const tels=ev?telefonosDe(ev):[];
+  if(!ev || (!tels.length && !ev.contacto)){caja.style.display='none';caja.innerHTML='';return;}
+  caja.style.display='block';
+  const ico='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
+  caja.innerHTML=(ev.contacto?'<p class="quien">Contacto en el evento<br><b>'+esc(ev.contacto)+'</b></p>':'')
+    +(tels.length?tels.map(t=>'<a href="tel:'+esc(t.num)+'">'+ico+'Llamar al '+esc(t.ver)+'</a>').join('')
+                 :'<p class="quien">Sin teléfono en el pedido.</p>');
+}
+
 function pintarDireccion(ev){
   const caja=$('evDir');
   if(!caja) return;
@@ -1091,7 +1272,7 @@ function pintarDireccion(ev){
   caja.style.display='block';   // '' devolveria el display:none de la hoja de estilos
   const dir=(ev.direccion||'').trim();
   if(!dir){
-    caja.innerHTML='<div class="dirFalta">📍 Sin dirección en el pedido — pregunta en oficina antes de salir.</div>';
+    caja.innerHTML='<div class="dirFalta">Sin dirección en el pedido — pregunta en oficina antes de salir.</div>';
     return;
   }
   const consulta=encodeURIComponent(dir+(ev.ciudad?', '+ev.ciudad:''));
@@ -1099,7 +1280,7 @@ function pintarDireccion(ev){
     (ev.ciudad?'<br><span style="font-weight:600;color:var(--gris);font-size:13px">'+esc(ev.ciudad)+'</span>':'')+
     '</span></div>'+
     '<a class="mapsBtn" href="https://www.google.com/maps/search/?api=1&query='+consulta+
-    '" target="_blank" rel="noopener">🗺️ Cómo llegar</a>';
+    '" target="_blank" rel="noopener">Cómo llegar</a>';
 }
 
 function seleccionarEvento(val){
@@ -1113,7 +1294,7 @@ function seleccionarEvento(val){
   eventoActual=ev?claveNube(ev):null;
   cargarEstados();
   const info=$('evInfo');
-  if(!ev){if(DESUSCRIBIR){DESUSCRIBIR();DESUSCRIBIR=null;}info.textContent='';pintarDireccion(null);calcular();return;}
+  if(!ev){if(DESUSCRIBIR){DESUSCRIBIR();DESUSCRIBIR=null;}info.textContent='';pintarDireccion(null);pintarTelefono(null);calcular();return;}
   const _v=claveNube(ev);
   if($('selEvento').value!==_v)$('selEvento').value=_v; // puede venir de Cerrados
   if(ev.pax)$('pax').value=ev.pax;
@@ -1133,23 +1314,24 @@ function seleccionarEvento(val){
   let cam='';
   if(typeof ev.cam==='number'){
     cam = ev.cam>0
-      ? `<br>👤 <b>${ev.cam} camarero${ev.cam>1?'s':''}</b>`
+      ? `<br><b>${ev.cam} camarero${ev.cam>1?'s':''}</b>`
         + (ev.cam_dur?` · ${esc(ev.cam_dur)}`:'') + (ev.cam_hor?` · ${esc(ev.cam_hor)}`:'')
-      : '<br>👤 <b>Sin camareros</b> · se monta y se recoge, nadie se queda sirviendo';
+      : '<br><b>Sin camareros</b> · se monta y se recoge, nadie se queda sirviendo';
   }
   info.innerHTML=`<b>${esc(ev.enc)}</b> · ${esc(ev.menu||'')}<br>${esc(fmtFecha(ev.fecha))} · ${esc(ev.ciudad||'')}`+
     ` · montaje <b>${esc(ev.montaje||'NO')}</b>`+(ev.hora?` · ${esc(ev.hora)}`:'')+cam+
-    (clave?'':'<br>⚠️ Menú sin ficha en esta app: revisa piezas/persona a mano.');
+    (clave?'':'<br>Menú sin ficha en esta app: revisa piezas/persona a mano.');
   if(DESC_ESCRITA){
     const lineas=DESC_ESCRITA.split(/\n|•/).map(x=>x.trim()).filter(Boolean);
     info.innerHTML+='<details style="margin-top:6px"'+(BEB_ESCRITAS?' open':'')+'>'
-      +'<summary style="cursor:pointer;color:#b06d24;font-weight:600">📝 Menú tal como está en el presupuesto'
+      +'<summary style="cursor:pointer;color:#b06d24;font-weight:600">Menú tal como está en el presupuesto'
       +(BEB_ESCRITAS?' · <span style="color:#c0392b">bebidas cambiadas a mano</span>':'')+'</summary>'
       +'<div style="margin-top:4px;line-height:1.45">'
       +lineas.map(l=>/:$/.test(l)?'<b>'+esc(l)+'</b>':'• '+esc(l)).join('<br>')
       +'</div></details>';
   }
   pintarDireccion(ev);
+  pintarTelefono(ev);
   calcular();
   prepararNube(ev);   // muestra Guardar + fotos y carga lo que haya en la nube
 }
@@ -1462,7 +1644,7 @@ render();calcular();
   if(r===null){
     // hay eventos publicados pero este móvil no tiene la clave
     $('cardEventos').style.display='';
-    $('evInfo').innerHTML='🔒 Eventos bloqueados: abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.';
+    $('evInfo').innerHTML='<b>Eventos bloqueados.</b> abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.';
     return;
   }
   EVS=r||[];
@@ -1480,6 +1662,25 @@ if('serviceWorker' in navigator){
   var _swrel=false;
   navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_swrel){_swrel=true;location.reload();}});
 }
+</script>
+<script>
+// Diseño v2: las pestañas de abajo cambian de pantalla (el código sigue usando showVista y el desplegable oculto)
+(function(){
+  var tabs=document.querySelectorAll('#pestanas button');
+  var _sv=showVista;
+  showVista=function(v){ _sv(v); $('vista').value=v; tabs.forEach(function(b){b.classList.toggle('on',b.dataset.vista===v);}); };
+  tabs.forEach(function(b){ b.onclick=function(){ showVista(b.dataset.vista); }; });
+  // En la barra de arriba, el evento con el que se está trabajando
+  var _se=seleccionarEvento;
+  seleccionarEvento=function(v){ _se(v);
+    $('barraSub').textContent=(eventoActual&&EV_NUBE)?(EV_NUBE.enc+(EV_NUBE.empresa?' · '+EV_NUBE.empresa:'')):''; };
+  // Fotos: cuántas hay elegidas
+  var TXT='Hacer o elegir fotos';
+  $('fotoInput').addEventListener('change',function(e){ var n=e.target.files.length;
+    $('fotoTexto').textContent=n?(n===1?'1 foto elegida':n+' fotos elegidas'):TXT; });
+  $('btnSubirFotos').addEventListener('click',function(){ setTimeout(function(){
+    if(!$('fotoInput').files.length)$('fotoTexto').textContent=TXT; },0); });
+})();
 </script>
 </body>
 </html>

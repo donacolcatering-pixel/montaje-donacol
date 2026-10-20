@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v22';
+const CACHE = 'montaje-v23';   // v23 (20/10/2026): diseño nuevo de la checklist
 // eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
 // cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
 // primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
