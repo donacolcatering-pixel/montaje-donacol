@@ -286,6 +286,22 @@
   .eq-acciones button.prim{background:var(--acento);color:var(--sobre);box-shadow:none}
   .eq-acciones button:disabled{opacity:.5}
   .eq-hist{margin:8px 0 0;font-size:12px;color:var(--suave)}
+  /* Resumen del administrador */
+  .rs-cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+  .rs-cifras div{padding:12px 6px;border-radius:12px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);text-align:center}
+  .rs-cifras b{display:block;font-family:var(--display);font-weight:500;font-size:28px;line-height:1;white-space:nowrap}
+  .rs-cifras .med b{font-size:20px;line-height:1.4}
+  .rs-cifras span{display:block;margin-top:4px;font-size:12px;font-weight:700;color:var(--suave)}
+  .rs-cifras .ok b{color:var(--ok)} .rs-cifras .tarde b{color:var(--no)}
+  .rs-h{margin:22px 0 8px;font-size:18px;font-weight:800}
+  .rs-persona{padding:14px;margin:8px 0;border-radius:14px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea);border-left:5px solid var(--quien,var(--taupe))}
+  .rs-persona b{font-size:16px} .rs-persona p{margin:4px 0 0;font-size:14px;color:var(--suave)}
+  .rs-barra{display:flex;height:8px;margin-top:10px;border-radius:4px;overflow:hidden;background:var(--sup2)}
+  .rs-barra i{background:var(--ok)} .rs-barra s{background:var(--no)}
+  .rs-fila{display:flex;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--linea);font-size:14px}
+  .rs-fila .m{margin-left:auto;font-weight:800;white-space:nowrap}
+  .rs-fila .m.tarde{color:var(--no)} .rs-fila .m.ok{color:var(--ok)}
+  .rs-fila span{color:var(--suave)}
   .eq-pedido[data-abrir-enc]{cursor:pointer}
   .eq-pedido .ver{float:right;color:var(--suave)} .eq-pedido .ver svg{width:18px;height:18px}
   .ok-quien{margin:6px 0 0;color:var(--suave)} .ok-quien b{color:var(--tinta)}
@@ -1216,7 +1232,7 @@ window.addEventListener('online', ()=>subirCola(true));
 // ======================= EQUIPO (20/10/2026) =======================
 // Ver la explicación en repartos-v2-propuesta/parche_equipo.py.
 const DOMINIO_EQUIPO='equipo.donacol.es';
-let USUARIO=null, PERFIL=null, EQUIPO=[], ASIG={}, EQ_DIA='', EQ_MODO='entrar', EQ_TIPO='';   // EQ_TIPO: '' todo, 'rep' repartos, 'desa' desayunos
+let USUARIO=null, PERFIL=null, EQUIPO=[], ASIG={}, EQ_DIA='', EQ_MODO='entrar', EQ_TIPO='', EQ_VISTA='asignar', RS_PERIODO='hoy';   // EQ_TIPO: '' todo, 'rep' repartos, 'desa' desayunos
 let SOLO_MIOS=true; try{ SOLO_MIOS=localStorage.getItem('reparto_solo_mios')!=='0'; }catch(e){}
 let VER_UID='';   // ruta de otra persona (el administrador o quien quiera mirar la de un compañero)
 function uidRuta(){ return VER_UID || (esRepartidor() && SOLO_MIOS ? USUARIO.uid : ''); }
@@ -1266,6 +1282,7 @@ function iniciarEquipo(){
         EQUIPO=[]; sn.forEach(d=>EQUIPO.push(Object.assign({uid:d.id}, d.data())));
         EQUIPO.sort((a,b)=>(a.rol===b.rol?0:(a.rol==='repartidor'?-1:1)) || String(a.nombre).localeCompare(String(b.nombre)));
         const yo=EQUIPO.find(p=>p.uid===USUARIO.uid); if(yo) PERFIL=yo;
+        if(TOKEN_FCM && !(avisoLocal()&&avisoLocal().uid===USUARIO.uid)) guardarDispositivoFCM();
         pintarChip(); pintarEquipo(); pintarLista();
       }, ()=>{}));
     }
@@ -1291,6 +1308,139 @@ function iniciarEquipo(){
     }catch(e){}
     pintarChip(); pintarEquipo(); pintarLista();
   });
+}
+
+// ======================= RESUMEN (administrador) — 20/10/2026 =======================
+function pestanasAdmin(){
+  return `<div class="eq-seg" style="margin:4px 0 6px"><button data-eqvista="asignar" class="${EQ_VISTA==='asignar'?'on':''}">Asignar</button><button data-eqvista="resumen" class="${EQ_VISTA==='resumen'?'on':''}">Resumen</button></div>`;
+}
+function activarPestanasAdmin(c){ c.querySelectorAll('[data-eqvista]').forEach(b=>b.onclick=()=>{ EQ_VISTA=b.dataset.eqvista; pintarEquipo(); }); }
+function isoMenos(dias){ const d=new Date(); d.setDate(d.getDate()-dias); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function minHora(t){ const m=String(t||'').match(/(\d{1,2})[:.](\d{2})/); return m?(+m[1])*60+(+m[2]):null; }
+// Retraso de una entrega en minutos (negativo o 0 = a tiempo); null si no se puede saber
+function retrasoDe(en){
+  const hecha=minHora(en.hora_entrega); if(hecha===null) return null;
+  const fin=finFranja({hora:en.hora_prevista}); if(fin>=99999) return null;
+  return hecha-fin;
+}
+const rsDur=m=>m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0');
+function htmlResumen(){
+  const hoy=hoyISO();
+  const rango={hoy:[hoy,hoy], ayer:[isoMenos(1),isoMenos(1)], s7:[isoMenos(6),hoy], s30:[isoMenos(29),hoy]}[RS_PERIODO];
+  const ents=Object.values(ENTREGAS).filter(en=>en.fecha>=rango[0] && en.fecha<=rango[1]);
+  const conR=ents.map(en=>({en, r:retrasoDe(en)}));
+  const tarde=conR.filter(x=>x.r!==null && x.r>0), aTiempo=conR.filter(x=>x.r!==null && x.r<=0);
+  const medio=tarde.length?Math.round(tarde.reduce((t,x)=>t+x.r,0)/tarde.length):0;
+  let h=`<h2>Equipo</h2><p class="eq-sub">Resumen de las entregas.</p>${pestanasAdmin()}
+    <div class="eq-dias">${[['hoy','Hoy'],['ayer','Ayer'],['s7','Últimos 7 días'],['s30','Últimos 30 días']].map(([k,t])=>`<button data-periodo="${k}" class="${RS_PERIODO===k?'on':''}">${t}</button>`).join('')}</div>
+    <div class="rs-cifras"><div><b>${ents.length}</b><span>Entregas</span></div><div class="ok"><b>${aTiempo.length}</b><span>A tiempo</span></div>
+      <div class="tarde"><b>${tarde.length}</b><span>Con retraso</span></div><div class="med"><b>${tarde.length?rsDur(medio).replace(' h ','h '):'—'}</b><span>Retraso medio</span></div></div>`;
+  // Por persona
+  const porQuien={};
+  conR.forEach(x=>{ const k=x.en.repartidor_uid||('n:'+(x.en.repartidor||'')); (porQuien[k]=porQuien[k]||{nombre:x.en.repartidor||'Sin perfil (antes del 20/10)', uid:x.en.repartidor_uid||'', l:[]}).l.push(x); });
+  const grupos=Object.values(porQuien).sort((a,b)=>b.l.length-a.l.length);
+  if(grupos.length) h+='<p class="rs-h">Por repartidor</p>';
+  grupos.forEach(g=>{
+    const t=g.l.filter(x=>x.r!==null&&x.r>0), ok=g.l.filter(x=>x.r!==null&&x.r<=0);
+    const med=t.length?Math.round(t.reduce((s,x)=>s+x.r,0)/t.length):0, peor=t.length?Math.max(...t.map(x=>x.r)):0;
+    const tot=Math.max(1,ok.length+t.length);
+    h+=`<div class="rs-persona" style="--quien:${g.uid?colorDe(g.uid):'var(--taupe)'}"><b>${esc(g.nombre)}</b>
+      <p>${g.l.length} ${g.l.length===1?'entrega':'entregas'} · ${ok.length} a tiempo · ${t.length} con retraso${t.length?' (media '+rsDur(med)+', la peor '+rsDur(peor)+')':''}</p>
+      <div class="rs-barra"><i style="width:${ok.length/tot*100}%"></i><s style="width:${t.length/tot*100}%"></s></div></div>`;
+  });
+  // Hoy: pendientes y lo que ya va tarde
+  if(RS_PERIODO==='hoy'){
+    const ahora=new Date(), minAhora=ahora.getHours()*60+ahora.getMinutes();
+    const pend=REPARTOS.filter(e=>e.fecha===hoy && normCiudad(e.ciudad)==='Zaragoza' && !entregaDe(e));
+    if(pend.length){
+      h+='<p class="rs-h">Quedan por entregar hoy</p>';
+      pend.sort((a,b)=>minutosHora(a.hora)-minutosHora(b.hora)).forEach(e=>{
+        const a=asignacionDe(e), fin=finFranja(e), va=fin<99999 && minAhora>fin;
+        h+=`<div class="rs-fila"><b>${esc(horaCorta(e.hora).ini||'—')}</b><div>${esc(nombreParada(e))}<br><span>${a&&a.uid?esc(a.nombre):'Sin asignar'}</span></div>
+          <span class="m ${va?'tarde':''}">${va?'Va tarde '+rsDur(minAhora-fin):'Pendiente'}</span></div>`;
+      });
+    }
+  }
+  if(tarde.length){
+    h+='<p class="rs-h">Entregas con retraso</p>';
+    tarde.sort((a,b)=>b.r-a.r).forEach(x=>{
+      h+=`<div class="rs-fila"><div>${esc(x.en.empresa||x.en.enc)}<br><span>${esc(capital(fmtFecha(x.en.fecha)))} · ${esc(horaCorta(x.en.hora_prevista).ini||'')}${horaCorta(x.en.hora_prevista).fin?'-'+esc(horaCorta(x.en.hora_prevista).fin):''} · entregado ${esc(x.en.hora_entrega||'')}${x.en.repartidor?' · '+esc(x.en.repartidor):''}</span></div><span class="m tarde">+${rsDur(x.r)}</span></div>`;
+    });
+  }
+  if(!ents.length) h+='<p class="vacio">No hay entregas en este periodo.</p>';
+  h+='<p class="eq-sub" style="margin-top:18px;font-size:13px">A tiempo = entregado antes de que acabe su franja. Cuenta la hora en que se confirma en la app: si se confirma más tarde de entregar, sale como retraso.</p>';
+  return h+pieEquipo();
+}
+function activarResumen(c){
+  c.querySelectorAll('[data-periodo]').forEach(b=>b.onclick=()=>{ RS_PERIODO=b.dataset.periodo; pintarEquipo(); });
+  activarPestanasAdmin(c); activarPie();
+}
+
+// ======================= AVISOS AL MÓVIL — 20/10/2026 =======================
+const VAPID_PUBLICA='BK8arFMAPssSPLWLlCLd3G7dB7VsYOHDdQhW8MBhHfxr4NmTlv5EZvACT71jkYr2vsqirijob9P_MOY9HTlGde4';
+let TOKEN_FCM=null;                       // lo pone la APK al cargar la página
+window.recibirTokenFCM=function(t){ TOKEN_FCM=t; guardarDispositivoFCM(); };
+function idAviso(texto){ return crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto))
+  .then(h=>[...new Uint8Array(h)].slice(0,20).map(b=>b.toString(16).padStart(2,'0')).join('')); }
+function avisoLocal(){ try{ return JSON.parse(localStorage.getItem('aviso_disp')||'null'); }catch(e){ return null; } }
+function avisoLocalGuardar(x){ try{ x?localStorage.setItem('aviso_disp',JSON.stringify(x)):localStorage.removeItem('aviso_disp'); }catch(e){} }
+function prefsPorDefecto(){ return {entregas: !!(PERFIL && PERFIL.rol==='admin')}; }
+async function guardarDispositivo(tipo, valor, clave){
+  const id=await idAviso(clave);
+  const antes=avisoLocal();
+  const prefs=(antes&&antes.id===id&&antes.prefs)||prefsPorDefecto();
+  const doc={uid:USUARIO.uid, tipo, prefs, actualizado:new Date().toISOString(), agente:navigator.userAgent.slice(0,120)};
+  if(tipo==='web') doc.sub=valor; else doc.token=valor;
+  if(!antes || antes.id!==id) doc.creado=new Date().toISOString();
+  await DB.collection('avisos_dispositivos').doc(id).set(doc,{merge:true});
+  avisoLocalGuardar({id, tipo, uid:USUARIO.uid, prefs});
+}
+async function guardarDispositivoFCM(){
+  if(!TOKEN_FCM || !USUARIO || !PERFIL || !DB) return;
+  try{ await guardarDispositivo('fcm', TOKEN_FCM, 'fcm:'+TOKEN_FCM); pintarEquipo(); }catch(e){ console.warn('avisos APK', e); }
+}
+function u8DesdeB64(b){ const p='='.repeat((4-b.length%4)%4); const raw=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(raw,c=>c.charCodeAt(0)); }
+const PUEDE_WEBPUSH=('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
+const INSTALADA=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+async function activarAvisosWeb(){
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted') throw new Error('Sin permiso: en los ajustes del móvil, permite las notificaciones de esta app.');
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:u8DesdeB64(VAPID_PUBLICA)});
+  const j=sub.toJSON();
+  await guardarDispositivo('web', {endpoint:j.endpoint, keys:j.keys}, 'web:'+j.endpoint);
+}
+async function desactivarAvisos(){
+  const a=avisoLocal();
+  if(a){ try{ await DB.collection('avisos_dispositivos').doc(a.id).delete(); }catch(e){} }
+  if(a && a.tipo==='web'){ try{ const reg=await navigator.serviceWorker.ready; const s=await reg.pushManager.getSubscription(); if(s) await s.unsubscribe(); }catch(e){} }
+  avisoLocalGuardar(null);
+}
+function htmlAvisos(){
+  const a=avisoLocal(), activos=!!(a && USUARIO && a.uid===USUARIO.uid);
+  let h='<div class="eq-card"><b>Avisos en este móvil</b>';
+  if(activos){
+    h+=`<p class="eq-sub" style="margin:6px 0 0">Activados. Te llega un aviso cuando te asignan, pasan o quitan un reparto, cuando la oficina cambia uno tuyo y, cada tarde, lo que tienes mañana.</p>`;
+    if(PERFIL.rol==='admin') h+=`<label class="eq-recordar"><input type="checkbox" id="avEntregas" ${a.prefs&&a.prefs.entregas?'checked':''}> Avisarme de cada entrega</label>`;
+    h+=`<button class="eq-enlace" id="avQuitar">Desactivar los avisos</button>`;
+  } else if(EN_APK){
+    h+=`<p class="eq-sub" style="margin:6px 0 0">${TOKEN_FCM?'Activándolos…':'Abre la app actualizada (versión 1.1) y acepta las notificaciones.'}</p>`;
+  } else if(!PUEDE_WEBPUSH || (SO_IOS && !INSTALADA)){
+    h+=`<p class="eq-sub" style="margin:6px 0 0">${SO_IOS?'En iPhone, primero añade la app a la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y ábrela desde su icono.':'Este navegador no admite avisos. Usa Chrome o la app de Android.'}</p>`;
+  } else {
+    h+=`<p class="eq-sub" style="margin:6px 0 0">Te avisa cuando te asignan o pasan un reparto, si cambia uno tuyo y, cada tarde, de lo que tienes mañana.</p>
+        <button class="boton" id="avActivar">Activar avisos</button><p class="eq-error" id="avError"></p>`;
+  }
+  return h+'</div>';
+}
+function activarAvisosUI(c){
+  const b=c.querySelector('#avActivar'); if(b) b.onclick=async()=>{ b.disabled=true; b.textContent='Activando…';
+    try{ await activarAvisosWeb(); pintarEquipo(); }catch(e){ c.querySelector('#avError').textContent=e.message||String(e); b.disabled=false; b.textContent='Activar avisos'; } };
+  const q=c.querySelector('#avQuitar'); if(q) q.onclick=async()=>{ await desactivarAvisos(); pintarEquipo(); };
+  const en=c.querySelector('#avEntregas'); if(en) en.onchange=async()=>{ const a=avisoLocal(); if(!a) return;
+    a.prefs=Object.assign({}, a.prefs||{}, {entregas:en.checked}); avisoLocalGuardar(a);
+    try{ await DB.collection('avisos_dispositivos').doc(a.id).set({uid:USUARIO.uid, prefs:a.prefs, actualizado:new Date().toISOString(), tipo:a.tipo},{merge:true}); }catch(e){} };
 }
 
 // Botones de asignar un reparto (los mismos en Equipo, en la Ruta y en la ficha)
@@ -1335,8 +1485,10 @@ function pintarEquipo(){
     EQ_DIA = (quedanHoy && dias.includes(hoy)) ? hoy : (dias.includes(man) ? man : (dias[0]||''));
   }
   const reps=EQUIPO.filter(p=>p.rol==='repartidor');
+  if(PERFIL.rol==='admin' && EQ_VISTA==='resumen'){ c.innerHTML=htmlResumen(); activarResumen(c); return; }
   let h=`<h2>Equipo</h2><p class="eq-sub">Hola, <b>${esc(PERFIL.nombre)}</b>${PERFIL.rol==='admin'?' (administrador)':''}. Repartos de Zaragoza: cada uno se queda los suyos y la app le hace su ruta.</p>`;
-  if(!dias.length){ c.innerHTML=h+'<p class="vacio">No hay repartos pendientes en Zaragoza.</p>'+pieEquipo(); activarPie(); return; }
+  if(PERFIL.rol==='admin') h+=pestanasAdmin();
+  if(!dias.length){ c.innerHTML=h+'<p class="vacio">No hay repartos pendientes en Zaragoza.</p>'+pieEquipo(); activarPie(); activarPestanasAdmin(c); return; }
   h+='<div class="eq-dias">'+dias.map(d=>`<button data-dia="${d}" class="${d===EQ_DIA?'on':''}">${esc(capital(etiquetaBonita(d).replace('Paradas de hoy','Hoy')))}</button>`).join('')+'</div>';
   const delDia=REPARTOS.filter(e=>e.fecha===EQ_DIA && normCiudad(e.ciudad)==='Zaragoza')
     .sort((a,b)=>(minutosHora(a.hora)-minutosHora(b.hora))||(finFranja(a)-finFranja(b))||a.enc.localeCompare(b.enc));
@@ -1376,6 +1528,7 @@ function pintarEquipo(){
   c.innerHTML=h+pieEquipo();
   c.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{ EQ_DIA=b.dataset.dia; pintarEquipo(); });
   c.querySelectorAll('[data-tipo]').forEach(b=>b.onclick=()=>{ EQ_TIPO=b.dataset.tipo; pintarEquipo(); });
+  activarPestanasAdmin(c);
   activarBotonesAsig(c);
   c.querySelectorAll('[data-abrir-enc]').forEach(t=>t.onclick=ev=>{
     if(ev.target.closest('button')) return;   // los botones de asignar van aparte
@@ -1388,11 +1541,13 @@ function pintarEquipo(){
   activarPie();
 }
 function pieEquipo(){
-  return `<div class="eq-card"><b>${esc(PERFIL.nombre)}</b><br><span class="eq-sub">Usuario: ${esc(PERFIL.usuario||'')} · ${PERFIL.rol==='admin'?'Administrador':'Repartidor'}${PERFIL.furgoneta?' · furgoneta '+esc(PERFIL.furgoneta):''}</span>
+  return htmlAvisos()+`<div class="eq-card"><b>${esc(PERFIL.nombre)}</b><br><span class="eq-sub">Usuario: ${esc(PERFIL.usuario||'')} · ${PERFIL.rol==='admin'?'Administrador':'Repartidor'}${PERFIL.furgoneta?' · furgoneta '+esc(PERFIL.furgoneta):''}</span>
     <button class="eq-enlace" id="eqEditar">Cambiar mis datos</button><button class="eq-enlace" id="eqSalir">Cerrar sesión</button></div>`;
 }
 function activarPie(){
+  const ce=$('equipo'); if(ce) activarAvisosUI(ce);
   const s=$('eqSalir'); if(s) s.onclick=async()=>{ if(!confirm('¿Cerrar sesión en este móvil?')) return;
+    await desactivarAvisos();
     await firebase.auth().signOut(); _sesionLista=null; EQ_MODO='entrar'; ensureAuth(); };
   const e=$('eqEditar'); if(e) e.onclick=()=>{ const c=$('equipo'); c.innerHTML=formPerfil(PERFIL); activarPerfil(PERFIL); };
 }

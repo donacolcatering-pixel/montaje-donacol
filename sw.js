@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v25';   // v25 (20/10/2026): el service worker ya no intercepta Firebase ni otras webs
+const CACHE = 'montaje-v26';   // v26 (20/10/2026): avisos al móvil (push) de Repartos
 // eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
 // cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
 // primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
@@ -26,6 +26,24 @@ self.addEventListener('activate', e => {
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// AVISOS AL MÓVIL (20/10/2026): los manda el puente de la torre (avisos_repartos). Tocar el aviso abre la app.
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Repartos · Doña Col', {
+    body: d.body || '', icon: 'iconos/repartos-192.png', badge: 'iconos/repartos-192.png',
+    tag: d.tag || undefined, data: { url: d.url || './repartos.html' }
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './repartos.html', self.location).href;
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => {
+    for (const w of ws) { if (w.url.indexOf('repartos.html') >= 0) return w.focus(); }
+    return clients.openWindow(url);
+  }));
 });
 
 self.addEventListener('fetch', e => {
