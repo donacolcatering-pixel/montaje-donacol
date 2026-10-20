@@ -142,6 +142,12 @@
   .det-desa .tarjeta{margin:0;font-size:16px;font-style:italic;line-height:1.4}
   .det-desa small{display:block;font-style:normal;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--desa);margin-bottom:2px}
   .det-desa p{margin:0}
+  /* Contacto de un reparto de catering */
+  .det-contacto{margin:0 0 16px;padding:14px;border-radius:14px;background:var(--sup2);display:flex;flex-direction:column;gap:10px}
+  .det-contacto small{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--suave);margin-bottom:2px}
+  .det-contacto p{margin:0;font-size:17px;font-weight:700}
+  .det-contacto .tel{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border-radius:12px;background:var(--acento);color:var(--sobre);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+  .det-contacto .sin{font-size:15px;font-weight:500;color:var(--suave)}
 
   .vacio{margin:24px 0;padding:22px;border-radius:var(--r);background:var(--sup);text-align:center;color:var(--suave)}
   .aviso{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--ambbg);color:var(--amb);font-size:14px}
@@ -424,6 +430,23 @@ function datosDesayuno(e){
            tarjeta: m(/TARJETA:\s*([^\n]+)/i), nota: m(/Nota:\s*([^\n]+)/i) };
 }
 
+// Contacto y teléfonos de cualquier parada (20/10/2026). La central exporta contacto, tel y movil;
+// los desayunos web traen además «Tel. destinatario» en la descripción. Un número por botón, sin repetir.
+function telefonosParada(e){
+  const crudos=[e.tel, e.movil];
+  const d=String(e.desc||'').match(/Tel\. destinatario:\s*([^\n]+)/i);
+  if(d)crudos.push(d[1]);
+  const vistos={}, out=[];
+  crudos.filter(Boolean).forEach(t=>String(t).split(/\s*[\/,;·]\s*|\s+-\s+/).forEach(x=>{
+    const ver=x.replace(/^(m[oó]vil|tel[eé]fono|tel\.?|fijo)\s*:?\s*/i,'').trim();
+    const num=ver.replace(/[^\d+]/g,'');
+    if(num.replace(/\D/g,'').length>=9 && !vistos[num]){vistos[num]=1; out.push({ver, num});}
+  }));
+  return out;
+}
+const ICO_TEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
+const botonTel=t=>'<a class="tel" href="tel:'+esc(t.num)+'">'+ICO_TEL+' Llamar al '+esc(t.ver)+'</a>';
+
 // ---------- Lista ----------
 // Iconos propios (los emojis se ven distintos en cada móvil)
 const _svg=(p,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w||1.9}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -585,6 +608,7 @@ function tarjetaSiguiente(e){
     <div class="sig-botones">
       ${e.direccion?`<a class="boton contorno" href="${esc(urlMaps(e))}" target="_blank" rel="noopener">${ICO.navegar} Cómo llegar</a>`:''}
       <button class="boton" data-abrir${e.direccion?'':' style="grid-column:1/-1"'}>${ICO.firma} Entregar</button>
+      ${(()=>{const t=telefonosParada(e)[0]; return t?`<a class="boton contorno" style="grid-column:1/-1" href="tel:${esc(t.num)}">${ICO_TEL} Llamar${e.contacto?' a '+esc(e.contacto):''}</a>`:'';})()}
     </div>
   </section>`;
 }
@@ -720,9 +744,17 @@ function abrir(enc, fecha){
     <p class="det-hora">${esc(ev.fecha?capital(fmtFecha(ev.fecha))+', ':'')}${h.ini?'de '+esc(h.ini)+(h.fin?' a '+esc(h.fin):''):esc(h.texto).toLowerCase()}</p>
     <p class="det-dir">${esc(ev.direccion||'Sin dirección')}</p>
     <p class="det-meta">${esc(metaParada(ev))}</p>
-    ${(()=>{ if(!esDesayuno(ev)) return ''; const d=datosDesayuno(ev);
+    ${(()=>{ const tels=telefonosParada(ev);
+      if(!esDesayuno(ev)){
+        if(!tels.length && !ev.contacto) return '';
+        return '<div class="det-contacto">'
+          + (ev.contacto?'<p><small>Contacto</small>'+esc(ev.contacto)+'</p>':'')
+          + (tels.length?tels.map(botonTel).join(''):'<p class="sin">Sin teléfono en el pedido.</p>')
+          + '</div>'; }
+      const d=datosDesayuno(ev);
       return '<div class="det-desa">'
-        + d.tels.map(t=>'<a class="tel" href="tel:'+esc(t.replace(/[^\d+]/g,''))+'">'+_svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>')+' Llamar a '+esc(t)+'</a>').join('')
+        + (ev.contacto?'<p><small>Contacto</small>'+esc(ev.contacto)+'</p>':'')
+        + tels.map(botonTel).join('')
         + (d.tarjeta?'<p class="tarjeta"><small>Tarjeta</small>«'+esc(d.tarjeta)+'»</p>':'')
         + (d.nota?'<p><small>Nota del cliente</small>'+esc(d.nota)+'</p>':'')
         + '</div>'; })()}
