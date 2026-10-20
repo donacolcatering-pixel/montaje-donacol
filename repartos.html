@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Repartos">
 <title>Repartos · Doña Col</title>
 <link rel="manifest" href="repartos-manifest.json">
-<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="iconos/repartos-180.png">
 <style>
   /* Tipografías de la marca, guardadas en la app (funcionan sin cobertura) */
   @font-face{font-family:"Hanken";src:url(fonts/hanken.woff2) format("woff2");font-weight:300 800;font-display:swap}
@@ -164,6 +164,14 @@
   .det-contacto .tel{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border-radius:12px;background:var(--acento);color:var(--sobre);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
   .det-contacto .sin{font-size:15px;font-weight:500;color:var(--suave)}
 
+
+  /* Desbloquear dentro de la app (iPhone: la app instalada no comparte la clave con Safari) */
+  .desbloqueo{text-align:left;line-height:1.5}
+  .desbloqueo .btn-pegar{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin:14px 0 10px;border:0;border-radius:12px;
+       font:inherit;font-weight:800;font-size:16px;cursor:pointer;background:var(--acento,#61422A);color:var(--sobre,#fff)}
+  .desbloqueo input{width:100%;min-height:50px;padding:12px 14px;border:0;border-radius:12px;font:inherit;font-size:16px;
+       background:var(--sup,#fff);color:var(--tinta,#1F1712);box-shadow:inset 0 0 0 1.5px var(--linea,rgba(0,0,0,.12))}
+  .desbloqueo .msg-clave{margin:8px 0 0;font-size:14px;min-height:1.2em}
   .vacio{margin:24px 0;padding:22px;border-radius:var(--r);background:var(--sup);text-align:center;color:var(--suave)}
   .aviso{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--ambbg);color:var(--amb);font-size:14px}
   .aviso .boton{min-height:44px;margin-top:10px;width:100%;background:var(--amb);color:var(--sup)}
@@ -596,6 +604,36 @@ function salidasDe(grupo){
 }
 // Un color por día (los dos de los tipos de reparto, café y frambuesa, no se usan aquí)
 const COLORES_DIA=['#2F6C7A','#4D7A3A','#B07A1E','#3E5C9A','#B4543A','#6D4E9C','#5B6770'];
+
+// DESBLOQUEAR DESDE LA APP (20/10/2026). En iPhone la app instalada no comparte la clave con Safari
+// y no hay barra donde abrir el enlace: se pega aquí. Vale el enlace completo o la clave sola.
+function claveDeTexto(t){
+  t=String(t||'');
+  const m=t.match(/[#&?]k=([0-9a-fA-F]{32})/)||t.match(/^\s*([0-9a-fA-F]{32})\s*$/);
+  return m?m[1].toLowerCase():null;
+}
+function desbloquearCon(t, msg){
+  const k=claveDeTexto(t);
+  if(!k){ if(msg) msg.textContent='Eso no es el enlace completo: tiene que llevar la clave (…#k=…). Pídeselo a la oficina.'; return false; }
+  try{ localStorage.setItem('eventos_clave',k); }catch(e){}
+  if(msg) msg.textContent='Desbloqueado. Cargando…';
+  location.reload(); return true;
+}
+function htmlDesbloqueo(que){
+  return '<div class="desbloqueo"><b>'+que+' bloqueados.</b> Solo hay que desbloquearlos una vez en este móvil: '
+    +'copia el <b>enlace completo</b> que te pasó la oficina (en WhatsApp, mantén pulsado el enlace y toca «Copiar») y pégalo aquí.'
+    +'<button type="button" class="btn-pegar" id="btnPegarClave">Pegar enlace</button>'
+    +'<input type="text" id="campoClave" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…o mantén pulsado aquí y pega">'
+    +'<p class="msg-clave" id="msgClave"></p></div>';
+}
+function activarDesbloqueo(){
+  const msg=document.getElementById('msgClave'), campo=document.getElementById('campoClave'), btn=document.getElementById('btnPegarClave');
+  if(btn) btn.onclick=async()=>{
+    try{ const t=await navigator.clipboard.readText(); desbloquearCon(t,msg); }
+    catch(e){ msg.textContent='No he podido leer lo copiado. Mantén pulsado el recuadro de abajo y toca «Pegar».'; if(campo) campo.focus(); }
+  };
+  if(campo) campo.addEventListener('input',()=>{ if(claveDeTexto(campo.value)) desbloquearCon(campo.value,msg); });
+}
 
 // Ciudad seleccionada: '' = todas. Se recuerda en el movil de cada repartidor.
 let CIUDAD = '';
@@ -1078,7 +1116,7 @@ async function cargarEntregas(){
 (async()=>{
   const r=await descifrarEventos();
   if(r===null){
-    $('pedidos').innerHTML='<p class="vacio">Pedidos bloqueados.<br>Abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.</p>';
+    $('pedidos').innerHTML='<div class="vacio">'+htmlDesbloqueo('Pedidos')+'</div>'; activarDesbloqueo();
     return;
   }
   // Solo REPARTOS (entregas a domicilio). Excluye montajes y también las RECOGIDAS

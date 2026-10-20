@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin internet
-const CACHE = 'montaje-v23';   // v23 (20/10/2026): diseño nuevo de la checklist
+const CACHE = 'montaje-v24';   // v24 (20/10/2026): iconos y manifiesto propios de Repartos y Checklist (iPhone)
 // eventos.js entra aqui el 2026-08-31: sin el, un movil que INSTALE la app sin
 // cobertura se quedaba sin ningun evento hasta tener red. Se sigue pidiendo a la red
 // primero (ver el fetch de abajo), esto es solo la copia de respaldo inicial.
@@ -11,7 +11,11 @@ const ASSETS = ['./', './index.html', './necesidades.html', './montaje2d.html', 
                 // para que la app se vea igual sin cobertura.
                 './fonts/hanken.woff2', './fonts/bodoni.woff2',
                 './iconos/icono-192.png', './iconos/icono-512.png',
-                './iconos/icono-maskable-512.png', './iconos/apple-touch-icon.png'];
+                './iconos/icono-maskable-512.png', './iconos/apple-touch-icon.png',
+                // 2026-10-20: cada app con su icono (furgoneta / tablilla) y la Checklist con manifiesto
+                './checklist-manifest.json',
+                './iconos/repartos-180.png', './iconos/repartos-192.png', './iconos/repartos-512.png', './iconos/repartos-maskable-512.png',
+                './iconos/checklist-180.png', './iconos/checklist-192.png', './iconos/checklist-512.png', './iconos/checklist-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

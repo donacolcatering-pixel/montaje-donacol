@@ -7,7 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Checklist">
-<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="manifest" href="checklist-manifest.json">
+<link rel="apple-touch-icon" href="iconos/checklist-180.png">
 <meta name="theme-color" content="#1B1411">
 <title>Checklist de Montaje · Doña Col</title>
 <style>
@@ -103,6 +104,17 @@
   #evInfo{margin:14px 0 0;font-size:15px;line-height:1.5;color:rgba(241,228,195,.85)}
   #evInfo b{color:var(--nata)}
   #evInfo:empty{display:none}
+  /* Desbloquear dentro de la app (iPhone: la app instalada no comparte la clave con Safari) */
+  .desbloqueo{text-align:left;line-height:1.5}
+  .desbloqueo .btn-pegar{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin:14px 0 10px;border:0;border-radius:12px;
+       font:inherit;font-weight:800;font-size:16px;cursor:pointer;background:var(--acento,#61422A);color:var(--sobre,#fff)}
+  .desbloqueo input{width:100%;min-height:50px;padding:12px 14px;border:0;border-radius:12px;font:inherit;font-size:16px;
+       background:var(--sup,#fff);color:var(--tinta,#1F1712);box-shadow:inset 0 0 0 1.5px var(--linea,rgba(0,0,0,.12))}
+  .desbloqueo .msg-clave{margin:8px 0 0;font-size:14px;min-height:1.2em}
+  #cardEventos .desbloqueo .btn-pegar{background:var(--nata);color:var(--cacao)}
+  #cardEventos .desbloqueo input{background:rgba(241,228,195,.1);color:var(--nata);box-shadow:inset 0 0 0 1.5px rgba(241,228,195,.3)}
+  #cardEventos .desbloqueo input::placeholder{color:rgba(241,228,195,.55)}
+
   #evInfo details{margin-top:10px!important;padding:12px 14px;border-radius:12px;background:rgba(241,228,195,.08)}
   #evInfo summary{color:var(--nata)!important;font-weight:700!important;list-style-position:outside}
   #evInfo summary span{color:#F0B45C!important}
@@ -1241,6 +1253,36 @@ function matchMenu(nombre){
 // Ubicacion del evento. Se pinta aparte y no dentro de la linea gris de info:
 // es el dato que se mira desde la furgoneta, con prisa. La ciudad entra en la
 // busqueda de Maps porque muchas direcciones vienen sin ella ("HALL SALON ARAGON").
+// DESBLOQUEAR DESDE LA APP (20/10/2026). En iPhone la app instalada no comparte la clave con Safari
+// y no hay barra donde abrir el enlace: se pega aquí. Vale el enlace completo o la clave sola.
+function claveDeTexto(t){
+  t=String(t||'');
+  const m=t.match(/[#&?]k=([0-9a-fA-F]{32})/)||t.match(/^\s*([0-9a-fA-F]{32})\s*$/);
+  return m?m[1].toLowerCase():null;
+}
+function desbloquearCon(t, msg){
+  const k=claveDeTexto(t);
+  if(!k){ if(msg) msg.textContent='Eso no es el enlace completo: tiene que llevar la clave (…#k=…). Pídeselo a la oficina.'; return false; }
+  try{ localStorage.setItem('eventos_clave',k); }catch(e){}
+  if(msg) msg.textContent='Desbloqueado. Cargando…';
+  location.reload(); return true;
+}
+function htmlDesbloqueo(que){
+  return '<div class="desbloqueo"><b>'+que+' bloqueados.</b> Solo hay que desbloquearlos una vez en este móvil: '
+    +'copia el <b>enlace completo</b> que te pasó la oficina (en WhatsApp, mantén pulsado el enlace y toca «Copiar») y pégalo aquí.'
+    +'<button type="button" class="btn-pegar" id="btnPegarClave">Pegar enlace</button>'
+    +'<input type="text" id="campoClave" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…o mantén pulsado aquí y pega">'
+    +'<p class="msg-clave" id="msgClave"></p></div>';
+}
+function activarDesbloqueo(){
+  const msg=document.getElementById('msgClave'), campo=document.getElementById('campoClave'), btn=document.getElementById('btnPegarClave');
+  if(btn) btn.onclick=async()=>{
+    try{ const t=await navigator.clipboard.readText(); desbloquearCon(t,msg); }
+    catch(e){ msg.textContent='No he podido leer lo copiado. Mantén pulsado el recuadro de abajo y toca «Pegar».'; if(campo) campo.focus(); }
+  };
+  if(campo) campo.addEventListener('input',()=>{ if(claveDeTexto(campo.value)) desbloquearCon(campo.value,msg); });
+}
+
 // Contacto y teléfonos del evento. Un móvil o fijo por botón; los textos raros («ver correo») no se pintan.
 function telefonosDe(ev){
   const crudos=[ev.tel, ev.movil];
@@ -1644,7 +1686,7 @@ render();calcular();
   if(r===null){
     // hay eventos publicados pero este móvil no tiene la clave
     $('cardEventos').style.display='';
-    $('evInfo').innerHTML='<b>Eventos bloqueados.</b> abre la app una vez con el <b>enlace completo</b> que te pasó la oficina (lleva la clave) y quedarán desbloqueados.';
+    $('evInfo').innerHTML=htmlDesbloqueo('Eventos'); activarDesbloqueo();
     return;
   }
   EVS=r||[];

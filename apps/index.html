@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1B1411">
+<title>Apps de Doña Col · Instalar</title>
+<style>
+  @font-face{font-family:"Hanken";src:url(../fonts/hanken.woff2) format("woff2");font-weight:300 800;font-display:swap}
+  @font-face{font-family:"Bodoni";src:url(../fonts/bodoni.woff2) format("woff2");font-weight:400 700;font-display:swap}
+  :root{--cacao:#1B1411;--cafe:#61422A;--nata:#F1E4C3;--fondo:#F4EFE6;--sup:#fff;--sup2:#EDE5D8;--tinta:#1F1712;--suave:#6B6058;--linea:rgba(31,23,18,.12)}
+  @media (prefers-color-scheme:dark){:root{--fondo:#14100D;--sup:#211915;--sup2:#2C221D;--tinta:#F3EBDD;--suave:#B5A797;--linea:rgba(243,235,221,.14)}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Hanken",system-ui,sans-serif;background:var(--fondo);color:var(--tinta);line-height:1.5}
+  header{background:var(--cacao);color:var(--nata);padding:calc(12px + env(safe-area-inset-top,0px)) 18px 12px;display:flex;align-items:center;gap:12px}
+  header img{width:40px;height:40px;border-radius:50%;background:#FBF4E7;padding:3px}
+  header span{font-family:"Bodoni",Georgia,serif;font-size:22px}
+  main{max-width:600px;margin:0 auto;padding:24px 18px 48px}
+  h1{margin:0;font-family:"Bodoni",Georgia,serif;font-weight:500;font-size:40px;line-height:1.05}
+  .intro{margin:10px 0 0;color:var(--suave);font-size:17px}
+  .seg{display:flex;background:var(--sup2);border-radius:12px;padding:3px;margin:22px 0 0}
+  .seg button{flex:1;min-height:44px;border:0;border-radius:9px;background:none;font:inherit;font-weight:800;font-size:15px;color:var(--suave);cursor:pointer}
+  .seg button.on{background:var(--sup);color:var(--tinta);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .app{display:flex;gap:14px;align-items:center;margin:26px 0 10px}
+  .app img{width:64px;height:64px;border-radius:15px;flex:none}
+  .app h2{margin:0;font-size:22px}
+  .app p{margin:2px 0 0;color:var(--suave);font-size:15px}
+  ol{margin:0;padding:0;list-style:none;counter-reset:p}
+  li{counter-increment:p;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid var(--linea)}
+  li:last-child{border-bottom:0}
+  li::before{content:counter(p);width:28px;height:28px;border-radius:50%;background:var(--cafe);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .boton{display:flex;align-items:center;justify-content:center;min-height:54px;margin:12px 0 4px;border-radius:12px;background:var(--cacao);color:var(--nata);text-decoration:none;font-weight:800;font-size:17px}
+  @media (prefers-color-scheme:dark){.boton{background:var(--nata);color:var(--cacao)}}
+  .tarjeta{padding:4px 16px 12px;border-radius:16px;background:var(--sup);box-shadow:inset 0 0 0 1px var(--linea)}
+  .nota{margin:22px 0 0;padding:14px 16px;border-radius:14px;background:var(--sup2);font-size:15px;color:var(--suave)}
+  .nota b{color:var(--tinta)}
+  [data-so]{display:none} body.ios [data-so=ios], body.android [data-so=android]{display:block}
+  svg{width:18px;height:18px;vertical-align:-3px}
+</style>
+</head>
+<body class="ios">
+<header><img src="../logo.png" alt="Doña Col"><span>Apps de Doña Col</span></header>
+<main>
+  <h1>Instalar las apps</h1>
+  <p class="intro">Repartos para los repartidores y Checklist para los montadores. Se instalan en el móvil con su icono, a pantalla completa, y funcionan sin cobertura con lo último que cargaron.</p>
+
+  <div class="seg" role="tablist">
+    <button data-ver="ios" class="on">iPhone</button>
+    <button data-ver="android">Android</button>
+  </div>
+
+  <!-- ================= iPhone ================= -->
+  <div data-so="ios">
+    <div class="app"><img src="../iconos/repartos-180.png" alt=""><div><h2>Repartos</h2><p>Ruta del día, firma y foto de la entrega</p></div></div>
+    <div class="tarjeta"><ol>
+      <li><span>Abre esta página en <b>Safari</b> (no desde WhatsApp ni Chrome) y toca <b>Abrir Repartos</b>.</span></li>
+      <li><span>Toca <b>Compartir</b> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-4 4 4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg> y luego <b>Añadir a pantalla de inicio</b>.</span></li>
+      <li><span>Abre <b>Repartos</b> desde su icono. La primera vez sale «Pedidos bloqueados».</span></li>
+      <li><span>En WhatsApp, mantén pulsado el <b>enlace completo</b> que te pasó la oficina y toca <b>Copiar</b>. Vuelve a la app y toca <b>Pegar enlace</b>. Listo para siempre.</span></li>
+    </ol>
+    <a class="boton" href="../repartos.html">Abrir Repartos</a></div>
+
+    <div class="app"><img src="../iconos/checklist-180.png" alt=""><div><h2>Checklist</h2><p>Lo que hay que cargar, retorno y fotos del montaje</p></div></div>
+    <div class="tarjeta"><ol>
+      <li><span>En <b>Safari</b>, toca <b>Abrir Checklist</b>.</span></li>
+      <li><span><b>Compartir</b> → <b>Añadir a pantalla de inicio</b>.</span></li>
+      <li><span>Abre <b>Checklist</b> desde su icono y, en «Eventos bloqueados», toca <b>Pegar enlace</b> con el enlace de la oficina copiado.</span></li>
+    </ol>
+    <a class="boton" href="../necesidades.html">Abrir Checklist</a></div>
+
+    <p class="nota">En iPhone cada app instalada guarda su propio desbloqueo: hay que pegar el enlace <b>una vez en cada app</b>, aunque ya lo hayas abierto en Safari.</p>
+  </div>
+
+  <!-- ================= Android ================= -->
+  <div data-so="android">
+    <div class="app"><img src="../iconos/repartos-180.png" alt=""><div><h2>Repartos</h2><p>App para Android (APK)</p></div></div>
+    <div class="tarjeta"><ol>
+      <li><span>Descarga la app y ábrela. Si avisa de «origen desconocido», toca <b>Ajustes → Permitir de esta fuente</b>.</span></li>
+      <li><span>Toca <b>Instalar</b> y ábrela. En el aviso, toca <b>Pegar enlace</b> con el enlace de la oficina copiado.</span></li>
+    </ol>
+    <a class="boton" href="../repartos-app/DonaCol-Repartos.apk" download>Descargar Repartos (3,8 MB)</a></div>
+
+    <div class="app"><img src="../iconos/checklist-180.png" alt=""><div><h2>Checklist</h2><p>Se instala desde Chrome</p></div></div>
+    <div class="tarjeta"><ol>
+      <li><span>En <b>Chrome</b>, toca <b>Abrir Checklist</b>.</span></li>
+      <li><span>Menú <b>⋮</b> → <b>Añadir a pantalla de inicio</b> (o <b>Instalar app</b>).</span></li>
+      <li><span>Ábrela y, en «Eventos bloqueados», toca <b>Pegar enlace</b>.</span></li>
+    </ol>
+    <a class="boton" href="../necesidades.html">Abrir Checklist</a></div>
+  </div>
+</main>
+<script>
+  // Se abre en la pestaña del móvil que lo mira; se puede cambiar a mano
+  var so=/android/i.test(navigator.userAgent)?'android':'ios';
+  function ver(x){document.body.className=x;document.querySelectorAll('.seg button').forEach(function(b){b.classList.toggle('on',b.dataset.ver===x);});}
+  document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){ver(b.dataset.ver);};});
+  ver(so);
+</script>
+</body>
+</html>
