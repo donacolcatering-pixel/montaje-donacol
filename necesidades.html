@@ -1292,7 +1292,7 @@ function activarDesbloqueo(){
 
 // ===== Abrir la APP de mapas, no la web (20/10/2026) =====
 const SO_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const SO_ANDROID=/Android/i.test(navigator.userAgent), EN_APK=/DonaColRepartosApp/.test(navigator.userAgent);
+const SO_ANDROID=/Android/i.test(navigator.userAgent), EN_APK=/DonaCol\w*App/.test(navigator.userAgent);
 function prefMapas(){ try{ return localStorage.getItem('pref_mapas')||'google'; }catch(e){ return 'google'; } }
 function urlAppleMaps(href){
   const u=new URL(href), p=u.searchParams;
